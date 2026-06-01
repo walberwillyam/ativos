@@ -40,3 +40,9 @@ CREATE POLICY "Allow anonymous updates on devices_health"
 -- Ativar o Realtime para a tabela devices_health
 -- Isso fará com que o Supabase avise nosso frontend sempre que houver um UPDATE ou INSERT
 ALTER PUBLICATION supabase_realtime ADD TABLE public.devices_health;
+
+-- ====== NOVA ATUALIZAÇÃO: Adicionando colunas de customização ======
+-- Rode este comando abaixo caso já tenha criado a tabela anteriormente
+ALTER TABLE public.devices_health 
+ADD COLUMN IF NOT EXISTS custom_name TEXT,
+ADD COLUMN IF NOT EXISTS sector TEXT;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Activity, Server, Cpu, HardDrive, Clock } from 'lucide-react';
+import { Activity, Server, Cpu, HardDrive, Clock, Edit2, X } from 'lucide-react';
 
 interface DeviceHealth {
   id: string;
@@ -13,11 +13,15 @@ interface DeviceHealth {
   disk_used: number;
   os_info: string;
   last_ping: string;
+  custom_name?: string;
+  sector?: string;
 }
 
 export default function MonitoringView() {
   const [devices, setDevices] = useState<DeviceHealth[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
+  const [editFormData, setEditFormData] = useState({ custom_name: '', sector: '' });
 
   const fetchDevices = async () => {
     try {
@@ -81,6 +85,28 @@ export default function MonitoringView() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const handleSaveEdit = async () => {
+    if (!editingDevice) return;
+    try {
+      const { error } = await supabase
+        .from('devices_health')
+        .update({
+          custom_name: editFormData.custom_name,
+          sector: editFormData.sector
+        })
+        .eq('id', editingDevice.id);
+
+      if (error) throw error;
+      
+      // Update local state optimisticly (Realtime might also catch it)
+      setDevices(prev => prev.map(d => d.id === editingDevice.id ? { ...d, custom_name: editFormData.custom_name, sector: editFormData.sector } : d));
+      setEditingDevice(null);
+    } catch (err) {
+      console.error("Erro ao salvar:", err);
+      alert("Falha ao salvar. Verifique se as novas colunas foram criadas no banco.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 p-8 flex items-center justify-center">
@@ -119,15 +145,35 @@ export default function MonitoringView() {
                 <div key={device.id} className={`bg-white rounded-xl border ${status === 'online' ? 'border-emerald-200 shadow-emerald-100' : 'border-slate-200'} p-5 shadow-sm transition-all`}>
                   
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                        <Server size={16} className="text-slate-400" />
-                        {device.asset_id}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1">Unidade: {device.unit_id}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <Server size={16} className="text-slate-400" />
+                          {device.custom_name || device.asset_id}
+                        </h3>
+                        <button 
+                          onClick={() => {
+                            setEditingDevice(device);
+                            setEditFormData({ custom_name: device.custom_name || '', sector: device.sector || '' });
+                          }}
+                          className="text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                          title="Editar Nome e Setor"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Unidade: {device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
+                      </p>
+                      {device.custom_name && (
+                        <p className="text-[10px] text-slate-400">Hostname: {device.asset_id}</p>
+                      )}
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                      <span className={`w-2 h-2 rounded-full ${status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-medium inline-flex items-center gap-1 ${status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
                       {status === 'online' ? 'Online' : 'Offline'}
                     </span>
                   </div>
@@ -177,6 +223,65 @@ export default function MonitoringView() {
           </div>
         )}
       </div>
+
+      {/* Modal de Edição */}
+      {editingDevice && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-slate-800">Editar Ativo de Monitoramento</h3>
+              <button onClick={() => setEditingDevice(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Hostname (Fixo)</label>
+                <input 
+                  type="text" 
+                  value={editingDevice.asset_id} 
+                  disabled 
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-500 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Apelido (Nome Customizado)</label>
+                <input 
+                  type="text" 
+                  value={editFormData.custom_name}
+                  onChange={e => setEditFormData({...editFormData, custom_name: e.target.value})}
+                  placeholder="Ex: PC Recepção"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-sm text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Setor</label>
+                <input 
+                  type="text" 
+                  value={editFormData.sector}
+                  onChange={e => setEditFormData({...editFormData, sector: e.target.value})}
+                  placeholder="Ex: Administrativo, Operacional..."
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-sm text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setEditingDevice(null)}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleSaveEdit}
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-md"
+              >
+                Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

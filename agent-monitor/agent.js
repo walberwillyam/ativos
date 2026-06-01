@@ -1,12 +1,13 @@
 require('dotenv').config();
 const si = require('systeminformation');
+const os = require('os');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const ASSET_ID = process.env.ASSET_ID || 'UNKNOWN_ASSET';
+const ASSET_ID = process.env.ASSET_ID || os.hostname();
 const UNIT_ID = process.env.UNIT_ID || 'UNKNOWN_UNIT';
 
 const PING_INTERVAL_MS = 10000; // 10 segundos

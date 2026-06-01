@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "pkg agent.js -t node18-win-x64 -o agent.exe",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,5 +14,8 @@
     "@supabase/supabase-js": "^2.106.2",
     "dotenv": "^17.4.2",
     "systeminformation": "^5.31.7"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
   }
 }
