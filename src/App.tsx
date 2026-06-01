@@ -422,7 +422,7 @@ export default function App() {
         <Sidebar 
           activeScreen={activeScreen} 
           setActiveScreen={setActiveScreen} 
-          totalAssetsCount={12476 + assets.length} 
+          totalAssetsCount={assets.length}
         />
 
         {/* Dynamic content rendering with loading animations */}

@@ -32,20 +32,14 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
   const [filterPeriod, setFilterPeriod] = useState('Últimos 30 dias');
 
   // Compute live responsive metrics to demonstrate deep data flow
-  const liveTotal = 12476 + assets.length;
-  const liveInUseCount = 10480 + assets.filter(a => a.status === 'Em Uso').length;
-  const liveInUsePercent = Math.round((liveInUseCount / liveTotal) * 100);
-  const liveMaintenance = 138 + assets.filter(a => a.status === 'Manutenção').length;
-  const liveCritical = 26 + assets.filter(a => a.status === 'Extraviado').length;
+  const liveTotal = assets.length;
+  const liveInUseCount = assets.filter(a => a.status === 'Em Uso').length;
+  const liveInUsePercent = liveTotal === 0 ? 0 : Math.round((liveInUseCount / liveTotal) * 100);
+  const liveMaintenance = assets.filter(a => a.status === 'Manutenção').length;
+  const liveCritical = assets.filter(a => a.status === 'Extraviado').length;
 
   // Compute category distributions
-  const categoryCounts: Record<string, number> = {
-    "Notebooks": 3200,
-    "Desktops": 1800,
-    "Switches": 1100,
-    "Monitores": 2400,
-    "Nobreaks": 600,
-  };
+  const categoryCounts: Record<string, number> = {};
 
   assets.forEach(asset => {
     if (categoryCounts[asset.category] !== undefined) {
@@ -55,14 +49,14 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
     }
   });
 
-  const maxVal = Math.max(...Object.values(categoryCounts));
+  const maxVal = Math.max(...Object.values(categoryCounts), 0);
 
   // Distributions by units
   const unitsCounts = {
-    "Sede Matriz": 5410 + assets.filter(a => a.unit.includes("Matriz")).length,
-    "Posto Operacional A": 3108 + assets.filter(a => a.unit.includes("Rio")).length,
-    "Posto Operacional B": 2848 + assets.filter(a => a.unit.includes("Paraná")).length,
-    "CD Logístico": 1100 + assets.filter(a => a.unit.includes("CD") || a.unit.includes("Depósito")).length,
+    "Sede Matriz": assets.filter(a => a.unit.includes("Matriz")).length,
+    "Posto Operacional A": assets.filter(a => a.unit.includes("Rio")).length,
+    "Posto Operacional B": assets.filter(a => a.unit.includes("Paraná")).length,
+    "CD Logístico": assets.filter(a => a.unit.includes("CD") || a.unit.includes("Depósito")).length,
   };
 
   const totalUnitAssets = Object.values(unitsCounts).reduce((a, b) => a + b, 0);
