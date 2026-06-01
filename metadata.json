@@ -1,0 +1,6 @@
+{
+  "name": "Ativos Apoio",
+  "description": "Sistema moderno de gestão de ativos corporativos com visões de dashboard executivo, inventário completo, mapa interativo de localização e leitor QR de auditoria rápido.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
