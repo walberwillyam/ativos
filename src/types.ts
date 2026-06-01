@@ -45,7 +45,7 @@ export interface Asset {
   imageUrl?: string;
 }
 
-export type ActiveScreen = 'dashboard' | 'inventory' | 'units' | 'scanner' | 'detail';
+export type ActiveScreen = 'dashboard' | 'inventory' | 'units' | 'scanner' | 'detail' | 'monitoring';
 
 export interface QueryFilters {
   unit: string;

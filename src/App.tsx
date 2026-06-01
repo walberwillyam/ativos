@@ -34,6 +34,7 @@ import InventoryView from './components/InventoryView';
 import ActiveMapView from './components/ActiveMapView';
 import AssetDetailView from './components/AssetDetailView';
 import ScannerMobileView from './components/ScannerMobileView';
+import MonitoringView from './components/MonitoringView';
 import AuthScreen from './components/AuthScreen';
 import { supabase } from './lib/supabaseClient';
 
@@ -484,6 +485,9 @@ export default function App() {
               }}
             />
           )}
+
+          {/* Monitoring Dashboard View */}
+          {activeScreen === 'monitoring' && <MonitoringView />}
 
           {/* Dynamic Mock views resolved safely */}
           {activeScreen === 'categories' && renderCategoriesScreen()}

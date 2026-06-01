@@ -13,7 +13,8 @@ import {
   HelpCircle, 
   LogOut,
   QrCode,
-  UserCheck
+  UserCheck,
+  Activity
 } from 'lucide-react';
 import { ActiveScreen } from '../types';
 
@@ -30,6 +31,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
     { id: 'units', label: 'Unidades', icon: MapPin },
     { id: 'categories', label: 'Categorias', icon: Tags },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
+    { id: 'monitoring', label: 'Monitoramento', icon: Activity },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
