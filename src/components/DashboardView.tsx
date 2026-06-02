@@ -52,21 +52,67 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
   const maxVal = Math.max(...Object.values(categoryCounts), 0);
 
   // Distributions by units
-  const unitsCounts = {
-    "Sede Matriz": assets.filter(a => a.unit.includes("Matriz")).length,
-    "Posto Operacional A": assets.filter(a => a.unit.includes("Rio")).length,
-    "Posto Operacional B": assets.filter(a => a.unit.includes("Paraná")).length,
-    "CD Logístico": assets.filter(a => a.unit.includes("CD") || a.unit.includes("Depósito")).length,
-  };
+  const unitsCounts: Record<string, number> = {};
+  assets.forEach(asset => {
+    if (!asset.unit) return;
+    unitsCounts[asset.unit] = (unitsCounts[asset.unit] || 0) + 1;
+  });
 
   const totalUnitAssets = Object.values(unitsCounts).reduce((a, b) => a + b, 0);
 
   // Expiring warranties
-  const expiringWarranties = [
-    { name: "MacBook Pro 14\"", id: "KINETIC-8821", date: "12 Mai, 2024", status: "Expirado", color: "text-rose-500", dot: "bg-rose-500", icon: Cpu },
-    { name: "Cisco Nexus 9000", id: "KINETIC-8800", date: "05 Jun, 2024", status: "30 Dias", color: "text-amber-500", dot: "bg-amber-500", icon: RefreshCw },
-    { name: "HP Enterprise M608", id: "ADM-IMP-22", date: "22 Jul, 2024", status: "60+ Dias", color: "text-slate-500", dot: "bg-slate-50 dark:bg-slate-8000", icon: Printer },
-  ];
+  const now = new Date();
+  const expiringWarranties = assets
+    .filter(a => a.warrantyExpiry)
+    .map(asset => {
+      const parts = asset.warrantyExpiry.split('-');
+      if (parts.length !== 3) return null;
+      const expiryDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const diffTime = expiryDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      let status = "";
+      let color = "";
+      let dot = "";
+      if (diffDays < 0) {
+        status = "Expirado";
+        color = "text-rose-500";
+        dot = "bg-rose-500";
+      } else if (diffDays <= 30) {
+        status = "30 Dias";
+        color = "text-amber-500";
+        dot = "bg-amber-500";
+      } else if (diffDays <= 90) {
+        status = "90 Dias";
+        color = "text-emerald-500";
+        dot = "bg-emerald-500";
+      } else {
+        return null;
+      }
+      
+      let icon = Cpu;
+      if (asset.category === 'Redes') icon = RefreshCw;
+      else if (asset.category === 'Periféricos') icon = Printer;
+      else if (asset.category === 'Computadores') icon = Monitor;
+
+      return {
+        id: asset.id,
+        name: asset.name,
+        date: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(expiryDate),
+        status,
+        color,
+        dot,
+        icon,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (!a || !b) return 0;
+      if (a.status === 'Expirado' && b.status !== 'Expirado') return -1;
+      if (a.status !== 'Expirado' && b.status === 'Expirado') return 1;
+      return 0;
+    })
+    .slice(0, 5) as any[];
 
   return (
     <div id="dashboard-view" className="space-y-6 max-w-7xl mx-auto">
@@ -247,12 +293,10 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
           <p className="text-xs text-slate-400 dark:text-slate-500 mb-5">Alocação geográfica ativa das cargas de patrimônio</p>
 
           <div className="space-y-4">
-            {Object.entries(unitsCounts).map(([un, count]) => {
-              const pct = totalUnitAssets > 0 ? Math.round((count / totalUnitAssets) * 100) : 25;
-              let barColor = 'bg-indigo-600';
-              if (un.includes("Operacional A")) barColor = 'bg-violet-500';
-              if (un.includes("Operacional B")) barColor = 'bg-teal-500';
-              if (un.includes("CD Logístico")) barColor = 'bg-slate-50 dark:bg-slate-8000';
+            {Object.entries(unitsCounts).map(([un, count], index) => {
+              const pct = totalUnitAssets > 0 ? Math.round((count / totalUnitAssets) * 100) : 0;
+              const colors = ['bg-indigo-600', 'bg-violet-500', 'bg-teal-500', 'bg-emerald-500', 'bg-blue-500'];
+              const barColor = colors[index % colors.length];
 
               return (
                 <div key={un} className="space-y-1.5">
@@ -295,6 +339,13 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
+                {expiringWarranties.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-sm">
+                      Nenhum ativo com garantia prestes a expirar.
+                    </td>
+                  </tr>
+                )}
                 {expiringWarranties.map((w) => {
                   const Icon = w.icon;
                   // Look up actual asset object

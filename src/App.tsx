@@ -255,12 +255,6 @@ export default function App() {
 
   // Quick custom reports dashboard layout view
   const renderReportsScreen = () => {
-    const reportTemplates = [
-      { id: "rep-1", title: "Inventário Geral Físico Anual", desc: "Listagem unificada contendo termos de depreciação e responsabilidades técnicas no ano de 2026.", format: "XLSX / PDF • 1.4 MB", update: "Gerado ontem" },
-      { id: "rep-2", title: "Termos de Responsabilidade Pendentes", desc: "Fichas técnicas em circulação que necessitam de assinatura eletrônica dos colaboradores.", format: "PDF • 650 KB", update: "Atualizado em tempo real" },
-      { id: "rep-3", title: "SLA Operacional de Manuteção TI", desc: "Indicadores qualitativos detalhados de tempos de reparo de hardware.", format: "CSV / XLSX • 4.2 MB", update: "Agendado semanal" },
-    ];
-
     return (
       <div id="reports-section" className="space-y-6 max-w-7xl mx-auto pb-10">
         <div>
@@ -271,31 +265,18 @@ export default function App() {
           <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Exportação e auditoria legal da carga de ativos patrimoniais para controladoria.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {reportTemplates.map((rep) => (
-            <div key={rep.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-6 rounded-3xl shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                  Auditoria Regulada
-                </span>
-                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-4 leading-tight">{rep.title}</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 leading-relaxed">{rep.desc}</p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center text-xs">
-                <div>
-                  <p className="text-slate-400 dark:text-slate-500 font-medium select-none">{rep.format}</p>
-                  <p className="text-[10px] text-indigo-600 font-bold mt-1 uppercase">{rep.update}</p>
-                </div>
-                <button 
-                  onClick={() => alert(`Documento '${rep.title}' preparado para download!`)}
-                  className="bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold text-xs shadow"
-                >
-                  Download
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-8 rounded-3xl shadow-sm text-center">
+          <FileSpreadsheet size={48} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Relatórios Customizados</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-md mx-auto">
+            Gere relatórios reais com base na sua base de dados atual. 
+          </p>
+          <button 
+            onClick={() => alert(`Gerando relatório geral de ativos...`)}
+            className="bg-indigo-700 hover:bg-indigo-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow inline-flex items-center gap-2 transition"
+          >
+            Gerar Planilha Geral
+          </button>
         </div>
       </div>
     );

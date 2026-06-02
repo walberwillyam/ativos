@@ -488,7 +488,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Pesquisar por ID, Nome, Nº Patrimônio, Série, Modelo, Responsável..."
-            className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm w-full focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none transition-all placeholder:text-slate-400 dark:text-slate-500"
+            className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm w-full focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400 dark:text-slate-500"
           />
         </div>
 
@@ -634,6 +634,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   />
                 </th>
                 <th className="px-5 py-3.5">ID Interno</th>
+                <th className="px-5 py-3.5">Nome</th>
                 <th className="px-5 py-3.5">Patrimônio</th>
                 <th className="px-5 py-3.5">Categoria</th>
                 <th className="px-5 py-3.5">Modelo / Marca</th>
@@ -686,6 +687,9 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                         >
                           {asset.id}
                         </button>
+                      </td>
+                      <td className="px-5 py-3 text-xs font-bold text-slate-800 dark:text-slate-100 truncate max-w-[160px]" title={asset.name}>
+                        {asset.name}
                       </td>
                       <td className="px-5 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-xs">{asset.patrimonio}</td>
                       <td className="px-5 py-3">
@@ -774,7 +778,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   value={newAssetForm.name}
                   onChange={(e) => setNewAssetForm(prev => ({ ...prev, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
@@ -787,7 +791,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     placeholder="Ex: #PAT-004452" 
                     value={newAssetForm.patrimonio}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, patrimonio: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -796,7 +800,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     id="form-asset-category"
                     value={newAssetForm.category}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {categories.length > 0 ? (
                       categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
@@ -824,7 +828,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     value={newAssetForm.model}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, model: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -835,7 +839,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     placeholder="Ex: LNV-88339281-Z" 
                     value={newAssetForm.serialNumber}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, serialNumber: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
@@ -861,7 +865,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                         currentFloor: matchedParts[0]?.id || 'office' 
                       }));
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {units.map((u) => (
                       <option key={u.id} value={u.name}>{u.name}</option>
@@ -874,7 +878,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     id="form-current-floor"
                     value={newAssetForm.currentFloor}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, currentFloor: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {(units.find(u => u.name === newAssetForm.unit)?.partitions || [
                       { id: 'office', label: 'Escritório' },
@@ -894,7 +898,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     placeholder="Ex: Sala B - Mesa 04" 
                     value={newAssetForm.location}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
@@ -908,7 +912,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     placeholder="Ex: Carlos Eduardo" 
                     value={newAssetForm.responsibleName}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, responsibleName: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -917,7 +921,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     id="form-status"
                     value={newAssetForm.status}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, status: e.target.value as AssetStatus }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     <option>Em Uso</option>
                     <option>Manutenção</option>

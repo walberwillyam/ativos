@@ -233,7 +233,102 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
     onUpdateAsset(updatedAsset);
     setIsEditOpen(false);
+
+    onAddActivity({
+      type: "maintenance",
+      title: "Ativo Editado",
+      details: `Ficha técnica de ${asset.name} (#${asset.id}) foi atualizada.`,
+      by: editForm.responsibleName,
+      icon: "build",
+      badgeColor: "bg-indigo-500"
+    });
+
     alert(`Dados técnicos da ficha patrimonial do ativo atualizados com sucesso!`);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'docs' | 'photos') => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      try {
+        const fileName = `${asset.id}/${type}/${Date.now()}_${file.name.replace(/\\s+/g, '_')}`;
+        // Using a generic bucket name 'ativos_arquivos', make sure to create it in Supabase
+        const { data, error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file);
+        if (error) {
+          console.error("Supabase Error:", error);
+          alert("Erro ao enviar. Verifique se o bucket 'ativos_arquivos' está criado e público no Supabase Storage.");
+          return;
+        }
+        
+        const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(fileName);
+        
+        // Save references in specifications to avoid schema errors if columns don't exist
+        const currentDocs = asset.specifications.documents ? JSON.parse(asset.specifications.documents) : [];
+        const currentPhotos = asset.specifications.photos ? JSON.parse(asset.specifications.photos) : [];
+
+        if (type === 'docs') {
+          currentDocs.push({
+            name: file.name,
+            size: formatBytes(file.size),
+            date: new Date().toLocaleDateString('pt-BR'),
+            url: urlData.publicUrl
+          });
+        } else {
+          currentPhotos.push(urlData.publicUrl);
+        }
+
+        const newStep: TimelineStep = {
+          id: `step-${type}-${Date.now()}`,
+          title: type === 'docs' ? 'Documento Anexado' : 'Foto Anexada',
+          responsible: 'Usuário do Sistema',
+          date: new Date().toISOString().split('T')[0],
+          time: new Date().toTimeString().slice(0, 5),
+          type: 'creation',
+          description: `Arquivo ${file.name} foi enviado com sucesso.`,
+          attachmentName: type === 'docs' ? file.name : undefined
+        };
+
+        const updatedAsset: Asset = {
+          ...asset,
+          specifications: {
+            ...asset.specifications,
+            documents: JSON.stringify(currentDocs),
+            photos: JSON.stringify(currentPhotos)
+          },
+          history: [newStep, ...asset.history]
+        };
+
+        onUpdateAsset(updatedAsset);
+        alert(`${type === 'docs' ? 'Documento' : 'Foto'} enviado com sucesso!`);
+      } catch (err) {
+        console.error(err);
+        alert("Ocorreu um erro ao processar o arquivo.");
+      }
+    }
+  };
+
+  const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      try {
+        const fileName = `${asset.id}/cover/${Date.now()}_${file.name.replace(/\\s+/g, '_')}`;
+        const { data, error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file);
+        if (error) {
+          console.error("Supabase Error:", error);
+          alert("Erro ao enviar. Verifique se o bucket 'ativos_arquivos' está criado e público.");
+          return;
+        }
+        const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(fileName);
+        
+        onUpdateAsset({
+          ...asset,
+          imageUrl: urlData.publicUrl
+        });
+        alert("Foto de capa atualizada!");
+      } catch (err) {
+        console.error(err);
+        alert("Ocorreu um erro ao processar a imagem.");
+      }
+    }
   };
 
   return (
@@ -305,15 +400,19 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 alt={asset.name} 
                 className="w-full h-full object-cover opacity-90 hover:scale-105 duration-700" 
               />
-              <div className="absolute top-4 left-4">
+              <div className="absolute top-4 left-4 z-10">
                 <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider text-white shadow flex items-center gap-1.5 ${
                   asset.status === 'Em Uso' ? 'bg-emerald-600' :
-                  asset.status === 'Manutenção' ? 'bg-amber-500' : 'bg-slate-50 dark:bg-slate-8000'
+                  asset.status === 'Manutenção' ? 'bg-amber-500' : 'bg-slate-50 dark:bg-slate-8000 text-slate-800'
                 }`}>
                   <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-900 animate-pulse" />
                   {asset.status}
                 </span>
               </div>
+              <label className="absolute bottom-4 right-4 bg-black/40 hover:bg-black/60 backdrop-blur text-white p-2.5 rounded-full cursor-pointer transition shadow-sm z-10">
+                <Camera size={20} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleMainPhotoUpload} />
+              </label>
             </div>
 
             {/* Asset specifications metadata */}
@@ -539,73 +638,87 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
             {activeTab === 'audit' && (
               <div className="space-y-4 select-none">
-                <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs mb-3 bg-indigo-50 px-3 py-1.5 rounded-lg w-fit">
+                <div className="flex items-center gap-2 text-slate-500 font-bold text-xs mb-3">
                   <FileCheck2 size={14} />
-                  <span>SLA Auditoria Interna Homologado</span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/85 rounded-xl">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500 block mb-1">Última Verificação</span>
-                    <p className="text-slate-800 dark:text-slate-100 text-sm font-bold">15 de Março, 2026</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Status na auditoria: Sem divergências físicas constatadas.</p>
-                  </div>
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/85 rounded-xl">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500 block mb-1">Frequência Legal</span>
-                    <p className="text-slate-800 dark:text-slate-100 text-sm font-bold">Semestral</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Próxima conferência por varredora RFID agendada para 09/2026.</p>
-                  </div>
-                </div>
-
-                <div className="border border-slate-150 rounded-xl p-4 space-y-2 mt-4 text-xs">
-                  <span className="font-bold text-slate-700 dark:text-slate-200 block text-xs">Instruções de Manuseio Contratuais</span>
-                  <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 leading-relaxed">Este equipamento deve ser movimentado apenas sob acompanhamento da gerência de infraestrutura local de polo. Alterações físicas em rack requerem notificação prévia syslog via central.</p>
+                  <span>Nenhum dado de auditoria disponível no momento.</span>
                 </div>
               </div>
             )}
 
-            {activeTab === 'docs' && (
-              <div className="space-y-2 select-none">
-                {[
-                  { name: "Nota_Fiscal_EMC_Compra.pdf", size: "1.2 MB", date: "12 Mai 2023" },
-                  { name: "Contrato_Suporte_Premium_Dell_Pro.pdf", size: "4.5 MB", date: "20 Mai 2023" },
-                  { name: "Guia_Procedimento_CPD_Setor-4.pdf", size: "850 KB", date: "15 Jan 2024" },
-                ].map((doc, i) => (
-                  <div 
-                    key={i} 
-                    onClick={() => alert(`Visualizando documento corporativo: ${doc.name}`)}
-                    className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 dark:bg-slate-800 cursor-pointer transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <FileText size={18} className="text-indigo-600" />
-                      <div>
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{doc.name}</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{doc.size} • Data: {doc.date}</p>
-                      </div>
+            {activeTab === 'docs' && (() => {
+              const docsList = asset.specifications.documents ? JSON.parse(asset.specifications.documents) : [];
+              return (
+                <div className="space-y-4 select-none">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Arquivos Anexados</span>
+                    <label className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-indigo-100 transition">
+                      + Anexar Documento
+                      <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'docs')} />
+                    </label>
+                  </div>
+                  {docsList.length === 0 ? (
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs py-4">
+                      <span>Nenhum documento anexado a este ativo.</span>
                     </div>
-                    <ChevronRight size={14} className="text-slate-400 dark:text-slate-500" />
-                  </div>
-                ))}
-              </div>
-            )}
+                  ) : (
+                    <div className="space-y-2">
+                      {docsList.map((doc: any, i: number) => (
+                        <a 
+                          key={i} 
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 dark:bg-slate-800 cursor-pointer transition block"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <FileText size={18} className="text-indigo-600" />
+                            <div>
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{doc.name}</p>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{doc.size} • Data: {doc.date}</p>
+                            </div>
+                          </div>
+                          <ChevronRight size={14} className="text-slate-400 dark:text-slate-500" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
-            {activeTab === 'photos' && (
-              <div className="grid grid-cols-3 gap-3 select-none">
-                {[
-                  "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=300",
-                  "https://images.unsplash.com/photo-1597852074816-d933c7d2b988?auto=format&fit=crop&q=80&w=300",
-                  "https://images.unsplash.com/photo-1629654297299-c8506221ca97?auto=format&fit=crop&q=80&w=300"
-                ].map((photo, i) => (
-                  <div 
-                    key={i} 
-                    className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200 dark:border-slate-700 group cursor-zoom-in"
-                    onClick={() => alert("Exibindo foto em tamanho real...")}
-                  >
-                    <img src={photo} alt="Foto técnica do Ativo" className="w-full h-full object-cover group-hover:scale-110 duration-200" />
+            {activeTab === 'photos' && (() => {
+              const photosList = asset.specifications.photos ? JSON.parse(asset.specifications.photos) : [];
+              return (
+                <div className="space-y-4 select-none">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Galeria de Imagens</span>
+                    <label className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-indigo-100 transition">
+                      + Adicionar Foto
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'photos')} />
+                    </label>
                   </div>
-                ))}
-              </div>
-            )}
+                  {photosList.length === 0 ? (
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs py-4">
+                      <span>Nenhuma foto na galeria.</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-3">
+                      {photosList.map((photo: string, i: number) => (
+                        <a 
+                          key={i} 
+                          href={photo}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200 dark:border-slate-700 group cursor-zoom-in block"
+                        >
+                          <img src={photo} alt="Foto técnica do Ativo" className="w-full h-full object-cover group-hover:scale-110 duration-200" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Footer Timeline indicator count */}
@@ -658,7 +771,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   onChange={(e) => setTransferTargetLoc(e.target.value)}
                   placeholder="Ex: CPD B - Rack C10"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
@@ -728,7 +841,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   onChange={(e) => setMaintenanceService(e.target.value)}
                   placeholder="Ex: Troca preventiva de cooler ou reinstalação de SO"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
@@ -740,7 +853,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   value={maintenanceTechnicalName}
                   onChange={(e) => setMaintenanceTechnicalName(e.target.value)}
                   placeholder="Ex: Laboratório ou Suporte Autorizado Dell"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
             </div>
@@ -782,7 +895,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
@@ -793,7 +906,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.patrimonio}
                     onChange={(e) => setEditForm(prev => ({ ...prev, patrimonio: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -801,7 +914,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <select 
                     value={editForm.category}
                     onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {categories.length > 0 ? (
                       categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
@@ -827,7 +940,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     value={editForm.model}
                     onChange={(e) => setEditForm(prev => ({ ...prev, model: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -836,7 +949,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.serialNumber}
                     onChange={(e) => setEditForm(prev => ({ ...prev, serialNumber: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
@@ -861,7 +974,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                         currentFloor: matchedParts[0]?.id || 'office' 
                       }));
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {units.map((u) => (
                       <option key={u.id} value={u.name}>{u.name}</option>
@@ -873,7 +986,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <select 
                     value={editForm.currentFloor}
                     onChange={(e) => setEditForm(prev => ({ ...prev, currentFloor: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {(units.find(u => u.name === editForm.unit)?.partitions || [
                       { id: 'office', label: 'Escritório' },
@@ -891,7 +1004,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.location}
                     onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
@@ -903,7 +1016,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.responsibleName}
                     onChange={(e) => setEditForm(prev => ({ ...prev, responsibleName: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -911,7 +1024,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <select 
                     value={editForm.status}
                     onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     <option>Em Uso</option>
                     <option>Manutenção</option>
