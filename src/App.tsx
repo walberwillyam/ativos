@@ -366,7 +366,7 @@ export default function App() {
   }
 
   return (
-    <div id="app-root-container" className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div id="app-root-container" className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col font-sans">
       {/* Universal Top Header bar of the high fidelity application */}
       <Navbar 
         setActiveScreen={setActiveScreen} 

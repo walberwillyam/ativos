@@ -443,8 +443,8 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       {/* Header action menu */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Gestão de Ativos</h2>
-          <p className="text-slate-500 mt-1">Visualize, filtre e gerencie o ciclo de vida completo de seus ativos de TI e mobiliário corporativos.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Gestão de Ativos</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize, filtre e gerencie o ciclo de vida completo de seus ativos de TI e mobiliário corporativos.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -645,17 +645,17 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 <th className="px-5 py-3.5 text-center w-16">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredAssets.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="text-center py-24 px-6">
                     <div className="max-w-md mx-auto flex flex-col items-center">
-                      <Layers size={48} className="text-slate-300 animate-pulse" />
-                      <h4 className="font-bold text-slate-700 mt-4">Nenhum ativo localizado</h4>
+                      <Layers size={48} className="text-slate-300 dark:text-slate-700 animate-pulse" />
+                      <h4 className="font-bold text-slate-700 dark:text-slate-200 mt-4">Nenhum ativo localizado</h4>
                       <p className="text-slate-400 text-xs mt-1">Refine seus filtros de busca ou termine digitando outro termo para pesquisar.</p>
                       <button 
                         onClick={handleClearFilters}
-                        className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg"
+                        className="mt-4 px-4 py-2 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 text-xs font-bold rounded-lg"
                       >
                         Limpar Todos Filtros
                       </button>
@@ -668,7 +668,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   return (
                     <tr 
                       key={asset.id} 
-                      className={`group hover:bg-slate-50 transition-colors ${isChecked ? 'bg-indigo-50/40' : ''}`}
+                      className={`group hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isChecked ? 'bg-indigo-50/40 dark:bg-indigo-900/20' : ''}`}
                     >
                       <td className="px-4 py-3 text-center">
                         <input 
@@ -676,7 +676,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                           id={`row-select-${asset.id}`}
                           checked={isChecked}
                           onChange={(e) => handleSelectRow(asset.id, e.target.checked)}
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer h-4 w-4"
+                          className="rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-600 cursor-pointer h-4 w-4"
                         />
                       </td>
                       <td className="px-5 py-3">

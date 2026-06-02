@@ -73,14 +73,14 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
       {/* Executive Welcome Section */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-5">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             Visão Geral Executiva 
-            <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-medium flex items-center gap-1">
+            <span className="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded font-medium flex items-center gap-1">
               <Sparkles size={12} />
               Tempo Real
             </span>
           </h2>
-          <p className="text-slate-500 mt-1 select-none">Dados consolidados da rede operacional e ativos corporativos em atividade.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 select-none">Dados consolidados da rede operacional e ativos corporativos em atividade.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -179,16 +179,40 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
         </div>
       </section>
 
+      {/* TOP KPI METRICS - Main Focus */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total em Operação", val: activeAssets, sub: "+12 ativos nesta semana", icon: Laptop, color: "indigo" },
+          { label: "Alertas Manutenção", val: maintenanceAssets, sub: "Prioridade: Unidade CD Logístico", icon: AlertTriangle, color: "amber" },
+          { label: "Baixa / Descartados", val: discardedAssets, sub: "Equipamentos em processo final", icon: ArchiveX, color: "rose" },
+          { label: "Auditoria Finalizada", val: "92%", sub: "Unidades Matriz e SP Auditadas", icon: CheckCircle2, color: "emerald" },
+        ].map((kpi, idx) => {
+          const IconComponent = kpi.icon;
+          return (
+            <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between select-none">
+              <div className="flex justify-between items-start mb-4">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center bg-${kpi.color}-50 dark:bg-${kpi.color}-900/20 text-${kpi.color}-600 dark:text-${kpi.color}-400`}>
+                  <IconComponent size={20} />
+                </div>
+                <button className="text-slate-400 hover:text-slate-600 transition"><MoreVertical size={16} /></button>
+              </div>
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{kpi.val}</h3>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1">{kpi.label}</p>
+                <p className={`text-[10px] font-bold text-${kpi.color}-500 mt-2`}>{kpi.sub}</p>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
       {/* Main Content Charts & Activity Feed */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Bar Chart: Assets by Category */}
-        <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[380px]">
+        {/* Middle Left: Category Volume Chart Simulation */}
+        <div className="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="text-lg font-bold text-slate-900">Ativos por Categoria</h4>
-              <p className="text-xs text-slate-400">Distribuição geral quantitativa de equipamentos</p>
-            </div>
-            <span className="text-xs font-semibold text-indigo-700 hover:underline cursor-pointer select-none">Filtro Rápido</span>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white select-none">Volume por Categoria (TI & Telecom)</h3>
+            <button className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">Ver Detalhamento</button>
           </div>
 
           <div className="flex-1 flex items-end justify-between gap-4 h-64 pt-4 select-none">
@@ -196,7 +220,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
               const heightPercent = maxVal > 0 ? (val / maxVal) * 90 : 10;
               return (
                 <div key={cat} className="flex flex-col items-center flex-1 group">
-                  <div className="w-full bg-slate-100 rounded-t-xl relative h-48 flex items-end overflow-hidden">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-t-xl relative h-48 flex items-end overflow-hidden">
                     <div 
                       className="w-full bg-indigo-600/80 group-hover:bg-indigo-600 rounded-t-xl transition-all duration-700 ease-out relative cursor-pointer"
                       style={{ height: `${heightPercent}%` }}
@@ -206,7 +230,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                       </span>
                     </div>
                   </div>
-                  <span className="text-[11px] font-bold text-slate-500 mt-2 text-center truncate w-full group-hover:text-slate-800">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-2 text-center truncate w-full group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                     {cat}
                   </span>
                 </div>
@@ -216,8 +240,8 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
         </div>
 
         {/* Right: Recent Activity feed logs */}
-        <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <h4 className="text-lg font-bold text-slate-900 mb-5">Atividade Recente</h4>
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+          <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Atividade Recente</h4>
           <div className="space-y-5">
             {activities.slice(0, 3).map((act, index) => (
               <div key={act.id || index} className="flex gap-4">
@@ -227,11 +251,11 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                     {act.icon === 'build' && <Wrench size={14} />}
                     {act.icon === 'add_circle' && <Boxes size={14} />}
                   </div>
-                  {index < 2 && <div className="w-0.5 bg-slate-100 flex-1 my-1" />}
+                  {index < 2 && <div className="w-0.5 bg-slate-100 dark:bg-slate-800 flex-1 my-1" />}
                 </div>
                 <div className="pb-2">
-                  <p className="text-sm font-bold text-slate-800 leading-tight">{act.title}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{act.details}</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">{act.title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{act.details}</p>
                   <p className="text-[10px] text-slate-400 mt-1 font-medium">{act.time} • Por {act.by}</p>
                 </div>
               </div>
@@ -243,8 +267,8 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
       {/* Bottom Grid: Distributions & Warranties */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Distribuição por Unidade */}
-        <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <h4 className="text-lg font-bold text-slate-900 mb-1">Distribuição por Unidade</h4>
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Distribuição por Unidade</h4>
           <p className="text-xs text-slate-400 mb-5">Alocação geográfica ativa das cargas de patrimônio</p>
 
           <div className="space-y-4">
@@ -257,13 +281,13 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
 
               return (
                 <div key={un} className="space-y-1.5">
-                  <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
+                  <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <span>{un}</span>
-                    <span className="text-slate-500 font-mono font-bold">
+                    <span className="text-slate-500 dark:text-slate-400 font-mono font-bold">
                       {count.toLocaleString('pt-BR')} ({pct}%)
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div className={`${barColor} h-full rounded-full`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>

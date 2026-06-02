@@ -50,14 +50,14 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
                 alt="Foto de Perfil Administrativo" 
                 className="w-10 h-10 rounded-xl object-cover border-2 border-indigo-600 shadow"
               />
-              <span className="absolute -bottom-1 -right-1 bg-emerald-500 w-3 h-3 rounded-full border-2 border-white" />
+              <span className="absolute -bottom-1 -right-1 bg-emerald-500 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800" />
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-slate-800 text-sm truncate">Admin Geral</p>
-              <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                <UserCheck size={10} className="text-emerald-500" />
-                <span className="truncate">Atendimento Ativo</span>
-              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-0.5">Admin Geral</h3>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Atendimento Ativo
+              </p>
             </div>
           </div>
         </div>
@@ -68,28 +68,26 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
             const IconComponent = item.icon;
             const isSelected = activeScreen === item.id || (item.id === 'inventory' && activeScreen === 'detail');
             return (
-              <button
+              <button 
                 key={item.id}
                 id={`side-nav-btn-${item.id}`}
                 onClick={() => setActiveScreen(item.id as ActiveScreen)}
-                className={`flex items-center justify-between w-full px-4 py-3 rounded-lg text-sm font-medium transition-all group ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 mb-1 font-bold ${
                   isSelected 
-                    ? 'bg-indigo-50 border-r-4 border-indigo-700 text-indigo-700 font-bold' 
-                    : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <IconComponent 
                     size={18} 
-                    className={`transition-colors ${isSelected ? 'text-indigo-700' : 'text-slate-400 group-hover:text-slate-600'}`} 
+                    className={`transition-colors ${isSelected ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`} 
                   />
                   <span>{item.label}</span>
                 </div>
-                {item.id === 'inventory' && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                    isSelected ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    {totalAssetsCount}
+                {item.badge !== undefined && (
+                  <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full text-[10px] font-black">
+                    {item.badge}
                   </span>
                 )}
               </button>
@@ -99,17 +97,17 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
       </div>
 
       {/* Support & Logout Footer */}
-      <div className="p-4 border-t border-slate-200 space-y-1 bg-slate-50">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-1 bg-slate-50 dark:bg-slate-900">
         <button 
           id="side-nav-btn-support"
           onClick={() => setActiveScreen('scanner')}
           className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-all group ${
             activeScreen === 'scanner'
-              ? 'bg-indigo-50 border-r-4 border-indigo-700 text-indigo-700'
-              : 'text-slate-600 hover:bg-slate-200'
+              ? 'bg-indigo-50 dark:bg-indigo-900/30 border-r-4 border-indigo-700 text-indigo-700 dark:text-indigo-400'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >
-          <QrCode size={18} className={activeScreen === 'scanner' ? 'text-indigo-700' : 'text-slate-400 group-hover:text-slate-600'} />
+          <QrCode size={18} className={activeScreen === 'scanner' ? 'text-indigo-700' : 'text-slate-400'} />
           <span>Leitor QR Rápido</span>
         </button>
 
@@ -117,18 +115,18 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
           id="side-nav-btn-help"
           href="#help"
           onClick={(e) => { e.preventDefault(); alert("Central de Suporte: Ligue para o ramal 4004 ou envie um e-mail para suporte@ativosapoio.com.br"); }}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-200 transition-all group"
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all group"
         >
-          <HelpCircle size={18} className="text-slate-400 group-hover:text-slate-600" />
+          <HelpCircle size={18} className="text-slate-400" />
           <span>Suporte Técnico</span>
         </a>
 
         <button 
           id="side-nav-btn-logout"
           onClick={() => { if(confirm("Deseja realmente sair do Ativos Apoio?")) alert("Sessão finalizada com sucesso!"); }}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-all group"
+          className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 rounded-2xl w-full transition-colors text-sm font-bold"
         >
-          <LogOut size={18} className="text-rose-400 group-hover:text-rose-600" />
+          <LogOut size={18} />
           <span>Sair</span>
         </button>
       </div>

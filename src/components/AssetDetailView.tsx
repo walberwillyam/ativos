@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Edit, 
@@ -22,9 +22,14 @@ import {
   Briefcase,
   X,
   FileCheck2,
-  Camera
+  Camera,
+  Cpu,
+  Activity,
+  HardDrive,
+  Clock
 } from 'lucide-react';
 import { Asset, AssetStatus, Category, TimelineStep } from '../types';
+import { supabase } from '../lib/supabaseClient';
 
 interface AssetDetailViewProps {
   asset: Asset;
@@ -61,6 +66,44 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   const [maintenanceService, setMaintenanceService] = useState('Calibração de sensores e reajuste térmico');
   const [maintenanceTechnicalName, setMaintenanceTechnicalName] = useState('Laboratório Autorizado TI');
 
+  // Telemetry state
+  const [telemetry, setTelemetry] = useState<any>(null);
+
+  const formatBytes = (bytes: number) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const formatUptime = (seconds?: number) => {
+    if (seconds === undefined || seconds === null) return 'N/A';
+    const d = Math.floor(seconds / (3600*24));
+    const h = Math.floor(seconds % (3600*24) / 3600);
+    const m = Math.floor(seconds % 3600 / 60);
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  };
+
+  useEffect(() => {
+    const fetchTelemetry = async () => {
+      const { data } = await supabase
+        .from('devices_health')
+        .select('*')
+        .eq('asset_id', asset.id)
+        .order('last_ping', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (data) {
+        setTelemetry(data);
+      }
+    };
+    fetchTelemetry();
+  }, [asset.id]);
+
   // Edit asset states
   const [editForm, setEditForm] = useState({
     name: asset.name,
@@ -77,8 +120,8 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     acquisitionDate: asset.acquisitionDate,
     warrantyExpiry: asset.warrantyExpiry,
     processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
-    ram: asset.specifications["Memória RAM"] || asset.specifications["ram"] || '',
-    storage: asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''
+    ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
+    storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || '')
   });
 
   // Execute actual asset state modification trigger and append history logs
@@ -199,14 +242,14 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <nav className="flex items-center gap-2 text-xs font-bold text-slate-400 select-none">
-            <button onClick={onGoBack} className="hover:text-slate-700 flex items-center gap-1">
+            <button onClick={onGoBack} className="hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1">
               <ArrowLeft size={12} />
               Inventário
             </button>
-            <span className="text-slate-300">/</span>
-            <span className="text-indigo-600 font-bold">Ficha de Ativo</span>
+            <span className="text-slate-300 dark:text-slate-600">/</span>
+            <span className="text-indigo-600 dark:text-indigo-400 font-bold">Ficha de Ativo</span>
           </nav>
-          <h2 className="text-3xl font-black mt-1 text-slate-900 tracking-tight">Ficha do Ativo</h2>
+          <h2 className="text-3xl font-black mt-1 text-slate-900 dark:text-white tracking-tight">Ficha do Ativo</h2>
         </div>
 
         {/* Action Controls matching high-fidelity images */}
@@ -214,16 +257,16 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
           <button 
             id="detail-action-edit"
             onClick={() => setIsEditOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 hover:bg-slate-50 transition-colors rounded-xl text-xs font-bold text-slate-700 bg-white shadow-xs focus:outline-none"
+            className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 shadow-xs focus:outline-none"
           >
-            <Edit size={14} className="text-indigo-600" />
+            <Edit size={14} className="text-indigo-600 dark:text-indigo-400" />
             Editar Ativo
           </button>
           
           <button 
             id="detail-action-transfer"
             onClick={() => setIsTransferOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 hover:bg-slate-50 transition-colors rounded-xl text-xs font-bold text-slate-700 bg-white shadow-xs focus:outline-none"
+            className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 shadow-xs focus:outline-none"
           >
             <RefreshCw size={14} className="text-emerald-500 animate-spin" style={{ animationDuration: '10s' }} />
             Mover/Transferir
@@ -232,7 +275,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
           <button 
             id="detail-action-maintenance"
             onClick={() => setIsMaintenanceOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 hover:bg-slate-50 transition-colors rounded-xl text-xs font-bold text-slate-700 bg-white shadow-xs focus:outline-none"
+            className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 shadow-xs focus:outline-none"
           >
             <Wrench size={14} className="text-amber-500" />
             Registrar Manutenção
@@ -241,7 +284,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
           <button 
             id="detail-action-print"
             onClick={() => setIsPrintBadgeOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black select-none shadow duration-150 active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-black dark:hover:bg-slate-700 select-none shadow duration-150 active:scale-95"
           >
             <Printer size={14} />
             Imprimir Etiqueta (QR-Patrimônio)
@@ -249,11 +292,12 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         </div>
       </section>
 
-      {/* Bento grid layout */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left column: Hero Card & Details */}
-        <div className="col-span-12 lg:col-span-5 space-y-6">
-          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+      {/* Main Two-Column Layout View */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left column: Core ID and technical characteristics */}
+        <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
             {/* Visual preview hero with live state tag */}
             <div className="relative h-60 w-full overflow-hidden select-none bg-slate-800">
               <img 
@@ -274,41 +318,84 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
             {/* Asset specifications metadata */}
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 leading-tight">{asset.name}</h3>
-                  <p className="text-xs font-mono font-bold text-slate-400 mt-1 uppercase tracking-wider">Patrimônio: {asset.patrimonio}</p>
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{asset.name}</h3>
+                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-2">
+                    Patrimônio: <span className="text-slate-600 dark:text-slate-300 font-mono tracking-tight">{asset.patrimonio}</span>
+                  </p>
                 </div>
-                <button 
-                  onClick={() => alert(`Copiado link da ficha técnica de #${asset.id} para Área de Transferência!`)}
-                  className="p-2 text-slate-400 hover:text-indigo-600 rounded-full hover:bg-slate-100 transition-colors"
-                >
-                  <Share2 size={16} />
+                <button className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition" aria-label="Share">
+                  <Share2 size={18} />
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-100 italic select-none">
+              {/* ID Data Table Grid layout */}
+              <div className="grid grid-cols-2 gap-y-5 gap-x-4 pb-5 border-b border-slate-100 dark:border-slate-800">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Categoria de Inventário</p>
-                  <p className="text-sm font-bold text-slate-700 not-italic">{asset.category}</p>
+                  <p className="text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 mb-0.5 tracking-wide">Categoria de Inventário</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{asset.category}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Polo Físico Atual</p>
-                  <p className="text-sm font-bold text-slate-700 not-italic">{asset.unit}</p>
+                  <p className="text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 mb-0.5 tracking-wide">Polo Físico Atual</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    {asset.unit}
+                  </p>
                 </div>
               </div>
 
               {/* Technical Specifications specs lists */}
               <div className="mt-5 space-y-3">
-                <h4 className="text-sm font-extrabold text-slate-900">Especificações de Hardware</h4>
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {Object.entries(asset.specifications).map(([key, value]) => (
-                    <div key={key} className="flex justify-between border-b border-slate-100/60 pb-1.5 text-xs text-slate-700">
-                      <span className="text-slate-400 font-medium select-none">{key}</span>
-                      <span className="font-bold text-slate-800 text-right">{value}</span>
+                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Especificações de Hardware</h4>
+                {telemetry ? (
+                  <div className="space-y-4 max-h-56 overflow-y-auto pr-1">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1 font-bold">
+                        <span className="text-slate-400 flex items-center gap-1"><Cpu size={12}/> CPU Usage</span>
+                        <span className="text-slate-800 dark:text-slate-100">{telemetry.cpu_usage.toFixed(2)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${telemetry.cpu_usage}%` }}></div>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    
+                    <div>
+                      <div className="flex justify-between text-xs mb-1 font-bold">
+                        <span className="text-slate-400 flex items-center gap-1"><Activity size={12}/> RAM Usage</span>
+                        <span className="text-slate-800 dark:text-slate-100">{formatBytes(telemetry.ram_used)} / {formatBytes(telemetry.ram_total)}</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div className="bg-rose-500 h-2 rounded-full" style={{ width: `${(telemetry.ram_used / telemetry.ram_total) * 100}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1 font-bold">
+                        <span className="text-slate-400 flex items-center gap-1"><HardDrive size={12}/> Disk Primary</span>
+                        <span className="text-slate-800 dark:text-slate-100">{formatBytes(telemetry.disk_used)} / {formatBytes(telemetry.disk_total)}</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div className="bg-indigo-400 h-2 rounded-full" style={{ width: `${(telemetry.disk_used / telemetry.disk_total) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between text-xs mb-1 font-bold">
+                        <span className="text-slate-400 flex items-center gap-1"><Clock size={12}/> Uptime</span>
+                        <span className="text-slate-800 dark:text-slate-100">{formatUptime(telemetry.uptime_seconds)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {Object.entries(asset.specifications).map(([key, value]) => (
+                      <div key={key} className="flex justify-between border-b border-slate-100/60 pb-1.5 text-xs text-slate-700 dark:text-slate-300">
+                        <span className="text-slate-400 font-medium select-none">{key}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-100 text-right">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -534,7 +621,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Pop up form transfer unit */}
       {isTransferOpen && (
