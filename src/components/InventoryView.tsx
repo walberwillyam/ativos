@@ -24,9 +24,12 @@ import {
   AlertCircle,
   HelpCircle,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Wifi,
+  Archive,
+  Tags
 } from 'lucide-react';
-import { Asset, AssetStatus, ActiveScreen } from '../types';
+import { Asset, AssetStatus, ActiveScreen, Category } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
 interface InventoryViewProps {

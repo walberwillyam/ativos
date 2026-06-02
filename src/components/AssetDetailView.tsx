@@ -24,7 +24,7 @@ import {
   FileCheck2,
   Camera
 } from 'lucide-react';
-import { Asset, AssetStatus, TimelineStep } from '../types';
+import { Asset, AssetStatus, Category, TimelineStep } from '../types';
 
 interface AssetDetailViewProps {
   asset: Asset;

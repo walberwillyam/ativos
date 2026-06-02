@@ -711,7 +711,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <div>
                 <h3 className="text-xl font-black text-slate-900">Gerenciar Partições</h3>
-                <p className="text-sm text-slate-500">Configure os pisos e setores visuais da unidade {currentUnitName}</p>
+                <p className="text-sm text-slate-500">Configure os pisos e setores visuais da unidade {activeUnit.name}</p>
               </div>
               <button 
                 onClick={() => setIsManagePartitionsOpen(false)}
@@ -735,7 +735,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                         onChange={(e) => {
                           const newParts = [...currentUnitPartitions];
                           newParts[index].label = e.target.value;
-                          onUpdateUnitPartitions(currentUnit?.id || '', newParts);
+                          onUpdateUnitPartitions(activeUnit?.id || '', newParts);
                         }}
                         className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-slate-700"
                       />
@@ -746,7 +746,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 <button
                   onClick={() => {
                     const newId = `part-${Date.now()}`;
-                    onUpdateUnitPartitions(currentUnit?.id || '', [
+                    onUpdateUnitPartitions(activeUnit?.id || '', [
                       ...currentUnitPartitions,
                       { id: newId, label: "Novo Setor", layout: "default" }
                     ]);
@@ -783,12 +783,12 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
               <div className="space-y-3">
-                {assets.filter(a => a.unit === currentUnitName && a.currentFloor !== activeFloor).length === 0 ? (
+                {assets.filter(a => a.unit === activeUnit.name && a.currentFloor !== activeFloor).length === 0 ? (
                   <div className="text-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
                     <p className="text-slate-500 font-medium">Não há ativos não-alocados nesta unidade.</p>
                   </div>
                 ) : (
-                  assets.filter(a => a.unit === currentUnitName && a.currentFloor !== activeFloor).map((asset) => (
+                  assets.filter(a => a.unit === activeUnit.name && a.currentFloor !== activeFloor).map((asset) => (
                     <div key={asset.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
                       <div>
                         <h4 className="font-bold text-slate-800 text-sm">{asset.name}</h4>

@@ -26,7 +26,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 
-import { ActiveScreen, Asset, Unit, TimelineStep, Category } from './types';
+import { ActiveScreen, Asset, TimelineStep, Category } from './types';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import DashboardView from './components/DashboardView';
