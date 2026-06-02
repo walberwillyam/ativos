@@ -65,9 +65,9 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     model: asset.model,
     value: asset.value,
     location: asset.location,
-    processor: asset.specifications["Processador"] || '',
-    ram: asset.specifications["Memória RAM"] || '',
-    storage: asset.specifications["Armazenamento"] || ''
+    processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
+    ram: asset.specifications["Memória RAM"] || asset.specifications["ram"] || '',
+    storage: asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''
   });
 
   // Execute actual asset state modification trigger and append history logs
@@ -144,6 +144,12 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   const handleEditAssetSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Remove old english keys to normalize the DB data
+    const cleanedSpecs = { ...asset.specifications };
+    delete cleanedSpecs["cpu"];
+    delete cleanedSpecs["ram"];
+    delete cleanedSpecs["disk"];
+
     const updatedAsset: Asset = {
       ...asset,
       name: editForm.name,
@@ -151,7 +157,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       value: editForm.value,
       location: editForm.location,
       specifications: {
-        ...asset.specifications,
+        ...cleanedSpecs,
         ...(editForm.processor ? { "Processador": editForm.processor } : {}),
         ...(editForm.ram ? { "Memória RAM": editForm.ram } : {}),
         ...(editForm.storage ? { "Armazenamento": editForm.storage } : {})
