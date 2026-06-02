@@ -60,64 +60,25 @@ export default function App() {
       setSession(session);
     });
 
+    // Fetch all real data
+    const fetchAllData = async () => {
+      const [unitsRes, assetsRes, activitiesRes] = await Promise.all([
+        supabase.from('units').select('*').order('created_at', { ascending: true }),
+        supabase.from('assets').select('*').order('created_at', { ascending: false }),
+        supabase.from('activities').select('*').order('created_at', { ascending: false })
+      ]);
+      if (unitsRes.data) setUnits(unitsRes.data);
+      if (assetsRes.data) setAssets(assetsRes.data);
+      if (activitiesRes.data) setActivities(activitiesRes.data);
+    };
+
+    fetchAllData();
+
     return () => subscription.unsubscribe();
   }, []);
 
   // List of physical location units state
-  const [units, setUnits] = useState([
-    { 
-      id: 'unit-sp', 
-      name: 'Matriz - São Paulo', 
-      city: 'São Paulo / SP', 
-      address: 'Av. Paulista, 1000 - Bela Vista', 
-      manager: 'Amanda Santos', 
-      email: 'sp.matriz@ativosapoio.com.br',
-      partitions: [
-        { id: 'office', label: 'Escritório', layout: 'office' },
-        { id: 'cpd', label: 'CPD / Datacenter', layout: 'cpd' },
-        { id: 'pista', label: 'Pista Operacional', layout: 'pista' },
-        { id: 'loja', label: 'Loja / Estoque', layout: 'loja' }
-      ]
-    },
-    { 
-      id: 'unit-rj', 
-      name: 'Filial - Rio de Janeiro', 
-      city: 'Rio de Janeiro / RJ', 
-      address: 'Av. Atlântica, 400 - Copacabana', 
-      manager: 'Bruno Souza', 
-      email: 'rj.filial@ativosapoio.com.br',
-      partitions: [
-        { id: 'office', label: 'Escritório', layout: 'office' },
-        { id: 'cpd', label: 'CPD / Datacenter', layout: 'cpd' },
-        { id: 'loja', label: 'Loja / Estoque', layout: 'loja' }
-      ]
-    },
-    { 
-      id: 'unit-pr', 
-      name: 'Depósito - Paraná', 
-      city: 'Curitiba / PR', 
-      address: 'Rua das Flores, 88 - Centro', 
-      manager: 'Carla Dias', 
-      email: 'pr.deposito@ativosapoio.com.br',
-      partitions: [
-        { id: 'loja', label: 'Armazém / Estoque', layout: 'loja' },
-        { id: 'pista', label: 'Pista de Cargas', layout: 'pista' }
-      ]
-    },
-    { 
-      id: 'unit-cd', 
-      name: 'CD Logístico', 
-      city: 'Guarulhos / SP', 
-      address: 'Rodovia Presidente Dutra, Km 210', 
-      manager: 'Diego Silva', 
-      email: 'cd.logistica@ativosapoio.com.br',
-      partitions: [
-        { id: 'pista', label: 'Piso Logístico', layout: 'pista' },
-        { id: 'office', label: 'Administração CD', layout: 'office' },
-        { id: 'loja', label: 'Estoque / Docas', layout: 'loja' }
-      ]
-    }
-  ]);
+  const [units, setUnits] = useState<any[]>([]);
 
   // Active view constraints
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('dashboard');
@@ -136,6 +97,9 @@ export default function App() {
     };
     setUnits(prev => [...prev, unitWithPartitions]);
     
+    // Save to DB
+    supabase.from('units').insert([unitWithPartitions]).then();
+
     // Log unit creation activity log
     handleAddLiveActivity({
       type: "creation",
@@ -151,6 +115,9 @@ export default function App() {
   const handleUpdateUnitPartitions = (unitId: string, updatedPartitions: Array<{ id: string; label: string; layout: string }>) => {
     setUnits(prev => prev.map(u => u.id === unitId ? { ...u, partitions: updatedPartitions } : u));
     
+    // Save to DB
+    supabase.from('units').update({ partitions: updatedPartitions }).eq('id', unitId).then();
+
     const targetUnit = units.find(u => u.id === unitId);
     if (targetUnit) {
       handleAddLiveActivity({
@@ -168,6 +135,9 @@ export default function App() {
   const handleUpdateUnit = (updatedUnit: { id: string; name: string; city: string; address: string; manager: string; email: string }) => {
     setUnits(prev => prev.map(u => u.id === updatedUnit.id ? { ...u, ...updatedUnit } : u));
     
+    // Save to DB
+    supabase.from('units').update(updatedUnit).eq('id', updatedUnit.id).then();
+
     handleAddLiveActivity({
       type: "update",
       title: "Unidade Atualizada",
@@ -192,6 +162,20 @@ export default function App() {
       ...newAct,
       time: "Agora mesmo"
     };
+    
+    // Save to DB
+    const dbStep = {
+      id: rawStep.id,
+      type: rawStep.type,
+      title: rawStep.title,
+      details: rawStep.details,
+      by_user: rawStep.by,
+      icon: rawStep.icon,
+      badgeColor: rawStep.badgeColor,
+      time: rawStep.time
+    };
+    supabase.from('activities').insert([dbStep]).then();
+    
     setActivities(prev => [rawStep, ...prev]);
 
     // Push standard alert notification
@@ -215,6 +199,9 @@ export default function App() {
   const handleUpdateAsset = (updatedAsset: Asset) => {
     setAssets(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
     setSelectedAsset(updatedAsset);
+    
+    // Save to DB
+    supabase.from('assets').update(updatedAsset).eq('id', updatedAsset.id).then();
   };
 
   // Quick navigation handlers
@@ -231,10 +218,10 @@ export default function App() {
   const renderCategoriesScreen = () => {
     // Dynamically compute counts and valuations of our live assets list
     const categoryStats = [
-      { id: "Notebooks", label: "Notebooks e Laptops", desc: "Equipamentos corporativos de uso flexível", baseVal: 3200, icon: Laptop, color: "text-indigo-600 bg-indigo-50" },
-      { id: "Monitores", label: "Monitores e Displays", desc: "Telas administrativas de alta resolução", baseVal: 2400, icon: Monitor, color: "text-emerald-600 bg-emerald-50" },
-      { id: "Switches", label: "Switches e Redes", desc: "Hardware de infraestrutura e roteamento cpd", baseVal: 1100, icon: Cpu, color: "text-violet-600 bg-violet-50" },
-      { id: "Impressoras", label: "Impressoras e Multifuncionais", desc: "Outlines de impressão e cópia patrimoniais", baseVal: 400, icon: Printer, color: "text-slate-600 bg-slate-100" },
+      { id: "Notebooks", label: "Notebooks e Laptops", desc: "Equipamentos corporativos de uso flexível", baseVal: 0, icon: Laptop, color: "text-indigo-600 bg-indigo-50" },
+      { id: "Monitores", label: "Monitores e Displays", desc: "Telas administrativas de alta resolução", baseVal: 0, icon: Monitor, color: "text-emerald-600 bg-emerald-50" },
+      { id: "Switches", label: "Switches e Redes", desc: "Hardware de infraestrutura e roteamento cpd", baseVal: 0, icon: Cpu, color: "text-violet-600 bg-violet-50" },
+      { id: "Impressoras", label: "Impressoras e Multifuncionais", desc: "Outlines de impressão e cópia patrimoniais", baseVal: 0, icon: Printer, color: "text-slate-600 bg-slate-100" },
     ];
 
     return (

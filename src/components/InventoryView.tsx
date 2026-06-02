@@ -27,6 +27,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { Asset, AssetStatus, ActiveScreen } from '../types';
+import { supabase } from '../lib/supabaseClient';
 
 interface InventoryViewProps {
   assets: Asset[];
@@ -278,6 +279,9 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     setAssets(prev => [newAsset, ...prev]);
     setIsNewAssetOpen(false);
 
+    // Save to DB
+    supabase.from('assets').insert([newAsset]).then();
+
     // Add logging check to Dashboard activities
     onAddActivity({
       type: "creation",
@@ -334,6 +338,12 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       return a;
     }));
 
+    // Save to DB
+    supabase.from('assets')
+      .update({ status: bulkTargetStatus })
+      .in('id', selectedIds)
+      .then();
+
     onAddActivity({
       type: "maintenance",
       title: "Alteração Status em Lote",
@@ -371,6 +381,12 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       return a;
     }));
 
+    // Save to DB
+    supabase.from('assets')
+      .update({ unit: bulkTargetUnit })
+      .in('id', selectedIds)
+      .then();
+
     onAddActivity({
       type: "transfer",
       title: "Carga Transferida em Lote",
@@ -393,6 +409,12 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     }
 
     setAssets(prev => prev.filter(a => !selectedIds.includes(a.id)));
+
+    // Save to DB
+    supabase.from('assets')
+      .delete()
+      .in('id', selectedIds)
+      .then();
 
     onAddActivity({
       type: "maintenance",
