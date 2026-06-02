@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { 
   Scan, 
   MapPin, 
@@ -44,36 +44,45 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
 
   // HTML5 QR Code setup
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-      false
-    );
+    let html5QrCode: Html5Qrcode | null = null;
+    let isComponentMounted = true;
 
     function onScanSuccess(decodedText: string) {
-      // Tentar encontrar o ativo lido pelo ID
+      if (!isComponentMounted || !html5QrCode) return;
       const foundAsset = assets.find(a => a.id === decodedText || a.serialNumber === decodedText);
       
       if (foundAsset) {
-        // Pausar o leitor ao encontrar
-        scanner.pause(true);
-        setSelectedSimAssetIndex(assets.findIndex(a => a.id === foundAsset.id));
-        setIsModalOpen(true);
+        // Stop scanning to prevent multiple reads
+        html5QrCode.stop().then(() => {
+          setSelectedSimAssetIndex(assets.findIndex(a => a.id === foundAsset.id));
+          setIsModalOpen(true);
+        }).catch(err => console.log("Stop error", err));
       } else {
         alert(`Código ${decodedText} lido, mas ativo não localizado no inventário.`);
-        scanner.pause(true);
-        setTimeout(() => scanner.resume(), 2000);
       }
     }
 
     function onScanFailure() {
-      // Falhas normais de frame ignoradas
+      // Ignora falhas de frame
     }
 
-    scanner.render(onScanSuccess, onScanFailure);
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+      onScanSuccess,
+      onScanFailure
+    ).catch(err => {
+      console.error("Camera start failed", err);
+    });
 
     return () => {
-      scanner.clear().catch(console.error);
+      isComponentMounted = false;
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode?.clear();
+        }).catch(console.error);
+      }
     };
   }, [assets]);
 
