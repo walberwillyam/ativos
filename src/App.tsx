@@ -26,7 +26,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 
-import { ActiveScreen, Asset } from './types';
+import { ActiveScreen, Asset, Unit, TimelineStep, Category } from './types';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import DashboardView from './components/DashboardView';
@@ -35,15 +35,18 @@ import ActiveMapView from './components/ActiveMapView';
 import AssetDetailView from './components/AssetDetailView';
 import ScannerMobileView from './components/ScannerMobileView';
 import MonitoringView from './components/MonitoringView';
+import CategoriesView from './components/CategoriesView';
 import AuthScreen from './components/AuthScreen';
 import { supabase } from './lib/supabaseClient';
 
-import { INITIAL_ASSETS, INITIAL_NOTIFICATIONS, INITIAL_ACTIVITIES } from './data/initialData';
+import { INITIAL_NOTIFICATIONS } from './data/initialData';
 
 export default function App() {
   // Collection States
-  const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
-  const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [activities, setActivities] = useState<TimelineStep[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
   // Auth State
@@ -62,23 +65,23 @@ export default function App() {
 
     // Fetch all real data
     const fetchAllData = async () => {
-      const [unitsRes, assetsRes, activitiesRes] = await Promise.all([
-        supabase.from('units').select('*').order('created_at', { ascending: true }),
-        supabase.from('assets').select('*').order('created_at', { ascending: false }),
-        supabase.from('activities').select('*').order('created_at', { ascending: false })
+      const [{ data: assetsData }, { data: unitsData }, { data: activitiesData }, { data: categoriesData }] = await Promise.all([
+        supabase.from('assets').select('*'),
+        supabase.from('units').select('*'),
+        supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(20),
+        supabase.from('categories').select('*').order('name', { ascending: true })
       ]);
-      if (unitsRes.data) setUnits(unitsRes.data);
-      if (assetsRes.data) setAssets(assetsRes.data);
-      if (activitiesRes.data) setActivities(activitiesRes.data);
+
+      if (unitsData) setUnits(unitsData);
+      if (categoriesData) setCategories(categoriesData);
+      if (assetsData) setAssets(assetsData);
+      if (activitiesData) setActivities(activitiesData);
     };
 
     fetchAllData();
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // List of physical location units state
-  const [units, setUnits] = useState<any[]>([]);
 
   // Active view constraints
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(() => {
@@ -212,6 +215,25 @@ export default function App() {
     supabase.from('assets').update(updatedAsset).eq('id', updatedAsset.id).then();
   };
 
+  // Category Handlers
+  const handleCreateCategory = async (cat: Omit<Category, 'id'>) => {
+    const { data, error } = await supabase.from('categories').insert([cat]).select().single();
+    if (error) throw error;
+    setCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleUpdateCategory = async (cat: Category) => {
+    const { data, error } = await supabase.from('categories').update(cat).eq('id', cat.id).select().single();
+    if (error) throw error;
+    setCategories(prev => prev.map(c => c.id === cat.id ? data : c).sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) throw error;
+    setCategories(prev => prev.filter(c => c.id !== id));
+  };
+
   // Quick navigation handlers
   const handleGoBackFromDetails = () => {
     setSelectedAsset(null);
@@ -220,63 +242,6 @@ export default function App() {
 
   const handleNotificationsClear = () => {
     setNotifications([]);
-  };
-
-  // Quick custom category screen list layout
-  const renderCategoriesScreen = () => {
-    // Dynamically compute counts and valuations of our live assets list
-    const categoryStats = [
-      { id: "Notebooks", label: "Notebooks e Laptops", desc: "Equipamentos corporativos de uso flexível", baseVal: 0, icon: Laptop, color: "text-indigo-600 bg-indigo-50" },
-      { id: "Monitores", label: "Monitores e Displays", desc: "Telas administrativas de alta resolução", baseVal: 0, icon: Monitor, color: "text-emerald-600 bg-emerald-50" },
-      { id: "Switches", label: "Switches e Redes", desc: "Hardware de infraestrutura e roteamento cpd", baseVal: 0, icon: Cpu, color: "text-violet-600 bg-violet-50" },
-      { id: "Impressoras", label: "Impressoras e Multifuncionais", desc: "Outlines de impressão e cópia patrimoniais", baseVal: 0, icon: Printer, color: "text-slate-600 bg-slate-100" },
-    ];
-
-    return (
-      <div id="categories-section" className="space-y-6 max-w-7xl mx-auto pb-10">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Tags className="text-indigo-700" size={28} />
-            Categorias de Inventário
-          </h2>
-          <p className="text-slate-500 mt-1">Níveis e divisórios corporativos regulados para depreciação fiscal.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {categoryStats.map((item) => {
-            const Icon = item.icon;
-            // Compute real counts dynamically
-            const liveCount = assets.filter(a => a.category === item.id).length;
-            const displayTotal = item.baseVal + liveCount;
-            // Simulated valuation
-            const totalValuation = displayTotal * 3450;
-
-            return (
-              <div key={item.id} className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm flex flex-col justify-between">
-                <div>
-                  <span className={`p-3 rounded-xl inline-block ${item.color}`}>
-                    <Icon size={20} />
-                  </span>
-                  <h4 className="text-lg font-bold text-slate-800 mt-4 leading-tight">{item.label}</h4>
-                  <p className="text-xs text-slate-400 mt-1">{item.desc}</p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-end">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400 select-none block">Qtd. Ativos</span>
-                    <span className="text-2xl font-black text-slate-900 mt-0.5 block">{displayTotal.toLocaleString('pt-BR')}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 select-none block">Avaliação</span>
-                    <span className="text-xs font-mono font-bold text-indigo-700 mt-1 block">R$ {(totalValuation/1000).toLocaleString('pt-BR', {maximumFractionDigits:0})}k</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
   };
 
   // Quick custom reports dashboard layout view
@@ -440,6 +405,7 @@ export default function App() {
               onSelectAsset={handleSelectAsset} 
               onAddActivity={handleAddLiveActivity}
               units={units}
+              categories={categories}
             />
           )}
 
@@ -463,6 +429,8 @@ export default function App() {
               onGoBack={handleGoBackFromDetails} 
               onUpdateAsset={handleUpdateAsset} 
               onAddActivity={handleAddLiveActivity}
+              units={units}
+              categories={categories}
             />
           )}
 
@@ -486,7 +454,15 @@ export default function App() {
           {activeScreen === 'monitoring' && <MonitoringView />}
 
           {/* Dynamic Mock views resolved safely */}
-          {activeScreen === 'categories' && renderCategoriesScreen()}
+          {activeScreen === 'categories' && (
+            <CategoriesView
+              categories={categories}
+              assets={assets}
+              onCreateCategory={handleCreateCategory}
+              onUpdateCategory={handleUpdateCategory}
+              onDeleteCategory={handleDeleteCategory}
+            />
+          )}
           {activeScreen === 'reports' && renderReportsScreen()}
           {activeScreen === 'settings' && renderSettingsView()}
         </main>

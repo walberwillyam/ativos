@@ -38,9 +38,11 @@ interface AssetDetailViewProps {
     icon: string;
     badgeColor: string;
   }) => void;
+  units?: any[];
+  categories?: Category[];
 }
 
-export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddActivity }: AssetDetailViewProps) {
+export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddActivity, units = [], categories = [] }: AssetDetailViewProps) {
   // Tabs active state
   const [activeTab, setActiveTab] = useState<'timeline' | 'audit' | 'docs' | 'photos'>('timeline');
 
@@ -62,9 +64,18 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   // Edit asset states
   const [editForm, setEditForm] = useState({
     name: asset.name,
+    patrimonio: asset.patrimonio || '',
+    category: asset.category,
     model: asset.model,
-    value: asset.value,
+    serialNumber: asset.serialNumber || '',
+    unit: asset.unit,
+    currentFloor: asset.currentFloor || 'office',
     location: asset.location,
+    responsibleName: asset.responsible.name,
+    status: asset.status,
+    value: asset.value,
+    acquisitionDate: asset.acquisitionDate,
+    warrantyExpiry: asset.warrantyExpiry,
     processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
     ram: asset.specifications["Memória RAM"] || asset.specifications["ram"] || '',
     storage: asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''
@@ -153,9 +164,22 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     const updatedAsset: Asset = {
       ...asset,
       name: editForm.name,
+      patrimonio: editForm.patrimonio,
+      category: editForm.category,
       model: editForm.model,
-      value: editForm.value,
+      serialNumber: editForm.serialNumber,
+      unit: editForm.unit,
+      currentFloor: editForm.currentFloor,
       location: editForm.location,
+      status: editForm.status as AssetStatus,
+      value: editForm.value,
+      acquisitionDate: editForm.acquisitionDate,
+      warrantyExpiry: editForm.warrantyExpiry,
+      responsible: {
+        ...asset.responsible,
+        name: editForm.responsibleName,
+        initials: editForm.responsibleName.substring(0, 2).toUpperCase()
+      },
       specifications: {
         ...cleanedSpecs,
         ...(editForm.processor ? { "Processador": editForm.processor } : {}),
@@ -663,46 +687,180 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <button type="button" onClick={() => setIsEditOpen(false)} className="p-1 hover:bg-slate-100 rounded-full"><X size={16} /></button>
             </div>
 
-            <div className="space-y-4 max-h-[440px] overflow-y-auto pr-1">
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nome Descritivo</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Nome Descritivo do Ativo *</label>
                 <input 
                   type="text" 
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-600 focus:bg-white outline-none"
+                  required
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Modelo Comercial</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Número de Patrimônio (Opcional)</label>
+                  <input 
+                    type="text" 
+                    value={editForm.patrimonio}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, patrimonio: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Categoria de Inventário *</label>
+                  <select 
+                    value={editForm.category}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                  >
+                    {categories.length > 0 ? (
+                      categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
+                    ) : (
+                      <>
+                        <option>Notebooks</option>
+                        <option>Monitores</option>
+                        <option>Impressoras</option>
+                        <option>Switches</option>
+                        <option>Hardware de Rede</option>
+                        <option>Mobiliário</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Marca / Modelo Completo *</label>
                   <input 
                     type="text" 
                     value={editForm.model}
                     onChange={(e) => setEditForm(prev => ({ ...prev, model: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-600 focus:bg-white outline-none"
+                    required
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Valor Unitário Compra R$</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Número de Série (Serial) *</label>
                   <input 
-                    type="number" 
-                    value={editForm.value}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-600 focus:bg-white outline-none"
+                    type="text" 
+                    value={editForm.serialNumber}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, serialNumber: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Localização Específica</label>
-                <input 
-                  type="text" 
-                  value={editForm.location}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-600"
-                />
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Unidade Polo Inicial *</label>
+                  <select 
+                    value={editForm.unit}
+                    onChange={(e) => {
+                      const selectedName = e.target.value;
+                      const matchedUnit = units.find(u => u.name === selectedName);
+                      const matchedParts = matchedUnit?.partitions || [
+                        { id: 'office', label: 'Escritório' },
+                        { id: 'cpd', label: 'CPD / Datacenter' },
+                        { id: 'pista', label: 'Pista Operacional' },
+                        { id: 'loja', label: 'Loja / Estoque' }
+                      ];
+                      setEditForm(prev => ({ 
+                        ...prev, 
+                        unit: selectedName, 
+                        currentFloor: matchedParts[0]?.id || 'office' 
+                      }));
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                  >
+                    {units.map((u) => (
+                      <option key={u.id} value={u.name}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Partição / Setor Inicial *</label>
+                  <select 
+                    value={editForm.currentFloor}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, currentFloor: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                  >
+                    {(units.find(u => u.name === editForm.unit)?.partitions || [
+                      { id: 'office', label: 'Escritório' },
+                      { id: 'cpd', label: 'CPD / Datacenter' },
+                      { id: 'pista', label: 'Pista Operacional' },
+                      { id: 'loja', label: 'Loja / Estoque' }
+                    ]).map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Localização de Detalhe *</label>
+                  <input 
+                    type="text" 
+                    value={editForm.location}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Responsável Nome *</label>
+                  <input 
+                    type="text" 
+                    value={editForm.responsibleName}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, responsibleName: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Estado Operacional Inicial *</label>
+                  <select 
+                    value={editForm.status}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                  >
+                    <option>Em Uso</option>
+                    <option>Manutenção</option>
+                    <option>Armazenado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Valor Compra R$</label>
+                  <input 
+                    type="number" 
+                    value={editForm.value}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Adquirido Em</label>
+                  <input 
+                    type="date" 
+                    value={editForm.acquisitionDate}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, acquisitionDate: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Garantia Até</label>
+                  <input 
+                    type="date" 
+                    value={editForm.warrantyExpiry}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                  />
+                </div>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
@@ -710,7 +868,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] text-slate-500">Processador</label>
+                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Processador</label>
                     <input 
                       type="text" 
                       value={editForm.processor}
@@ -719,7 +877,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-500">Memória RAM</label>
+                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Memória RAM</label>
                     <input 
                       type="text" 
                       value={editForm.ram}
@@ -728,7 +886,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-500">Armazenamento</label>
+                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Armazenamento</label>
                     <input 
                       type="text" 
                       value={editForm.storage}

@@ -50,9 +50,10 @@ interface InventoryViewProps {
     email: string; 
     partitions?: Array<{ id: string; label: string; layout: string }>;
   }>;
+  categories?: Category[];
 }
 
-export default function InventoryView({ assets, setAssets, onSelectAsset, onAddActivity, units }: InventoryViewProps) {
+export default function InventoryView({ assets, setAssets, onSelectAsset, onAddActivity, units, categories = [] }: InventoryViewProps) {
   // Filters state
   const [selectedUnit, setSelectedUnit] = useState('Todas as Unidades');
   const [selectedCategory, setSelectedCategory] = useState('Todas Categorias');
@@ -105,8 +106,11 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
   const categoriesList = useMemo(() => {
     const list = new Set(assets.map(a => a.category));
-    return ['Todas Categorias', ...Array.from(list)];
-  }, [assets]);
+    if (categories && categories.length > 0) {
+      categories.forEach(c => list.add(c.name));
+    }
+    return ['Todas Categorias', ...Array.from(list).sort()];
+  }, [assets, categories]);
 
   const statusesList = ['Qualquer Status', 'Em Uso', 'Manutenção', 'Armazenado', 'Extraviado'];
 
@@ -173,19 +177,21 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   };
 
   // Create individual item categories with representative Lucide icons
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'Notebooks':
-        return <Laptop size={16} className="text-slate-500" />;
-      case 'Monitores':
-        return <Monitor size={16} className="text-slate-500" />;
-      case 'Impressoras':
-        return <Printer size={16} className="text-slate-500" />;
-      case 'Switches':
-      case 'Hardware de Rede':
-        return <Cpu size={16} className="text-indigo-600" />;
-      default:
-        return <Layers size={16} className="text-slate-500" />;
+  const getCategoryIcon = (categoryName: string) => {
+    const cat = categories.find(c => c.name === categoryName);
+    if (cat?.icon === 'Laptop') return <Laptop size={14} className="text-indigo-600" />;
+    if (cat?.icon === 'Monitor') return <Monitor size={14} className="text-emerald-600" />;
+    if (cat?.icon === 'Cpu') return <Cpu size={14} className="text-violet-600" />;
+    if (cat?.icon === 'Printer') return <Printer size={14} className="text-slate-600" />;
+    if (cat?.icon === 'Wifi') return <Wifi size={14} className="text-sky-600" />;
+    if (cat?.icon === 'Archive') return <Archive size={14} className="text-amber-600" />;
+    
+    switch (categoryName) {
+      case 'Notebooks': return <Laptop size={14} className="text-indigo-600" />;
+      case 'Monitores': return <Monitor size={14} className="text-emerald-600" />;
+      case 'Switches': return <Cpu size={14} className="text-violet-600" />;
+      case 'Impressoras': return <Printer size={14} className="text-slate-600" />;
+      default: return <Tags size={14} className="text-slate-400" />;
     }
   };
 
@@ -789,12 +795,18 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, category: e.target.value }))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
                   >
-                    <option>Notebooks</option>
-                    <option>Monitores</option>
-                    <option>Impressoras</option>
-                    <option>Switches</option>
-                    <option>Hardware de Rede</option>
-                    <option>Mobiliário</option>
+                    {categories.length > 0 ? (
+                      categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
+                    ) : (
+                      <>
+                        <option>Notebooks</option>
+                        <option>Monitores</option>
+                        <option>Impressoras</option>
+                        <option>Switches</option>
+                        <option>Hardware de Rede</option>
+                        <option>Mobiliário</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>

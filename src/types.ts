@@ -24,6 +24,14 @@ export interface TimelineStep {
   attachmentName?: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  created_at?: string;
+}
+
 export interface Asset {
   id: string; // e.g., "KINETIC-8821" or "AST-2024-00892"
   patrimonio: string; // e.g. "#PAT-004452"

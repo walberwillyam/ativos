@@ -42,10 +42,11 @@ async function collectAndSendHealth() {
       disk_total: diskTotal,
       disk_used: diskUsed,
       os_info: `${osInfo.distro} ${osInfo.release}`,
-      last_ping: new Date().toISOString()
+      last_ping: new Date().toISOString(),
+      uptime_seconds: os.uptime()
     };
 
-    console.log(`[${new Date().toLocaleTimeString()}] Enviando dados de saúde para ${ASSET_ID}... (CPU: ${healthData.cpu_usage}%)`);
+    console.log(`[${new Date().toLocaleTimeString()}] Enviando dados de saúde para ${ASSET_ID}... (CPU: ${healthData.cpu_usage}%, Uptime: ${Math.floor(healthData.uptime_seconds/3600)}h)`);
 
     // 2. Tenta atualizar se já existe, senão insere (Upsert por lógica simples)
     // Como a chave primária é gerada aleatoriamente, vamos checar se o asset já existe

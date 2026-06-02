@@ -4,7 +4,9 @@ import {
   Search, 
   QrCode, 
   Briefcase,
-  LogOut
+  LogOut,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { ActiveScreen } from '../types';
@@ -27,9 +29,22 @@ interface NavbarProps {
 export default function Navbar({ setActiveScreen, notifications, handleNotificationsClear, userEmail }: NavbarProps) {
   const [globalSearch, setGlobalSearch] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  React.useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   return (
-    <header className="h-16 border-b border-slate-150 bg-white sticky top-0 z-40 select-none flex items-center justify-between px-6 shadow-xs leading-none">
+    <header className="h-16 border-b border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-40 select-none flex items-center justify-between px-6 shadow-xs leading-none transition-colors duration-200">
       
       {/* Brand visual header logos matching mockups exactly */}
       <div 
@@ -41,7 +56,7 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
           <span className="absolute inset-0 bg-white/10 animate-pulse duration-1000" />
         </span>
         <div>
-          <h1 className="text-[17px] font-black tracking-tight text-slate-950">Ativos Apoio</h1>
+          <h1 className="text-[17px] font-black tracking-tight text-slate-950 dark:text-white">Ativos Apoio</h1>
           <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-0.5">Controladoria Técnica</p>
         </div>
       </div>
@@ -61,7 +76,7 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
             }
           }}
           placeholder="Pesquisa rápida global (Tecle Enter)..."
-          className="w-full bg-slate-50 border border-slate-200 hover:border-slate-350 focus:bg-white rounded-full pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-350 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-900 rounded-full pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:text-white"
         />
       </div>
 
@@ -73,10 +88,19 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
           id="header-scanner-launcher-btn"
           onClick={() => setActiveScreen('scanner')}
           title="Abrir Simulador de Leitor QR Rápido"
-          className="text-slate-400 hover:text-indigo-700 hover:bg-slate-100 p-2 rounded-xl transition duration-150 flex items-center gap-1.5 active:scale-90"
+          className="text-slate-400 hover:text-indigo-700 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl transition duration-150 flex items-center gap-1.5 active:scale-90"
         >
           <QrCode size={18} />
-          <span className="hidden sm:inline text-xs font-bold text-slate-600">Scan Rápido</span>
+          <span className="hidden sm:inline text-xs font-bold text-slate-600 dark:text-slate-300">Scan Rápido</span>
+        </button>
+
+        {/* Theme Toggle */}
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="text-slate-400 hover:text-amber-500 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl transition duration-150 active:scale-90"
+          title="Alternar Tema"
+        >
+          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
         {/* Alerts count Notifications Popup */}
@@ -84,7 +108,7 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
           <button 
             id="header-notif-btn"
             onClick={() => setIsNotificationsOpen(prev => !prev)}
-            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-xl transition duration-150 relative active:scale-90"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl transition duration-150 relative active:scale-90"
           >
             <Bell size={18} />
             {notifications.filter(n => !n.read).length > 0 && (
@@ -96,10 +120,10 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
           {isNotificationsOpen && (
             <div 
               id="header-notif-dropdown"
-              className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden leading-normal text-left"
+              className="absolute right-0 mt-3 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden leading-normal text-left"
             >
-              <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 className="font-bold text-xs text-slate-800 uppercase tracking-widest leading-none">Novas Ocorrências</h3>
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                <h3 className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-widest leading-none">Novas Ocorrências</h3>
                 <button 
                   onClick={() => {
                     handleNotificationsClear();
@@ -116,8 +140,8 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
                   <div className="p-6 text-center text-xs text-slate-400">Nenhum alerta pendente.</div>
                 ) : (
                   notifications.map((notif) => (
-                    <div key={notif.id} className="p-4 hover:bg-slate-50/50 transition">
-                      <p className="text-xs font-bold text-slate-800 leading-tight">{notif.title}</p>
+                    <div key={notif.id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">{notif.title}</p>
                       <p className="text-[11px] text-slate-500 mt-1">{notif.description}</p>
                       <span className="text-[9px] text-slate-400 font-mono mt-1.5 block">{notif.time}</span>
                     </div>
@@ -128,7 +152,7 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
           )}
         </div>
 
-        <div className="h-6 w-[1px] bg-slate-200 hidden sm:block" />
+        <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block" />
 
         {/* User profile capsule */}
         <div className="flex items-center gap-2.5">
@@ -138,13 +162,13 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
             className="w-8 h-8 rounded-full border border-slate-200 shadow-xs cursor-pointer object-cover" 
           />
           <div className="hidden lg:block">
-            <p className="text-xs font-bold text-slate-800 leading-tight">Admin Geral</p>
-            <p className="text-[9px] font-semibold text-slate-400 mt-0.5">{userEmail || 'admin@ativosapoio.com.br'}</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">Admin Geral</p>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5">{userEmail || 'admin@ativosapoio.com.br'}</p>
           </div>
           
           <button 
             onClick={() => supabase.auth.signOut()}
-            className="ml-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition duration-150 active:scale-90"
+            className="ml-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 p-2 rounded-xl transition duration-150 active:scale-90"
             title="Sair do sistema"
           >
             <LogOut size={16} />
