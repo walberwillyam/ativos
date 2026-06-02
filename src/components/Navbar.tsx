@@ -62,9 +62,8 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
           onClick={() => setActiveScreen('dashboard')}
           className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 active:scale-95 transition-all text-slate-900"
         >
-          <span className="bg-gradient-to-tr from-indigo-700 to-indigo-500 w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold shadow-sm relative overflow-hidden">
-            <Briefcase size={18} />
-            <span className="absolute inset-0 bg-white/10 animate-pulse duration-1000" />
+          <span className="w-10 h-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+            <img src="/logo.png" alt="Gestão de Ativos Logo" className="w-full h-full object-contain" />
           </span>
           <div>
             <h1 className="text-[17px] font-black tracking-tight text-slate-950 dark:text-white">Ativos Apoio</h1>

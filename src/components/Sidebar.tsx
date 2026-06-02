@@ -23,9 +23,10 @@ interface SidebarProps {
   setActiveScreen: (screen: ActiveScreen) => void;
   totalAssetsCount: number;
   isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
 }
 
-export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCount, isCollapsed }: SidebarProps) {
+export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCount, isCollapsed, setIsCollapsed }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
     { id: 'inventory', label: 'Inventário', icon: Boxes },
@@ -37,10 +38,21 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
   ];
 
   return (
-    <aside 
-      id="side-bar"
-      className={`hidden md:flex flex-col ${isCollapsed ? 'w-20' : 'w-64'} bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-64px)] sticky top-16 shrink-0 justify-between select-none transition-all duration-300`}
-    >
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {!isCollapsed && (
+        <div 
+          className="md:hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm"
+          onClick={() => setIsCollapsed(true)}
+        />
+      )}
+      
+      <aside 
+        id="side-bar"
+        className={`${
+          isCollapsed ? '-translate-x-full md:translate-x-0 md:w-20' : 'translate-x-0 w-64 md:w-64'
+        } fixed md:sticky top-16 md:top-16 z-50 md:z-0 flex flex-col bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-64px)] shrink-0 justify-between select-none transition-all duration-300`}
+      >
       <div className="flex-1 flex flex-col pt-6 overflow-y-auto">
         {/* User Card */}
         <div className={`mb-6 transition-all ${isCollapsed ? 'px-2' : 'px-6'}`}>
@@ -74,7 +86,10 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
               <button 
                 key={item.id}
                 id={`side-nav-btn-${item.id}`}
-                onClick={() => setActiveScreen(item.id as ActiveScreen)}
+                onClick={() => {
+                  setActiveScreen(item.id as ActiveScreen);
+                  if (window.innerWidth < 768) setIsCollapsed(true);
+                }}
                 title={isCollapsed ? item.label : undefined}
                 className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-4 py-3 rounded-2xl transition-all duration-200 mb-1 font-bold ${
                   isSelected 
@@ -140,5 +155,6 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
         </button>
       </div>
     </aside>
+    </>
   );
 }
