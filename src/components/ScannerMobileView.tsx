@@ -50,7 +50,7 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
     function onScanSuccess(decodedText: string) {
       if (!isComponentMounted || !html5QrCode) return;
       
-      const foundAsset = assets.find(a => a.id === decodedText || a.serialNumber === decodedText);
+      const foundAsset = assets.find(a => a.id === decodedText || a.serialNumber === decodedText || a.patrimonio === decodedText);
       
       if (foundAsset) {
         html5QrCode.stop().then(() => {
