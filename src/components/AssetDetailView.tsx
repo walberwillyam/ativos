@@ -124,6 +124,29 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || '')
   });
 
+  useEffect(() => {
+    if (isEditOpen) {
+      setEditForm({
+        name: asset.name,
+        patrimonio: asset.patrimonio || '',
+        category: asset.category,
+        model: asset.model,
+        serialNumber: asset.serialNumber || '',
+        unit: asset.unit,
+        currentFloor: asset.currentFloor || 'office',
+        location: asset.location,
+        responsibleName: asset.responsible.name,
+        status: asset.status,
+        value: asset.value,
+        acquisitionDate: asset.acquisitionDate,
+        warrantyExpiry: asset.warrantyExpiry,
+        processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
+        ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
+        storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || '')
+      });
+    }
+  }, [isEditOpen, asset]);
+
   // Execute actual asset state modification trigger and append history logs
   const handleTransferSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -771,7 +794,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   onChange={(e) => setTransferTargetLoc(e.target.value)}
                   placeholder="Ex: CPD B - Rack C10"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
@@ -841,7 +864,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   onChange={(e) => setMaintenanceService(e.target.value)}
                   placeholder="Ex: Troca preventiva de cooler ou reinstalação de SO"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
@@ -853,7 +876,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   value={maintenanceTechnicalName}
                   onChange={(e) => setMaintenanceTechnicalName(e.target.value)}
                   placeholder="Ex: Laboratório ou Suporte Autorizado Dell"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
             </div>
@@ -895,7 +918,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
@@ -906,7 +929,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.patrimonio}
                     onChange={(e) => setEditForm(prev => ({ ...prev, patrimonio: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -914,7 +937,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <select 
                     value={editForm.category}
                     onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {categories.length > 0 ? (
                       categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
@@ -940,7 +963,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     value={editForm.model}
                     onChange={(e) => setEditForm(prev => ({ ...prev, model: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -949,7 +972,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.serialNumber}
                     onChange={(e) => setEditForm(prev => ({ ...prev, serialNumber: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
@@ -974,7 +997,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                         currentFloor: matchedParts[0]?.id || 'office' 
                       }));
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {units.map((u) => (
                       <option key={u.id} value={u.name}>{u.name}</option>
@@ -986,7 +1009,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <select 
                     value={editForm.currentFloor}
                     onChange={(e) => setEditForm(prev => ({ ...prev, currentFloor: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     {(units.find(u => u.name === editForm.unit)?.partitions || [
                       { id: 'office', label: 'Escritório' },
@@ -1004,7 +1027,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.location}
                     onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
               </div>
@@ -1016,7 +1039,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="text" 
                     value={editForm.responsibleName}
                     onChange={(e) => setEditForm(prev => ({ ...prev, responsibleName: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
                 <div>
@@ -1024,7 +1047,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <select 
                     value={editForm.status}
                     onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none cursor-pointer"
                   >
                     <option>Em Uso</option>
                     <option>Manutenção</option>
@@ -1049,7 +1072,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="date" 
                     value={editForm.acquisitionDate}
                     onChange={(e) => setEditForm(prev => ({ ...prev, acquisitionDate: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900"
                   />
                 </div>
                 <div>
@@ -1058,7 +1081,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     type="date" 
                     value={editForm.warrantyExpiry}
                     onChange={(e) => setEditForm(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900"
                   />
                 </div>
               </div>

@@ -285,7 +285,7 @@ export default function MonitoringView() {
                   value={editFormData.custom_name}
                   onChange={e => setEditFormData(prev => ({ ...prev, custom_name: e.target.value }))}
                   placeholder="Ex: PC-Recepção"
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none dark:text-white"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:focus:bg-slate-800 outline-none dark:text-white"
                 />
               </div>
               <div>
@@ -295,7 +295,7 @@ export default function MonitoringView() {
                   value={editFormData.sector}
                   onChange={e => setEditFormData(prev => ({ ...prev, sector: e.target.value }))}
                   placeholder="Ex: Atendimento"
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-800 outline-none dark:text-white"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:focus:bg-slate-800 outline-none dark:text-white"
                 />
               </div>
             </div>

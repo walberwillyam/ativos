@@ -168,7 +168,8 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
     e.preventDefault();
     if (!newUnitForm.name) return;
 
-    const newId = `unit-user-${Date.now()}`;
+    const baseName = newUnitForm.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const newId = `unit-${baseName}-${Date.now().toString().slice(-4)}`;
     const newUnit = {
       id: newId,
       name: newUnitForm.name,
@@ -850,7 +851,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   value={newUnitForm.name}
                   onChange={(e) => setNewUnitForm(p => ({ ...p, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                 />
               </div>
 
@@ -864,7 +865,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                     value={newUnitForm.city}
                     onChange={(e) => setNewUnitForm(p => ({ ...p, city: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
@@ -876,7 +877,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                     value={newUnitForm.manager}
                     onChange={(e) => setNewUnitForm(p => ({ ...p, manager: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -889,7 +890,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   placeholder="Ex: Av. do Contorno, 5000 - Savassi" 
                   value={newUnitForm.address}
                   onChange={(e) => setNewUnitForm(p => ({ ...p, address: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                 />
               </div>
 
@@ -901,7 +902,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   placeholder="Ex: bh.filial@ativosapoio.com.br" 
                   value={newUnitForm.email}
                   onChange={(e) => setNewUnitForm(p => ({ ...p, email: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                 />
               </div>
 
@@ -954,7 +955,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   value={editUnitForm.name}
                   onChange={(e) => setEditUnitForm(p => ({ ...p, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                 />
               </div>
 
@@ -966,7 +967,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                     value={editUnitForm.city}
                     onChange={(e) => setEditUnitForm(p => ({ ...p, city: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
@@ -976,7 +977,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                     value={editUnitForm.manager}
                     onChange={(e) => setEditUnitForm(p => ({ ...p, manager: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -987,7 +988,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   type="text" 
                   value={editUnitForm.address}
                   onChange={(e) => setEditUnitForm(p => ({ ...p, address: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                 />
               </div>
 
@@ -997,7 +998,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   type="email" 
                   value={editUnitForm.email}
                   onChange={(e) => setEditUnitForm(p => ({ ...p, email: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 outline-none"
                 />
               </div>
 
