@@ -45,9 +45,10 @@ interface ActiveMapViewProps {
   onAddUnit: (newUnit: Unit) => void;
   onUpdateUnitPartitions: (unitId: string, updatedPartitions: Partition[]) => void;
   onUpdateUnit?: (updatedUnit: Unit) => void;
+  onUpdateAsset?: (updatedAsset: Asset) => void;
 }
 
-export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit, onUpdateUnitPartitions, onUpdateUnit }: ActiveMapViewProps) {
+export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit, onUpdateUnitPartitions, onUpdateUnit, onUpdateAsset }: ActiveMapViewProps) {
   const [activeFloor, setActiveFloor] = useState<string>('office');
   const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
   const [highlightedAssetId, setHighlightedAssetId] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
 
   // Partition management states
   const [isManagePartitionsOpen, setIsManagePartitionsOpen] = useState(false);
+  const [isAllocateModalOpen, setIsAllocateModalOpen] = useState(false);
   const [partitionsFormList, setPartitionsFormList] = useState<Partition[]>([]);
   const [newPartitionName, setNewPartitionName] = useState('');
   const [newPartitionLayout, setNewPartitionLayout] = useState('office');
@@ -640,9 +642,15 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
           {/* List items dynamic mapping */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar select-none text-left">
             {floorAssets.length === 0 ? (
-              <div className="text-center py-20">
-                <MapPin size={24} className="text-slate-300 mx-auto animate-bounce mb-2" />
-                <p className="text-slate-400 text-xs">Nenhum ativo localizado neste piso físico.</p>
+              <div className="text-center py-20 flex flex-col items-center">
+                <MapPin size={24} className="text-slate-300 animate-bounce mb-2" />
+                <p className="text-slate-400 text-xs mb-4">Nenhum ativo localizado neste piso físico.</p>
+                <button
+                  onClick={() => setIsAllocateModalOpen(true)}
+                  className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 transition"
+                >
+                  <Plus size={14} /> Alocar Ativo Aqui
+                </button>
               </div>
             ) : (
               floorAssets.map((asset) => {
@@ -683,9 +691,132 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 );
               })
             )}
+            
+            {floorAssets.length > 0 && (
+              <button
+                onClick={() => setIsAllocateModalOpen(true)}
+                className="w-full mt-4 py-3 border-2 border-dashed border-indigo-200 rounded-xl text-indigo-600 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition"
+              >
+                <Plus size={16} /> Alocar Outro Ativo
+              </button>
+            )}
           </div>
         </div>
       </section>
+
+      {/* PARTITION MANAGEMENT MODAL */}
+      {isManagePartitionsOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">Gerenciar Partições</h3>
+                <p className="text-sm text-slate-500">Configure os pisos e setores visuais da unidade {currentUnitName}</p>
+              </div>
+              <button 
+                onClick={() => setIsManagePartitionsOpen(false)}
+                className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="space-y-4">
+                {currentUnitPartitions.map((part, index) => (
+                  <div key={part.id} className="flex gap-3 items-center">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <input 
+                        type="text"
+                        value={part.label}
+                        onChange={(e) => {
+                          const newParts = [...currentUnitPartitions];
+                          newParts[index].label = e.target.value;
+                          onUpdateUnitPartitions(currentUnit?.id || '', newParts);
+                        }}
+                        className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-slate-700"
+                      />
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  onClick={() => {
+                    const newId = `part-${Date.now()}`;
+                    onUpdateUnitPartitions(currentUnit?.id || '', [
+                      ...currentUnitPartitions,
+                      { id: newId, label: "Novo Setor", layout: "default" }
+                    ]);
+                  }}
+                  className="w-full py-3 border-2 border-dashed border-indigo-200 rounded-xl text-indigo-600 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition"
+                >
+                  <Plus size={18} /> Adicionar Nova Partição
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ALLOCATE ASSET MODAL */}
+      {isAllocateModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                  <MapPin size={24} className="text-indigo-600" />
+                  Alocar Ativo
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">Selecione um ativo para enviar para <strong className="text-indigo-600">{currentUnitPartitions.find(f=>f.id===activeFloor)?.label}</strong></p>
+              </div>
+              <button 
+                onClick={() => setIsAllocateModalOpen(false)}
+                className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              <div className="space-y-3">
+                {assets.filter(a => a.unit === currentUnitName && a.currentFloor !== activeFloor).length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <p className="text-slate-500 font-medium">Não há ativos não-alocados nesta unidade.</p>
+                  </div>
+                ) : (
+                  assets.filter(a => a.unit === currentUnitName && a.currentFloor !== activeFloor).map((asset) => (
+                    <div key={asset.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-sm">{asset.name}</h4>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">{asset.patrimonio}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (onUpdateAsset) {
+                            onUpdateAsset({
+                              ...asset,
+                              currentFloor: activeFloor,
+                              mapCoordinates: { x: 50, y: 50 }
+                            });
+                          }
+                          setIsAllocateModalOpen(false);
+                        }}
+                        className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-xl text-xs font-bold transition-transform active:scale-95"
+                      >
+                        Mover para cá
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal / Dialog for New Unit creation */}
       {isNewUnitOpen && (

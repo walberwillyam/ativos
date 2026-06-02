@@ -452,6 +452,7 @@ export default function App() {
               onAddUnit={handleAddUnit}
               onUpdateUnitPartitions={handleUpdateUnitPartitions}
               onUpdateUnit={handleUpdateUnit}
+              onUpdateAsset={handleUpdateAsset}
             />
           )}
 
