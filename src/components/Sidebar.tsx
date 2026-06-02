@@ -38,7 +38,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
   return (
     <aside 
       id="side-bar"
-      className="hidden md:flex flex-col w-64 bg-slate-50 border-r border-slate-200 h-[calc(100vh-64px)] sticky top-16 shrink-0 justify-between select-none"
+      className="hidden md:flex flex-col w-64 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-64px)] sticky top-16 shrink-0 justify-between select-none"
     >
       <div className="flex-1 flex flex-col pt-6 overflow-y-auto">
         {/* User Card */}
@@ -85,9 +85,11 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
                   />
                   <span>{item.label}</span>
                 </div>
-                {item.badge !== undefined && (
-                  <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full text-[10px] font-black">
-                    {item.badge}
+                {item.id === 'inventory' && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                    isSelected ? 'bg-indigo-200 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                  }`}>
+                    {totalAssetsCount}
                   </span>
                 )}
               </button>

@@ -255,27 +255,27 @@ export default function App() {
     return (
       <div id="reports-section" className="space-y-6 max-w-7xl mx-auto pb-10">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <FileSpreadsheet className="text-indigo-700" size={28} />
             Relatórios Consolidados
           </h2>
-          <p className="text-slate-500 mt-1">Exportação e auditoria legal da carga de ativos patrimoniais para controladoria.</p>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Exportação e auditoria legal da carga de ativos patrimoniais para controladoria.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {reportTemplates.map((rep) => (
-            <div key={rep.id} className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm flex flex-col justify-between">
+            <div key={rep.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-6 rounded-3xl shadow-sm flex flex-col justify-between">
               <div>
                 <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
                   Auditoria Regulada
                 </span>
-                <h4 className="text-lg font-bold text-slate-800 mt-4 leading-tight">{rep.title}</h4>
-                <p className="text-xs text-slate-500 mt-2 leading-relaxed">{rep.desc}</p>
+                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-4 leading-tight">{rep.title}</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 leading-relaxed">{rep.desc}</p>
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center text-xs">
                 <div>
-                  <p className="text-slate-400 font-medium select-none">{rep.format}</p>
+                  <p className="text-slate-400 dark:text-slate-500 font-medium select-none">{rep.format}</p>
                   <p className="text-[10px] text-indigo-600 font-bold mt-1 uppercase">{rep.update}</p>
                 </div>
                 <button 
@@ -295,29 +295,29 @@ export default function App() {
   // Quick Settings View Screen
   const renderSettingsView = () => {
     return (
-      <div id="settings-section" className="space-y-6 max-w-2xl mx-auto pb-10 bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
+      <div id="settings-section" className="space-y-6 max-w-2xl mx-auto pb-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-6 rounded-3xl shadow-sm">
         <div>
-          <h2 className="text-2xl font-black text-slate-900 flex items-center gap-1.5">
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-1.5">
             <SettingsIcon size={24} className="text-indigo-700" />
             Configurações do Sistema
           </h2>
-          <p className="text-slate-400 text-xs mt-0.5">Ajustes gerais do barramento físico RFID e API do Ativos Apoio.</p>
+          <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">Ajustes gerais do barramento físico RFID e API do Ativos Apoio.</p>
         </div>
 
         <div className="space-y-5 pt-3 divider-y divider-slate-100">
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-slate-700">Responsável Administrativo Titular</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">Responsável Administrativo Titular</label>
             <input 
               type="text" 
               defaultValue="Admin Geral (Walber Binho)" 
               disabled
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-500 font-bold select-none"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold select-none"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-slate-700">Frequência de Envio Syslog RFID</label>
-            <select className="w-full border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-600 cursor-pointer">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">Frequência de Envio Syslog RFID</label>
+            <select className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-600 cursor-pointer">
               <option>Padrão: A cada 12 horas</option>
               <option>Alta Frequência: Tempo real (Ronda contínua)</option>
               <option>Baixa Frequência: Manual diário</option>
@@ -325,15 +325,15 @@ export default function App() {
           </div>
 
           <div className="space-y-2">
-            <span className="block text-xs font-black text-slate-700 uppercase tracking-wider">Integrações do Barramento</span>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
+            <span className="block text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Integrações do Barramento</span>
+            <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <span className="bg-indigo-100 text-indigo-700 p-2.5 rounded-xl block">
                   <Sparkles size={16} />
                 </span>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800">Google Workspace Cloud Integration</h4>
-                  <p className="text-[10px] text-slate-400">Automatiza criação de termos em PDF no Google Drive corporativo.</p>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">Google Workspace Cloud Integration</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">Automatiza criação de termos em PDF no Google Drive corporativo.</p>
                 </div>
               </div>
               <span className="bg-indigo-100 text-indigo-800 text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
@@ -345,7 +345,7 @@ export default function App() {
           <div className="pt-4 flex justify-end gap-2 text-xs font-bold">
             <button 
               onClick={() => alert("Configurações padrão restauradas!")}
-              className="px-4 py-2 hover:bg-slate-50 rounded-xl border border-slate-200 text-slate-600"
+              className="px-4 py-2 hover:bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
             >
               Restaurar
             </button>

@@ -122,29 +122,29 @@ export default function MonitoringView() {
   if (loading) {
     return (
       <div className="flex-1 p-8 flex items-center justify-center">
-        <div className="text-slate-500 animate-pulse">Carregando telemetria...</div>
+        <div className="text-slate-500 dark:text-slate-400 dark:text-slate-500 animate-pulse">Carregando telemetria...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 p-8 bg-slate-50 overflow-y-auto">
+    <div className="flex-1 p-8 bg-slate-50 dark:bg-slate-800 overflow-y-auto">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <div className="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center">
             <Activity size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Telemetria em Tempo Real</h1>
-            <p className="text-slate-500 mt-1">Monitoramento de saúde dos ativos com o agente instalado.</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Telemetria em Tempo Real</h1>
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Monitoramento de saúde dos ativos com o agente instalado.</p>
           </div>
         </div>
 
         {devices.length === 0 ? (
-          <div className="bg-white p-8 rounded-xl border border-slate-200 text-center shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-700 text-center shadow-sm">
             <Server size={48} className="mx-auto text-slate-300 mb-4" />
-            <h3 className="text-lg font-semibold text-slate-800">Nenhum ativo transmitindo</h3>
-            <p className="text-slate-500 mt-2">Instale o agente em uma máquina e comece a receber os dados.</p>
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Nenhum ativo transmitindo</h3>
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2">Instale o agente em uma máquina e comece a receber os dados.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -163,7 +163,7 @@ export default function MonitoringView() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                          <Server size={16} className="text-slate-400 dark:text-slate-500" />
+                          <Server size={16} className="text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500" />
                           {device.custom_name || device.asset_id}
                         </h3>
                         <button 
@@ -177,11 +177,11 @@ export default function MonitoringView() {
                           <Edit2 size={14} />
                         </button>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
                         Unidade: {device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
                       </p>
                       {device.custom_name && (
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Hostname: {device.asset_id}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">Hostname: {device.asset_id}</p>
                       )}
                     </div>
                   </div>
@@ -189,7 +189,7 @@ export default function MonitoringView() {
                   <div className="mb-4">
                     <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-lg w-max">
                       <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-slate-300 dark:bg-slate-600' : 'bg-emerald-500 animate-pulse'}`} />
-                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                         {isOffline ? 'Offline' : 'Online'}
                       </span>
                     </div>
@@ -198,7 +198,7 @@ export default function MonitoringView() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-1">
                           <Cpu size={12} /> CPU Usage
                         </span>
                         <span className={`font-bold ${isCriticalCpu ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -212,7 +212,7 @@ export default function MonitoringView() {
 
                     <div>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-1">
                           <Activity size={12} /> RAM Usage
                         </span>
                         <span className={`font-bold ${isCriticalRam ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -226,7 +226,7 @@ export default function MonitoringView() {
                     
                     <div>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-1">
                           <HardDrive size={12} /> Disk Primary
                         </span>
                         <span className={`font-bold ${isCriticalDisk ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -239,7 +239,7 @@ export default function MonitoringView() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                      <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-1">
                         <Clock size={12} /> Uptime
                       </span>
                       <span className="font-bold text-slate-700 dark:text-slate-300">
@@ -248,7 +248,7 @@ export default function MonitoringView() {
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
                     <span className="truncate flex-1" title={device.os_info}>{device.os_info}</span>
                     <span className="ml-2 font-mono text-[10px]">Ping: {new Date(device.last_ping).toLocaleTimeString()}</span>
                   </div>
@@ -264,7 +264,7 @@ export default function MonitoringView() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
               <h3 className="font-bold text-slate-800 dark:text-white">Editar Ativo</h3>
-              <button onClick={() => setEditingDevice(null)} className="text-slate-400 hover:text-slate-600 dark:text-slate-500">
+              <button onClick={() => setEditingDevice(null)} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 <X size={20} />
               </button>
             </div>
@@ -275,7 +275,7 @@ export default function MonitoringView() {
                   type="text" 
                   value={editingDevice.asset_id} 
                   disabled 
-                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-500 cursor-not-allowed"
+                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 cursor-not-allowed"
                 />
               </div>
               <div>

@@ -65,7 +65,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
   const expiringWarranties = [
     { name: "MacBook Pro 14\"", id: "KINETIC-8821", date: "12 Mai, 2024", status: "Expirado", color: "text-rose-500", dot: "bg-rose-500", icon: Cpu },
     { name: "Cisco Nexus 9000", id: "KINETIC-8800", date: "05 Jun, 2024", status: "30 Dias", color: "text-amber-500", dot: "bg-amber-500", icon: RefreshCw },
-    { name: "HP Enterprise M608", id: "ADM-IMP-22", date: "22 Jul, 2024", status: "60+ Dias", color: "text-slate-500", dot: "bg-slate-500", icon: Printer },
+    { name: "HP Enterprise M608", id: "ADM-IMP-22", date: "22 Jul, 2024", status: "60+ Dias", color: "text-slate-500", dot: "bg-slate-50 dark:bg-slate-8000", icon: Printer },
   ];
 
   return (
@@ -80,7 +80,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
               Tempo Real
             </span>
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 select-none">Dados consolidados da rede operacional e ativos corporativos em atividade.</p>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 select-none">Dados consolidados da rede operacional e ativos corporativos em atividade.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -88,7 +88,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
             id="period-select"
             value={filterPeriod} 
             onChange={(e) => setFilterPeriod(e.target.value)}
-            className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm cursor-pointer"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm cursor-pointer"
           >
             <option>Últimos 30 dias</option>
             <option>Últimos 90 dias</option>
@@ -109,7 +109,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
       {/* Top 4 KPI Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Total Assets */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <span className="p-3 bg-indigo-50 text-indigo-700 rounded-xl">
               <Boxes size={20} />
@@ -119,24 +119,24 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Total de Ativos</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{liveTotal.toLocaleString('pt-BR')}</h3>
+            <p className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Total de Ativos</p>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">{liveTotal.toLocaleString('pt-BR')}</h3>
           </div>
         </div>
 
         {/* KPI 2: Assets in Use */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <span className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
               <CheckCircle2 size={20} />
             </span>
-            <span className="text-slate-500 text-xs bg-slate-100 px-2 py-1 rounded-full font-medium">
+            <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs bg-slate-100 px-2 py-1 rounded-full font-medium">
               {liveInUsePercent}% Utilização
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Ativos em Uso</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{liveInUseCount.toLocaleString('pt-BR')}</h3>
+            <p className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Ativos em Uso</p>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">{liveInUseCount.toLocaleString('pt-BR')}</h3>
           </div>
           <div className="w-full bg-slate-100 mt-3 h-2 rounded-full overflow-hidden">
             <div 
@@ -147,7 +147,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
         </div>
 
         {/* KPI 3: Maintenance */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 border-l-4 border-l-amber-500 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <span className="p-3 bg-amber-50 text-amber-600 rounded-xl">
               <Wrench size={20} />
@@ -157,13 +157,13 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Em Manutenção</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{liveMaintenance}</h3>
+            <p className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Em Manutenção</p>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">{liveMaintenance}</h3>
           </div>
         </div>
 
         {/* KPI 4: Pending Inventory */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 border-l-4 border-l-rose-500 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-rose-500 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <span className="p-3 bg-rose-50 text-rose-600 rounded-xl">
               <History size={20} />
@@ -173,8 +173,8 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Não Localizado / Extravio</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{liveCritical}</h3>
+            <p className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Não Localizado / Extravio</p>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">{liveCritical}</h3>
           </div>
         </div>
       </section>
@@ -194,11 +194,11 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center bg-${kpi.color}-50 dark:bg-${kpi.color}-900/20 text-${kpi.color}-600 dark:text-${kpi.color}-400`}>
                   <IconComponent size={20} />
                 </div>
-                <button className="text-slate-400 hover:text-slate-600 transition"><MoreVertical size={16} /></button>
+                <button className="text-slate-400 hover:text-slate-600 dark:text-slate-300 transition"><MoreVertical size={16} /></button>
               </div>
               <div>
                 <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{kpi.val}</h3>
-                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1">{kpi.label}</p>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">{kpi.label}</p>
                 <p className={`text-[10px] font-bold text-${kpi.color}-500 mt-2`}>{kpi.sub}</p>
               </div>
             </div>
@@ -255,8 +255,8 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                 </div>
                 <div className="pb-2">
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">{act.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{act.details}</p>
-                  <p className="text-[10px] text-slate-400 mt-1 font-medium">{act.time} • Por {act.by}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">{act.details}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium">{act.time} • Por {act.by}</p>
                 </div>
               </div>
             ))}
@@ -269,7 +269,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
         {/* Distribuição por Unidade */}
         <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Distribuição por Unidade</h4>
-          <p className="text-xs text-slate-400 mb-5">Alocação geográfica ativa das cargas de patrimônio</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mb-5">Alocação geográfica ativa das cargas de patrimônio</p>
 
           <div className="space-y-4">
             {Object.entries(unitsCounts).map(([un, count]) => {
@@ -277,13 +277,13 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
               let barColor = 'bg-indigo-600';
               if (un.includes("Operacional A")) barColor = 'bg-violet-500';
               if (un.includes("Operacional B")) barColor = 'bg-teal-500';
-              if (un.includes("CD Logístico")) barColor = 'bg-slate-500';
+              if (un.includes("CD Logístico")) barColor = 'bg-slate-50 dark:bg-slate-8000';
 
               return (
                 <div key={un} className="space-y-1.5">
                   <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <span>{un}</span>
-                    <span className="text-slate-500 dark:text-slate-400 font-mono font-bold">
+                    <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono font-bold">
                       {count.toLocaleString('pt-BR')} ({pct}%)
                     </span>
                   </div>
@@ -297,11 +297,11 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
         </div>
 
         {/* Quick Warranty List */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
             <div>
-              <h4 className="text-lg font-bold text-slate-900">Vencimento de Garantia</h4>
-              <p className="text-xs text-slate-500">Prazos de cobertura técnica corporativa urgentes</p>
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white">Vencimento de Garantia</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Prazos de cobertura técnica corporativa urgentes</p>
             </div>
             <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-[10px] font-bold uppercase tracking-wider">
               PRÓXIMOS DIAS
@@ -311,7 +311,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-slate-100 text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   <th className="px-6 py-3">Ativo</th>
                   <th className="px-6 py-3">ID Interno</th>
                   <th className="px-6 py-3">Vencimento</th>
@@ -325,17 +325,17 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                   // Look up actual asset object
                   const actualAsset = assets.find(a => a.id === w.id);
                   return (
-                    <tr key={w.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={w.id} className="hover:bg-slate-50 dark:bg-slate-800 transition-colors">
                       <td className="px-6 py-4 flex items-center gap-3">
-                        <span className="p-2 bg-slate-100 text-slate-500 rounded-lg">
+                        <span className="p-2 bg-slate-100 text-slate-500 dark:text-slate-400 dark:text-slate-500 rounded-lg">
                           <Icon size={14} />
                         </span>
-                        <span className="text-xs font-bold text-slate-800">{w.name}</span>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{w.name}</span>
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono text-slate-500">{w.id}</td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-500">{w.date}</td>
+                      <td className="px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400 dark:text-slate-500">{w.id}</td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500">{w.date}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border border-slate-200/50`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border border-slate-200 dark:border-slate-700/50`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${w.dot}`} />
                           <span className={w.color}>{w.status}</span>
                         </span>

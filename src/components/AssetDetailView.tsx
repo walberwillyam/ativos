@@ -241,12 +241,12 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       {/* Breadcrumbs trace navigation and actionable links */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <nav className="flex items-center gap-2 text-xs font-bold text-slate-400 select-none">
+          <nav className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-slate-500 select-none">
             <button onClick={onGoBack} className="hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1">
               <ArrowLeft size={12} />
               Inventário
             </button>
-            <span className="text-slate-300 dark:text-slate-600">/</span>
+            <span className="text-slate-300 dark:text-slate-600 dark:text-slate-300">/</span>
             <span className="text-indigo-600 dark:text-indigo-400 font-bold">Ficha de Ativo</span>
           </nav>
           <h2 className="text-3xl font-black mt-1 text-slate-900 dark:text-white tracking-tight">Ficha do Ativo</h2>
@@ -308,9 +308,9 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <div className="absolute top-4 left-4">
                 <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider text-white shadow flex items-center gap-1.5 ${
                   asset.status === 'Em Uso' ? 'bg-emerald-600' :
-                  asset.status === 'Manutenção' ? 'bg-amber-500' : 'bg-slate-500'
+                  asset.status === 'Manutenção' ? 'bg-amber-500' : 'bg-slate-50 dark:bg-slate-8000'
                 }`}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-900 animate-pulse" />
                   {asset.status}
                 </span>
               </div>
@@ -321,7 +321,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{asset.name}</h3>
-                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-2">
+                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-2">
                     Patrimônio: <span className="text-slate-600 dark:text-slate-300 font-mono tracking-tight">{asset.patrimonio}</span>
                   </p>
                 </div>
@@ -333,11 +333,11 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               {/* ID Data Table Grid layout */}
               <div className="grid grid-cols-2 gap-y-5 gap-x-4 pb-5 border-b border-slate-100 dark:border-slate-800">
                 <div>
-                  <p className="text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 mb-0.5 tracking-wide">Categoria de Inventário</p>
+                  <p className="text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-0.5 tracking-wide">Categoria de Inventário</p>
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{asset.category}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 mb-0.5 tracking-wide">Polo Físico Atual</p>
+                  <p className="text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-0.5 tracking-wide">Polo Físico Atual</p>
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     {asset.unit}
                   </p>
@@ -351,7 +351,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <div className="space-y-4 max-h-56 overflow-y-auto pr-1">
                     <div>
                       <div className="flex justify-between text-xs mb-1 font-bold">
-                        <span className="text-slate-400 flex items-center gap-1"><Cpu size={12}/> CPU Usage</span>
+                        <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1"><Cpu size={12}/> CPU Usage</span>
                         <span className="text-slate-800 dark:text-slate-100">{telemetry.cpu_usage.toFixed(2)}%</span>
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
@@ -361,7 +361,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     
                     <div>
                       <div className="flex justify-between text-xs mb-1 font-bold">
-                        <span className="text-slate-400 flex items-center gap-1"><Activity size={12}/> RAM Usage</span>
+                        <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1"><Activity size={12}/> RAM Usage</span>
                         <span className="text-slate-800 dark:text-slate-100">{formatBytes(telemetry.ram_used)} / {formatBytes(telemetry.ram_total)}</span>
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
@@ -371,7 +371,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
                     <div>
                       <div className="flex justify-between text-xs mb-1 font-bold">
-                        <span className="text-slate-400 flex items-center gap-1"><HardDrive size={12}/> Disk Primary</span>
+                        <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1"><HardDrive size={12}/> Disk Primary</span>
                         <span className="text-slate-800 dark:text-slate-100">{formatBytes(telemetry.disk_used)} / {formatBytes(telemetry.disk_total)}</span>
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
@@ -381,7 +381,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     
                     <div>
                       <div className="flex justify-between text-xs mb-1 font-bold">
-                        <span className="text-slate-400 flex items-center gap-1"><Clock size={12}/> Uptime</span>
+                        <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1"><Clock size={12}/> Uptime</span>
                         <span className="text-slate-800 dark:text-slate-100">{formatUptime(telemetry.uptime_seconds)}</span>
                       </div>
                     </div>
@@ -390,7 +390,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {Object.entries(asset.specifications).map(([key, value]) => (
                       <div key={key} className="flex justify-between border-b border-slate-100/60 pb-1.5 text-xs text-slate-700 dark:text-slate-300">
-                        <span className="text-slate-400 font-medium select-none">{key}</span>
+                        <span className="text-slate-400 dark:text-slate-500 font-medium select-none">{key}</span>
                         <span className="font-bold text-slate-800 dark:text-slate-100 text-right">{value}</span>
                       </div>
                     ))}
@@ -403,18 +403,18 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
           {/* Dados de Compra and Garantia side cards */}
           <div className="grid grid-cols-2 gap-4 select-none">
             {/* Purchase breakdown card */}
-            <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign size={16} className="text-indigo-700" />
-                <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Fatura de Compra</h4>
+                <h4 className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Fatura de Compra</h4>
               </div>
               <div className="space-y-3">
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-0.5">Aquisição</p>
-                  <p className="text-sm font-bold text-slate-800">{new Date(asset.acquisitionDate).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 leading-none mb-0.5">Aquisição</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{new Date(asset.acquisitionDate).toLocaleDateString('pt-BR')}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-0.5">Valor Unitário</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 leading-none mb-0.5">Valor Unitário</p>
                   <p className="text-sm font-mono font-black text-indigo-700">
                     R$ {asset.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
@@ -423,19 +423,19 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
             </div>
 
             {/* Warranty tracking card */}
-            <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
               <div className="flex items-center gap-2 mb-3">
                 <ShieldCheck size={16} className="text-teal-600" />
-                <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Garantia Legal</h4>
+                <h4 className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Garantia Legal</h4>
               </div>
               <div className="space-y-3">
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-0.5">Status de Cobertura</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 leading-none mb-0.5">Status de Cobertura</p>
                   <p className="text-sm font-bold text-emerald-600">Ativa em Contrato</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-0.5">Expiração Técnica</p>
-                  <p className="text-sm font-bold text-slate-800">{new Date(asset.warrantyExpiry).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 leading-none mb-0.5">Expiração Técnica</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{new Date(asset.warrantyExpiry).toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
             </div>
@@ -443,16 +443,16 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         </div>
 
         {/* Right column: Timeline tabs logs */}
-        <div className="col-span-12 lg:col-span-7 bg-white border border-slate-200 rounded-3xl flex flex-col min-h-[500px] shadow-sm">
+        <div className="col-span-12 lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl flex flex-col min-h-[500px] shadow-sm">
           {/* Timeline Tab buttons matching mockup exactly */}
-          <div className="flex border-b border-slate-200 px-6 pt-2 select-none bg-slate-50 rounded-t-3xl">
+          <div className="flex border-b border-slate-200 px-6 pt-2 select-none bg-slate-50 dark:bg-slate-800 rounded-t-3xl">
             <button 
               id="detail-tab-trigger-timeline"
               onClick={() => setActiveTab('timeline')}
               className={`px-4 py-4 text-xs font-bold flex items-center gap-2 leading-none transition-colors border-b-2 ${
                 activeTab === 'timeline' 
                   ? 'border-indigo-700 text-indigo-700 font-extrabold' 
-                  : 'border-transparent text-slate-400 hover:text-slate-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-700 dark:text-slate-200'
               }`}
             >
               <History size={16} />
@@ -464,7 +464,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               className={`px-4 py-4 text-xs font-bold flex items-center gap-2 leading-none transition-colors border-b-2 ${
                 activeTab === 'audit' 
                   ? 'border-indigo-700 text-indigo-700 font-extrabold' 
-                  : 'border-transparent text-slate-400 hover:text-slate-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-700 dark:text-slate-200'
               }`}
             >
               <ShieldCheck size={16} />
@@ -476,7 +476,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               className={`px-4 py-4 text-xs font-bold flex items-center gap-2 leading-none transition-colors border-b-2 ${
                 activeTab === 'docs' 
                   ? 'border-indigo-700 text-indigo-700 font-extrabold' 
-                  : 'border-transparent text-slate-400 hover:text-slate-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-700 dark:text-slate-200'
               }`}
             >
               <FileText size={16} />
@@ -488,7 +488,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               className={`px-4 py-4 text-xs font-bold flex items-center gap-2 leading-none transition-colors border-b-2 ${
                 activeTab === 'photos' 
                   ? 'border-indigo-700 text-indigo-700 font-extrabold' 
-                  : 'border-transparent text-slate-400 hover:text-slate-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-700 dark:text-slate-200'
               }`}
             >
               <Camera size={16} />
@@ -514,9 +514,9 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     
                     <div className="flex justify-between items-start gap-4">
                       <div>
-                        <p className="font-bold text-sm text-slate-800">{step.title}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">Responsável técnico: {step.responsible}</p>
-                        <p className="text-xs text-slate-500 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl inline-block mt-2 font-medium">
+                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{step.title}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Responsável técnico: {step.responsible}</p>
+                        <p className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 border border-slate-100 px-3 py-1.5 rounded-xl inline-block mt-2 font-medium">
                           {step.description}
                         </p>
                         
@@ -528,8 +528,8 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{new Date(step.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{step.time}</p>
+                        <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">{new Date(step.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">{step.time}</p>
                       </div>
                     </div>
                   </div>
@@ -545,21 +545,21 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-50 border border-slate-200/85 rounded-xl">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Última Verificação</span>
-                    <p className="text-slate-800 text-sm font-bold">15 de Março, 2026</p>
-                    <p className="text-xs text-slate-400 mt-1">Status na auditoria: Sem divergências físicas constatadas.</p>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/85 rounded-xl">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500 block mb-1">Última Verificação</span>
+                    <p className="text-slate-800 dark:text-slate-100 text-sm font-bold">15 de Março, 2026</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Status na auditoria: Sem divergências físicas constatadas.</p>
                   </div>
-                  <div className="p-4 bg-slate-50 border border-slate-200/85 rounded-xl">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Frequência Legal</span>
-                    <p className="text-slate-800 text-sm font-bold">Semestral</p>
-                    <p className="text-xs text-slate-400 mt-1">Próxima conferência por varredora RFID agendada para 09/2026.</p>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/85 rounded-xl">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500 block mb-1">Frequência Legal</span>
+                    <p className="text-slate-800 dark:text-slate-100 text-sm font-bold">Semestral</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Próxima conferência por varredora RFID agendada para 09/2026.</p>
                   </div>
                 </div>
 
                 <div className="border border-slate-150 rounded-xl p-4 space-y-2 mt-4 text-xs">
-                  <span className="font-bold text-slate-700 block text-xs">Instruções de Manuseio Contratuais</span>
-                  <p className="text-slate-500 leading-relaxed">Este equipamento deve ser movimentado apenas sob acompanhamento da gerência de infraestrutura local de polo. Alterações físicas em rack requerem notificação prévia syslog via central.</p>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 block text-xs">Instruções de Manuseio Contratuais</span>
+                  <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 leading-relaxed">Este equipamento deve ser movimentado apenas sob acompanhamento da gerência de infraestrutura local de polo. Alterações físicas em rack requerem notificação prévia syslog via central.</p>
                 </div>
               </div>
             )}
@@ -574,16 +574,16 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   <div 
                     key={i} 
                     onClick={() => alert(`Visualizando documento corporativo: ${doc.name}`)}
-                    className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition"
+                    className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 dark:bg-slate-800 cursor-pointer transition"
                   >
                     <div className="flex items-center gap-2.5">
                       <FileText size={18} className="text-indigo-600" />
                       <div>
-                        <p className="text-xs font-bold text-slate-700">{doc.name}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{doc.size} • Data: {doc.date}</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{doc.name}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{doc.size} • Data: {doc.date}</p>
                       </div>
                     </div>
-                    <ChevronRight size={14} className="text-slate-400" />
+                    <ChevronRight size={14} className="text-slate-400 dark:text-slate-500" />
                   </div>
                 ))}
               </div>
@@ -598,7 +598,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 ].map((photo, i) => (
                   <div 
                     key={i} 
-                    className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group cursor-zoom-in"
+                    className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200 dark:border-slate-700 group cursor-zoom-in"
                     onClick={() => alert("Exibindo foto em tamanho real...")}
                   >
                     <img src={photo} alt="Foto técnica do Ativo" className="w-full h-full object-cover group-hover:scale-110 duration-200" />
@@ -609,13 +609,13 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
           </div>
 
           {/* Footer Timeline indicator count */}
-          <div className="p-5 border-t border-slate-150 bg-slate-50 flex justify-between items-center rounded-b-3xl text-xs text-slate-400 select-none">
+          <div className="p-5 border-t border-slate-150 bg-slate-50 dark:bg-slate-800 flex justify-between items-center rounded-b-3xl text-xs text-slate-400 dark:text-slate-500 select-none">
             <span>Constam {asset.history.length} ocorrências e auditorias registradas no prontuário físico.</span>
             <div className="flex gap-1.5">
-              <button className="p-1 border border-slate-200 rounded-lg hover:bg-slate-200 transition bg-white text-slate-500">
+              <button className="p-1 border border-slate-200 rounded-lg hover:bg-slate-200 transition bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 <ChevronLeft size={14} />
               </button>
-              <button className="p-1 border border-slate-200 rounded-lg hover:bg-slate-200 transition bg-white text-slate-500 animate-pulse">
+              <button className="p-1 border border-slate-200 rounded-lg hover:bg-slate-200 transition bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 dark:text-slate-500 animate-pulse">
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -626,21 +626,21 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       {/* Pop up form transfer unit */}
       {isTransferOpen && (
         <div id="transfer-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <form onSubmit={handleTransferSubmit} className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 animate-slide-up">
+          <form onSubmit={handleTransferSubmit} className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 animate-slide-up">
             <h3 className="text-lg font-bold text-slate-950 flex items-center gap-2 mb-1.5">
               <RefreshCw className="text-indigo-600" size={18} />
               Mover / Transferir Ativo Físico
             </h3>
-            <p className="text-xs text-slate-500">Registre a alteração geográfica física deste ativo para outro polo regional.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Registre a alteração geográfica física deste ativo para outro polo regional.</p>
 
             <div className="my-4 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Unidade Polo Destino</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Unidade Polo Destino</label>
                 <select 
                   id="transfer-unit-select-input"
                   value={transferTargetUnit}
                   onChange={(e) => setTransferTargetUnit(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm outline-none cursor-pointer"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm outline-none cursor-pointer"
                 >
                   <option>Matriz - São Paulo</option>
                   <option>Filial - Rio de Janeiro</option>
@@ -650,7 +650,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Localização Específica (Setor, Sala, Mesa)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Localização Específica (Setor, Sala, Mesa)</label>
                 <input 
                   type="text" 
                   id="transfer-loc-input"
@@ -658,18 +658,18 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   onChange={(e) => setTransferTargetLoc(e.target.value)}
                   placeholder="Ex: CPD B - Rack C10"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Motivo / Justificativa</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Motivo / Justificativa</label>
                 <textarea 
                   id="transfer-reason-input"
                   value={transferReason}
                   onChange={(e) => setTransferReason(e.target.value)}
                   placeholder="Ex: Substituição preventiva ou expansão de banda de rede no polo Sul."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 shrink-0 text-sm focus:ring-2 h-20"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shrink-0 text-sm focus:ring-2 h-20"
                 />
               </div>
             </div>
@@ -678,7 +678,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <button 
                 type="button" 
                 onClick={() => setIsTransferOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50"
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
               >
                 Cancelar
               </button>
@@ -697,21 +697,21 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       {/* Pop up technical maintenance request form */}
       {isMaintenanceOpen && (
         <div id="maintenance-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 border border-slate-250">
-          <form onSubmit={handleMaintenanceSubmit} className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 animate-slide-up">
+          <form onSubmit={handleMaintenanceSubmit} className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 animate-slide-up">
             <h3 className="text-lg font-bold text-slate-950 flex items-center gap-2 mb-1.5">
               <Wrench className="text-indigo-600" size={18} />
               Solicitar Correção / Manutenção
             </h3>
-            <p className="text-xs text-slate-500">Coloque o equipamento sob manutenção corretiva ou preventiva oficial.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Coloque o equipamento sob manutenção corretiva ou preventiva oficial.</p>
 
             <div className="my-4 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Tipo de Manutenção</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Tipo de Manutenção</label>
                 <select 
                   id="maint-type-select"
                   value={maintenanceType}
                   onChange={(e) => setMaintenanceType(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm outline-none cursor-pointer"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm outline-none cursor-pointer"
                 >
                   <option>Corretiva</option>
                   <option>Preventiva</option>
@@ -720,7 +720,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Serviço Solicitado / Descrição Técinica</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Serviço Solicitado / Descrição Técinica</label>
                 <input 
                   type="text" 
                   id="maint-service-input"
@@ -728,19 +728,19 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   onChange={(e) => setMaintenanceService(e.target.value)}
                   placeholder="Ex: Troca preventiva de cooler ou reinstalação de SO"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Aos Cuidados Técnicos de (Parceiro/Pessoa)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Aos Cuidados Técnicos de (Parceiro/Pessoa)</label>
                 <input 
                   type="text" 
                   id="maint-tech-input"
                   value={maintenanceTechnicalName}
                   onChange={(e) => setMaintenanceTechnicalName(e.target.value)}
                   placeholder="Ex: Laboratório ou Suporte Autorizado Dell"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
             </div>
@@ -749,7 +749,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <button 
                 type="button" 
                 onClick={() => setIsMaintenanceOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50"
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
               >
                 Cancelar
               </button>
@@ -768,40 +768,40 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       {/* Pop up form edit asset */}
       {isEditOpen && (
         <div id="edit-asset-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <form onSubmit={handleEditAssetSubmit} className="bg-white p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 animate-slide-up">
+          <form onSubmit={handleEditAssetSubmit} className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700 animate-slide-up">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-              <h3 className="text-lg font-bold text-slate-900">Editar Detalhes Técnicos</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Editar Detalhes Técnicos</h3>
               <button type="button" onClick={() => setIsEditOpen(false)} className="p-1 hover:bg-slate-100 rounded-full"><X size={16} /></button>
             </div>
 
             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Nome Descritivo do Ativo *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Nome Descritivo do Ativo *</label>
                 <input 
                   type="text" 
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Número de Patrimônio (Opcional)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Patrimônio (Opcional)</label>
                   <input 
                     type="text" 
                     value={editForm.patrimonio}
                     onChange={(e) => setEditForm(prev => ({ ...prev, patrimonio: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Categoria de Inventário *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Categoria de Inventário *</label>
                   <select 
                     value={editForm.category}
                     onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     {categories.length > 0 ? (
                       categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
@@ -821,29 +821,29 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Marca / Modelo Completo *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Marca / Modelo Completo *</label>
                   <input 
                     type="text" 
                     value={editForm.model}
                     onChange={(e) => setEditForm(prev => ({ ...prev, model: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Número de Série (Serial) *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Série (Serial) *</label>
                   <input 
                     type="text" 
                     value={editForm.serialNumber}
                     onChange={(e) => setEditForm(prev => ({ ...prev, serialNumber: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Unidade Polo Inicial *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Unidade Polo Inicial *</label>
                   <select 
                     value={editForm.unit}
                     onChange={(e) => {
@@ -861,7 +861,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                         currentFloor: matchedParts[0]?.id || 'office' 
                       }));
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     {units.map((u) => (
                       <option key={u.id} value={u.name}>{u.name}</option>
@@ -869,11 +869,11 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Partição / Setor Inicial *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Partição / Setor Inicial *</label>
                   <select 
                     value={editForm.currentFloor}
                     onChange={(e) => setEditForm(prev => ({ ...prev, currentFloor: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     {(units.find(u => u.name === editForm.unit)?.partitions || [
                       { id: 'office', label: 'Escritório' },
@@ -886,32 +886,32 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Localização de Detalhe *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Localização de Detalhe *</label>
                   <input 
                     type="text" 
                     value={editForm.location}
                     onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Responsável Nome *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Responsável Nome *</label>
                   <input 
                     type="text" 
                     value={editForm.responsibleName}
                     onChange={(e) => setEditForm(prev => ({ ...prev, responsibleName: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Estado Operacional Inicial *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Estado Operacional Inicial *</label>
                   <select 
                     value={editForm.status}
                     onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     <option>Em Uso</option>
                     <option>Manutenção</option>
@@ -922,63 +922,63 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Valor Compra R$</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Valor Compra R$</label>
                   <input 
                     type="number" 
                     value={editForm.value}
                     onChange={(e) => setEditForm(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Adquirido Em</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Adquirido Em</label>
                   <input 
                     type="date" 
                     value={editForm.acquisitionDate}
                     onChange={(e) => setEditForm(prev => ({ ...prev, acquisitionDate: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Garantia Até</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Garantia Até</label>
                   <input 
                     type="date" 
                     value={editForm.warrantyExpiry}
                     onChange={(e) => setEditForm(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900"
                   />
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Espeficicações Técnicas Avançadas</span>
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 space-y-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Espeficicações Técnicas Avançadas</span>
                 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Processador</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold mb-1">Processador</label>
                     <input 
                       type="text" 
                       value={editForm.processor}
                       onChange={(e) => setEditForm(prev => ({ ...prev, processor: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Memória RAM</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold mb-1">Memória RAM</label>
                     <input 
                       type="text" 
                       value={editForm.ram}
                       onChange={(e) => setEditForm(prev => ({ ...prev, ram: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Armazenamento</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold mb-1">Armazenamento</label>
                     <input 
                       type="text" 
                       value={editForm.storage}
                       onChange={(e) => setEditForm(prev => ({ ...prev, storage: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs"
                     />
                   </div>
                 </div>
@@ -989,7 +989,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <button 
                 type="button" 
                 onClick={() => setIsEditOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50"
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
               >
                 Cancelar
               </button>
@@ -1007,17 +1007,17 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       {/* Pop up form print QR label page mockup */}
       {isPrintBadgeOpen && (
         <div id="print-badge-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 animate-slide-up flex flex-col items-center text-center">
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Guia de Impressão de Etiqueta</h3>
-            <p className="text-xs text-slate-400">Impressora de fita térmica patrimonial padrão Zebra conectada.</p>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-700 animate-slide-up flex flex-col items-center text-center">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Guia de Impressão de Etiqueta</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Impressora de fita térmica patrimonial padrão Zebra conectada.</p>
 
             {/* Rendered barcode layout card mock */}
-            <div className="my-6 bg-white border-2 border-dashed border-slate-300 p-5 rounded-2xl w-full max-w-[240px] shadow-sm flex flex-col items-center">
+            <div className="my-6 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 p-5 rounded-2xl w-full max-w-[240px] shadow-sm flex flex-col items-center">
               <span className="text-[10px] font-black uppercase text-indigo-700 tracking-wider">ATIVOS APOIO</span>
               
               {/* Fake QR graphic placeholder cleanly rendered */}
               <div className="bg-slate-100 w-32 h-32 my-3 rounded-lg flex items-center justify-center p-2">
-                <svg className="w-full h-full text-slate-800" viewBox="0 0 100 100">
+                <svg className="w-full h-full text-slate-800 dark:text-slate-100" viewBox="0 0 100 100">
                   {/* Vector design representing QR lines */}
                   <rect x="5" y="5" width="25" height="25" fill="currentColor" />
                   <rect x="10" y="10" width="15" height="15" fill="white" />
@@ -1041,15 +1041,15 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 </svg>
               </div>
 
-              <span className="text-xs font-bold text-slate-800">{asset.name.slice(0, 18)}</span>
-              <span className="text-[9px] font-mono font-bold text-slate-400 mt-0.5">{asset.id}</span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{asset.name.slice(0, 18)}</span>
+              <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 mt-0.5">{asset.id}</span>
             </div>
 
             <div className="flex gap-2.5 w-full">
               <button 
                 type="button" 
                 onClick={() => setIsPrintBadgeOpen(false)}
-                className="w-1/2 py-2 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50"
+                className="w-1/2 py-2 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
               >
                 Voltar
               </button>

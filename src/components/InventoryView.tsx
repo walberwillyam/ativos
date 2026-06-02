@@ -185,7 +185,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     if (cat?.icon === 'Laptop') return <Laptop size={14} className="text-indigo-600" />;
     if (cat?.icon === 'Monitor') return <Monitor size={14} className="text-emerald-600" />;
     if (cat?.icon === 'Cpu') return <Cpu size={14} className="text-violet-600" />;
-    if (cat?.icon === 'Printer') return <Printer size={14} className="text-slate-600" />;
+    if (cat?.icon === 'Printer') return <Printer size={14} className="text-slate-600 dark:text-slate-300" />;
     if (cat?.icon === 'Wifi') return <Wifi size={14} className="text-sky-600" />;
     if (cat?.icon === 'Archive') return <Archive size={14} className="text-amber-600" />;
     
@@ -193,14 +193,14 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       case 'Notebooks': return <Laptop size={14} className="text-indigo-600" />;
       case 'Monitores': return <Monitor size={14} className="text-emerald-600" />;
       case 'Switches': return <Cpu size={14} className="text-violet-600" />;
-      case 'Impressoras': return <Printer size={14} className="text-slate-600" />;
-      default: return <Tags size={14} className="text-slate-400" />;
+      case 'Impressoras': return <Printer size={14} className="text-slate-600 dark:text-slate-300" />;
+      default: return <Tags size={14} className="text-slate-400 dark:text-slate-500" />;
     }
   };
 
   // Render pretty status badges
   const getStatusBadge = (status: AssetStatus) => {
-    let classes = 'bg-slate-100 text-slate-700 border-slate-200';
+    let classes = 'bg-slate-100 text-slate-700 border-slate-200 dark:border-slate-700';
     let dotColor = 'bg-slate-400';
 
     if (status === 'Em Uso') {
@@ -444,14 +444,14 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Gestão de Ativos</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize, filtre e gerencie o ciclo de vida completo de seus ativos de TI e mobiliário corporativos.</p>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Visualize, filtre e gerencie o ciclo de vida completo de seus ativos de TI e mobiliário corporativos.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button 
             id="btn-import-assets"
             onClick={() => alert("Função de importação de planilhas de ativos. Formato compatível: .CSV ou .XLSX corporativo padrão.")}
-            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm"
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
           >
             <Upload size={14} />
             Importar CSV
@@ -460,7 +460,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           <button 
             id="btn-export-all-assets"
             onClick={() => alert("Planilha de inventário completa gerada e baixada com sucesso (formato XLSX).")}
-            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm"
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
           >
             <Download size={14} />
             Exportar XLS
@@ -478,29 +478,29 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       </section>
 
       {/* Advanced Filters Section */}
-      <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <section className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
         {/* Dynamic Search box */}
         <div className="relative w-full max-w-lg">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input 
             type="text"
             id="asset-search-box"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Pesquisar por ID, Nome, Nº Patrimônio, Série, Modelo, Responsável..."
-            className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm w-full focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none transition-all placeholder:text-slate-400"
+            className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm w-full focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none transition-all placeholder:text-slate-400 dark:text-slate-500"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           {/* Unit Filter */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Unidade / Polo</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Unidade / Polo</label>
             <select 
               id="filter-unit-select"
               value={selectedUnit}
               onChange={(e) => setSelectedUnit(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all cursor-pointer"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 transition-all cursor-pointer"
             >
               {unitsList.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
@@ -508,12 +508,12 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
           {/* Category Filter */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Categoria de Ativo</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Categoria de Ativo</label>
             <select 
               id="filter-category-select"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all cursor-pointer"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 transition-all cursor-pointer"
             >
               {categoriesList.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -521,12 +521,12 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
           {/* Status Filter */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Estado de Operação</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Estado de Operação</label>
             <select 
               id="filter-status-select"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all cursor-pointer"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 transition-all cursor-pointer"
             >
               {statusesList.map(st => <option key={st} value={st}>{st}</option>)}
             </select>
@@ -535,23 +535,23 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           {/* Date range filter */}
           <div className="md:col-span-2 flex items-center gap-2">
             <div className="w-1/2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Apenas após</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Apenas após</label>
               <input 
                 type="date"
                 id="filter-start-date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 transition-all"
               />
             </div>
             <div className="w-1/2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Apenas antes</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Apenas antes</label>
               <input 
                 type="date"
                 id="filter-end-date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 transition-all"
               />
             </div>
           </div>
@@ -619,11 +619,11 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       )}
 
       {/* Spreadsheet grid layout table */}
-      <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[460px]">
+      <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[460px]">
         <div className="overflow-x-auto flex-1 scrollbar-hide">
           <table className="w-full text-left border-collapse min-w-[1200px]">
-            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-              <tr className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+              <tr className="text-[11px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 <th className="px-4 py-3.5 text-center w-12">
                   <input 
                     type="checkbox"
@@ -650,9 +650,9 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 <tr>
                   <td colSpan={11} className="text-center py-24 px-6">
                     <div className="max-w-md mx-auto flex flex-col items-center">
-                      <Layers size={48} className="text-slate-300 dark:text-slate-700 animate-pulse" />
+                      <Layers size={48} className="text-slate-300 dark:text-slate-700 dark:text-slate-200 animate-pulse" />
                       <h4 className="font-bold text-slate-700 dark:text-slate-200 mt-4">Nenhum ativo localizado</h4>
-                      <p className="text-slate-400 text-xs mt-1">Refine seus filtros de busca ou termine digitando outro termo para pesquisar.</p>
+                      <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Refine seus filtros de busca ou termine digitando outro termo para pesquisar.</p>
                       <button 
                         onClick={handleClearFilters}
                         className="mt-4 px-4 py-2 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 text-xs font-bold rounded-lg"
@@ -687,27 +687,27 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                           {asset.id}
                         </button>
                       </td>
-                      <td className="px-5 py-3 text-slate-500 font-mono text-xs">{asset.patrimonio}</td>
+                      <td className="px-5 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-xs">{asset.patrimonio}</td>
                       <td className="px-5 py-3">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
                           {getCategoryIcon(asset.category)}
                           <span>{asset.category}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-xs text-slate-800 font-medium truncate max-w-[160px]" title={asset.model}>
+                      <td className="px-5 py-3 text-xs text-slate-800 dark:text-slate-100 font-medium truncate max-w-[160px]" title={asset.model}>
                         {asset.model}
                       </td>
-                      <td className="px-5 py-3 text-slate-500 font-mono text-xs truncate max-w-[120px]">{asset.serialNumber}</td>
-                      <td className="px-5 py-3 text-xs text-slate-700 font-semibold">{asset.unit}</td>
-                      <td className="px-5 py-3 text-xs text-slate-500 truncate max-w-[130px]">{asset.location}</td>
+                      <td className="px-5 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-xs truncate max-w-[120px]">{asset.serialNumber}</td>
+                      <td className="px-5 py-3 text-xs text-slate-700 dark:text-slate-200 font-semibold">{asset.unit}</td>
+                      <td className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 truncate max-w-[130px]">{asset.location}</td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2 text-xs">
                           {asset.responsible.initials && (
-                            <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-600 ring-1 ring-slate-200">
+                            <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-600 dark:text-slate-300 ring-1 ring-slate-200">
                               {asset.responsible.initials}
                             </span>
                           )}
-                          <span className="text-slate-800">{asset.responsible.name}</span>
+                          <span className="text-slate-800 dark:text-slate-100">{asset.responsible.name}</span>
                         </div>
                       </td>
                       <td className="px-5 py-3">{getStatusBadge(asset.status)}</td>
@@ -715,7 +715,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                         <button 
                           id={`action-btn-sheet-${asset.id}`}
                           onClick={() => onSelectAsset(asset)}
-                          className="text-slate-400 group-hover:text-indigo-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all"
+                          className="text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all"
                           title="Ver Ficha do Ativo"
                         >
                           <ChevronRight size={16} />
@@ -730,16 +730,16 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         </div>
 
         {/* Footer pagination and metrics indicators */}
-        <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200 text-xs">
-          <div className="text-slate-500 font-semibold select-none">
-            Mostrando <span className="text-slate-900">{filteredAssets.length}</span> corporativos de <span className="text-slate-900">{assets.length}</span> ativos totais catalogados.
+        <div className="flex justify-between items-center px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 text-xs">
+          <div className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold select-none">
+            Mostrando <span className="text-slate-900 dark:text-white">{filteredAssets.length}</span> corporativos de <span className="text-slate-900 dark:text-white">{assets.length}</span> ativos totais catalogados.
           </div>
           <div className="flex items-center gap-1 select-none">
-            <span className="text-slate-400 mr-2">Páginas:</span>
+            <span className="text-slate-400 dark:text-slate-500 mr-2">Páginas:</span>
             <button className="w-7 h-7 bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm">1</button>
-            <button className="w-7 h-7 hover:bg-slate-200 rounded-lg text-slate-600 text-xs">2</button>
-            <span className="px-1 text-slate-400">...</span>
-            <button className="w-7 h-7 hover:bg-slate-200 rounded-lg text-slate-600 text-xs">42</button>
+            <button className="w-7 h-7 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-300 text-xs">2</button>
+            <span className="px-1 text-slate-400 dark:text-slate-500">...</span>
+            <button className="w-7 h-7 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-300 text-xs">42</button>
           </div>
         </div>
       </section>
@@ -747,17 +747,17 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       {/* Slide-over Right Panel Form for Create Asset */}
       {isNewAssetOpen && (
         <div id="new-asset-modal" className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col animate-slide-left border-l border-slate-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col animate-slide-left border-l border-slate-200 dark:border-slate-700">
             {/* Slide Header */}
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
               <div>
                 <h3 className="text-lg font-bold text-slate-950">Registrar Novo Ativo</h3>
-                <p className="text-xs text-slate-500">Cadastre o patrimônio físico individual de TI no sistema.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Cadastre o patrimônio físico individual de TI no sistema.</p>
               </div>
               <button 
                 id="close-new-asset-modal"
                 onClick={() => setIsNewAssetOpen(false)}
-                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-700 transition"
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-700 dark:text-slate-200 transition"
               >
                 <X size={18} />
               </button>
@@ -766,7 +766,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
             {/* Form body scrollable */}
             <form onSubmit={handleCreateAssetSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Nome Descritivo do Ativo *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Nome Descritivo do Ativo *</label>
                 <input 
                   type="text" 
                   id="form-asset-name"
@@ -774,29 +774,29 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   value={newAssetForm.name}
                   onChange={(e) => setNewAssetForm(prev => ({ ...prev, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Número de Patrimônio (Opcional)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Patrimônio (Opcional)</label>
                   <input 
                     type="text" 
                     id="form-patrimonio"
                     placeholder="Ex: #PAT-004452" 
                     value={newAssetForm.patrimonio}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, patrimonio: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Categoria de Inventário *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Categoria de Inventário *</label>
                   <select 
                     id="form-asset-category"
                     value={newAssetForm.category}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     {categories.length > 0 ? (
                       categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
@@ -816,7 +816,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Marca / Modelo Completo *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Marca / Modelo Completo *</label>
                   <input 
                     type="text" 
                     id="form-model"
@@ -824,25 +824,25 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     value={newAssetForm.model}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, model: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Número de Série (Serial) *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Série (Serial) *</label>
                   <input 
                     type="text" 
                     id="form-serial"
                     placeholder="Ex: LNV-88339281-Z" 
                     value={newAssetForm.serialNumber}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, serialNumber: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Unidade Polo Inicial *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Unidade Polo Inicial *</label>
                   <select 
                     id="form-unit"
                     value={newAssetForm.unit}
@@ -861,7 +861,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                         currentFloor: matchedParts[0]?.id || 'office' 
                       }));
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     {units.map((u) => (
                       <option key={u.id} value={u.name}>{u.name}</option>
@@ -869,12 +869,12 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Partição / Setor Inicial *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Partição / Setor Inicial *</label>
                   <select 
                     id="form-current-floor"
                     value={newAssetForm.currentFloor}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, currentFloor: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     {(units.find(u => u.name === newAssetForm.unit)?.partitions || [
                       { id: 'office', label: 'Escritório' },
@@ -887,37 +887,37 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Localização de Detalhe *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Localização de Detalhe *</label>
                   <input 
                     type="text" 
                     id="form-location"
                     placeholder="Ex: Sala B - Mesa 04" 
                     value={newAssetForm.location}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Responsável Nome *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Responsável Nome *</label>
                   <input 
                     type="text" 
                     id="form-responsible"
                     placeholder="Ex: Carlos Eduardo" 
                     value={newAssetForm.responsibleName}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, responsibleName: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Estado Operacional Inicial *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Estado Operacional Inicial *</label>
                   <select 
                     id="form-status"
                     value={newAssetForm.status}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, status: e.target.value as AssetStatus }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none cursor-pointer"
                   >
                     <option>Em Uso</option>
                     <option>Manutenção</option>
@@ -928,71 +928,71 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Valor Compra R$</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Valor Compra R$</label>
                   <input 
                     type="number" 
                     id="form-value"
                     placeholder="4500" 
                     value={newAssetForm.value}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, value: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Adquirido Em</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Adquirido Em</label>
                   <input 
                     type="date" 
                     id="form-date-acq"
                     value={newAssetForm.acquisitionDate}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, acquisitionDate: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Garantia Até</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Garantia Até</label>
                   <input 
                     type="date" 
                     id="form-date-warranty"
                     value={newAssetForm.warrantyExpiry}
                     onChange={(e) => setNewAssetForm(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900"
                   />
                 </div>
               </div>
 
               {/* Technical Specifications Mock toggles */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                <span className="text-xs font-bold text-slate-600 uppercase tracking-widest block">Configuração Técnica (Notebook / Servidor)</span>
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest block">Configuração Técnica (Notebook / Servidor)</span>
                 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Processador</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold mb-1">Processador</label>
                     <input 
                       type="text" 
                       placeholder="Ex: Core i7" 
                       value={newAssetForm.processor}
                       onChange={(e) => setNewAssetForm(prev => ({ ...prev, processor: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Carga RAM</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold mb-1">Carga RAM</label>
                     <input 
                       type="text" 
                       placeholder="Ex: 16GB" 
                       value={newAssetForm.ram}
                       onChange={(e) => setNewAssetForm(prev => ({ ...prev, ram: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-500 font-bold mb-1">Armazenamento</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold mb-1">Armazenamento</label>
                     <input 
                       type="text" 
                       placeholder="Ex: 512GB SSD" 
                       value={newAssetForm.storage}
                       onChange={(e) => setNewAssetForm(prev => ({ ...prev, storage: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
                     />
                   </div>
                 </div>
@@ -1002,7 +1002,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 <button 
                   type="button"
                   onClick={() => setIsNewAssetOpen(false)}
-                  className="w-1/2 py-3 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 text-center"
+                  className="w-1/2 py-3 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800 text-center"
                 >
                   Cancelar
                 </button>
@@ -1022,20 +1022,20 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       {/* Bulk Transfer Modal */}
       {isBulkTransferOpen && (
         <div id="bulk-transfer-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 animate-slide-up">
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 animate-slide-up">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <RefreshCw className="text-indigo-600" size={20} />
               Transferir Unidade em Lote
             </h3>
-            <p className="text-xs text-slate-500 mt-1">Deseja alterar em lote o polo de localização física corporativa para os {selectedIds.length} ativos selecionados?</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Deseja alterar em lote o polo de localização física corporativa para os {selectedIds.length} ativos selecionados?</p>
 
             <div className="my-5">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Unidade / Filial Destino</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Unidade / Filial Destino</label>
               <select 
                 id="bulk-transfer-unit-select"
                 value={bulkTargetUnit}
                 onChange={(e) => setBulkTargetUnit(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
               >
                 {units.map((u) => (
                   <option key={u.id} value={u.name}>{u.name}</option>
@@ -1046,7 +1046,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
             <div className="flex gap-3">
               <button 
                 onClick={() => setIsBulkTransferOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-100"
+                className="w-1/2 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-100"
               >
                 Cancelar
               </button>
@@ -1065,20 +1065,20 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       {/* Bulk Status Update Modal */}
       {isBulkStatusOpen && (
         <div id="bulk-status-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 animate-slide-up">
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 animate-slide-up">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Wrench className="text-indigo-600" size={20} />
               Reclassificar Status em Lote
             </h3>
-            <p className="text-xs text-slate-500 mt-1">Defina em conjunto o estado operacional de andamento para os {selectedIds.length} ativos corporativos.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Defina em conjunto o estado operacional de andamento para os {selectedIds.length} ativos corporativos.</p>
 
             <div className="my-5">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Novo Status Geral</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Novo Status Geral</label>
               <select 
                 id="bulk-status-select-input"
                 value={bulkTargetStatus}
                 onChange={(e) => setBulkTargetStatus(e.target.value as AssetStatus)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
               >
                 <option>Em Uso</option>
                 <option>Manutenção</option>
@@ -1090,7 +1090,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
             <div className="flex gap-3">
               <button 
                 onClick={() => setIsBulkStatusOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-100"
+                className="w-1/2 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-100"
               >
                 Cancelar
               </button>

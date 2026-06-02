@@ -254,7 +254,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
     switch (status) {
       case 'Em Uso': return 'bg-emerald-500';
       case 'Manutenção': return 'bg-amber-500';
-      case 'Armazenado': return 'bg-slate-500';
+      case 'Armazenado': return 'bg-slate-50 dark:bg-slate-8000';
       case 'Extraviado': return 'bg-rose-500';
       default: return 'bg-slate-400';
     }
@@ -263,7 +263,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
   return (
     <div id="map-view" className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Unit Selection and Information Header */}
-      <section className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+      <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
           <div className="space-y-1">
             <span className="text-xs font-black uppercase text-indigo-700 tracking-wider">Unidade Ativa</span>
@@ -277,7 +277,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   setActivePopoverId(null);
                   handleResetZoom();
                 }}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-lg px-4 py-2 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer leading-normal"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-lg px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer leading-normal"
               >
                 {units.map((u) => (
                   <option key={u.id} value={u.id}>{u.name}</option>
@@ -294,7 +294,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
               <button
                 id="btn-edit-unit-modal-trigger"
                 onClick={openEditUnitModal}
-                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all"
+                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
               >
                 <Settings size={14} className="text-indigo-700" /> Editar Unidade
               </button>
@@ -303,7 +303,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   navigator.clipboard.writeText(selectedUnitId);
                   alert(`ID da unidade copiado: ${selectedUnitId}`);
                 }}
-                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all"
+                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
                 title="Copiar ID da Unidade para instalar o robô"
               >
                 <Copy size={14} className="text-indigo-700" /> Copiar ID
@@ -312,7 +312,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 select-none h-fit">
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 select-none h-fit">
               {currentUnitPartitions.map((fl) => (
                 <button
                   key={fl.id}
@@ -325,7 +325,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${
                     activeFloor === fl.id
                       ? 'bg-indigo-700 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-white hover:bg-slate-200/50'
                   }`}
                 >
                   {fl.label}
@@ -336,7 +336,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             <button
               id="btn-edit-partitions-trigger"
               onClick={handleOpenManagePartitions}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all"
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
               title="Criar, editar ou remover partições desta unidade"
             >
               <Settings size={14} className="text-indigo-700" /> Gerenciar Partições
@@ -347,24 +347,24 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
         {/* Info card describing the unit */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs text-left">
           <div>
-            <span className="text-slate-400 font-mono block uppercase">Cidade / Estado</span>
-            <span className="text-slate-800 font-bold mt-0.5 block">{activeUnit.city}</span>
+            <span className="text-slate-400 dark:text-slate-500 font-mono block uppercase">Cidade / Estado</span>
+            <span className="text-slate-800 dark:text-slate-100 font-bold mt-0.5 block">{activeUnit.city}</span>
           </div>
           <div>
-            <span className="text-slate-400 font-mono block uppercase">Endereço Técnico</span>
-            <span className="text-slate-800 font-semibold mt-0.5 block truncate" title={activeUnit.address}>{activeUnit.address}</span>
+            <span className="text-slate-400 dark:text-slate-500 font-mono block uppercase">Endereço Técnico</span>
+            <span className="text-slate-800 dark:text-slate-100 font-semibold mt-0.5 block truncate" title={activeUnit.address}>{activeUnit.address}</span>
           </div>
           <div>
-            <span className="text-slate-400 font-mono block uppercase">Gestor Geral</span>
-            <span className="text-slate-800 font-bold mt-0.5 block flex items-center gap-1.5">
-              <span className="w-4 h-4 bg-slate-200 rounded-full flex items-center justify-center text-[8px] font-black uppercase text-slate-600">
+            <span className="text-slate-400 dark:text-slate-500 font-mono block uppercase">Gestor Geral</span>
+            <span className="text-slate-800 dark:text-slate-100 font-bold mt-0.5 block flex items-center gap-1.5">
+              <span className="w-4 h-4 bg-slate-200 rounded-full flex items-center justify-center text-[8px] font-black uppercase text-slate-600 dark:text-slate-300">
                 {activeUnit.manager ? activeUnit.manager.split(' ').map(n=>n[0]).join('') : "UU"}
               </span>
               {activeUnit.manager}
             </span>
           </div>
           <div>
-            <span className="text-slate-400 font-mono block uppercase">Ativos Cadastrados</span>
+            <span className="text-slate-400 dark:text-slate-500 font-mono block uppercase">Ativos Cadastrados</span>
             <span className="text-indigo-700 font-black mt-0.5 block">
               {assets.filter(a => a.unit === activeUnit.name).length} ativos localizados
             </span>
@@ -376,7 +376,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[calc(100vh-270px)] min-h-[500px]">
         {/* Interactive Floor plan Vector canvas with dragging capabilities */}
         <div 
-          className={`col-span-12 lg:col-span-9 relative bg-white border border-slate-200 rounded-3xl overflow-hidden flex items-center justify-center select-none shadow-sm min-h-[440px] ${
+          className={`col-span-12 lg:col-span-9 relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden flex items-center justify-center select-none shadow-sm min-h-[440px] ${
             zoom > 1 ? 'cursor-grab active:cursor-grabbing' : ''
           }`}
           onMouseDown={handleMouseDown}
@@ -522,7 +522,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                         className="absolute bottom-7 left-1/2 -translate-x-1/2 w-52 bg-slate-900 text-white rounded-2xl p-4 shadow-2xl border border-slate-700 z-30 animate-slide-up"
                       >
                         <p className="font-bold text-xs truncate leading-tight">{asset.name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{asset.id}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">{asset.id}</p>
 
                         <div className="flex items-center gap-1.5 mt-2 mb-3 bg-slate-800 px-2 py-1 rounded-lg w-fit">
                           <span className={`w-1.5 h-1.5 rounded-full ${
@@ -582,12 +582,12 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
           {/* Collapsible non-blocking Legend Overlay indicator */}
           <div className="absolute top-6 left-6 z-20 text-left">
             {isLegendOpen ? (
-              <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 shadow-lg flex flex-col gap-2.5 w-44 transition-all animate-fade-in">
+              <div className="bg-white dark:bg-slate-900/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-lg flex flex-col gap-2.5 w-44 transition-all animate-fade-in">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-1.5 mb-0.5">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Legenda de Status</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 leading-none">Legenda de Status</h4>
                   <button 
                     onClick={() => setIsLegendOpen(false)}
-                    className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded transition"
+                    className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-600 dark:text-slate-300 rounded transition"
                     title="Ocultar Legenda"
                   >
                     <Minus size={12} />
@@ -595,25 +595,25 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-[11px] font-bold text-slate-700">Em Uso</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Em Uso</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  <span className="text-[11px] font-bold text-slate-700">Manutenção</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Manutenção</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-                  <span className="text-[11px] font-bold text-slate-700">Armazenado</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-50 dark:bg-slate-8000" />
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Armazenado</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                  <span className="text-[11px] font-bold text-slate-700">Extraviado</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Extraviado</span>
                 </div>
               </div>
             ) : (
               <button 
                 onClick={() => setIsLegendOpen(true)}
-                className="bg-white/95 backdrop-blur-md px-3 py-2.5 rounded-2xl border border-slate-200/80 shadow-md hover:bg-slate-50 transition flex items-center gap-2 text-xs font-bold text-slate-700"
+                className="bg-white dark:bg-slate-900/95 backdrop-blur-md px-3 py-2.5 rounded-2xl border border-slate-200/80 shadow-md hover:bg-slate-50 dark:bg-slate-800 transition flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200"
                 title="Expandir Legenda de Status"
               >
                 <span className="flex gap-1 shrink-0">
@@ -628,11 +628,11 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
         </div>
 
         {/* Right Assets in active view sidebar */}
-        <div className="col-span-12 lg:col-span-3 flex flex-col h-full overflow-hidden bg-white border border-slate-200 rounded-3xl min-w-[240px]">
-          <div className="p-4 border-b border-slate-150 flex justify-between items-center bg-slate-50 rounded-t-3xl select-none">
+        <div className="col-span-12 lg:col-span-3 flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl min-w-[240px]">
+          <div className="p-4 border-b border-slate-150 flex justify-between items-center bg-slate-50 dark:bg-slate-800 rounded-t-3xl select-none">
             <div className="text-left">
-              <h3 className="font-bold text-slate-900 text-[14px]">Ativos nesta Vista</h3>
-              <p className="text-[10px] text-slate-400 truncate max-w-[160px]">Partição: {currentUnitPartitions.find(f=>f.id===activeFloor)?.label || activeFloor}</p>
+              <h3 className="font-bold text-slate-900 dark:text-white text-[14px]">Ativos nesta Vista</h3>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[160px]">Partição: {currentUnitPartitions.find(f=>f.id===activeFloor)?.label || activeFloor}</p>
             </div>
             <span className="bg-indigo-100 text-indigo-900 text-[10px] px-2 py-0.5 rounded-full font-black">
               {floorAssets.length}
@@ -644,7 +644,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             {floorAssets.length === 0 ? (
               <div className="text-center py-20 flex flex-col items-center">
                 <MapPin size={24} className="text-slate-300 animate-bounce mb-2" />
-                <p className="text-slate-400 text-xs mb-4">Nenhum ativo localizado neste piso físico.</p>
+                <p className="text-slate-400 dark:text-slate-500 text-xs mb-4">Nenhum ativo localizado neste piso físico.</p>
                 <button
                   onClick={() => setIsAllocateModalOpen(true)}
                   className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 transition"
@@ -666,21 +666,21 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                     className={`p-3 border rounded-xl hover:border-indigo-600 cursor-pointer transition-all ${
                       isSelected 
                         ? 'border-indigo-600 bg-indigo-50/40' 
-                        : 'border-slate-100 bg-slate-50/50'
+                        : 'border-slate-100 bg-slate-50 dark:bg-slate-800/50'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      <p className="font-bold text-slate-800 text-xs truncate max-w-[150px] leading-tight">{asset.name}</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-100 text-xs truncate max-w-[150px] leading-tight">{asset.name}</p>
                       <span className={`w-2 h-2 rounded-full mt-1 ${getStatusDotColor(asset.status)}`} />
                     </div>
-                    <p className="text-[10px] text-slate-500 font-medium">{asset.id} • {asset.location}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">{asset.id} • {asset.location}</p>
                     
                     <div className="mt-3 flex items-center justify-between pointer-events-none">
                       <div className="flex items-center gap-1">
-                        <span className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 leading-none">
+                        <span className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 dark:text-slate-300 leading-none">
                           {asset.responsible.initials}
                         </span>
-                        <span className="text-[9px] text-slate-400 capitalize truncate max-w-[80px]">{asset.responsible.name.split(' ')[0]}</span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 capitalize truncate max-w-[80px]">{asset.responsible.name.split(' ')[0]}</span>
                       </div>
                       
                       <span className="text-[9px] text-indigo-700 font-bold uppercase tracking-widest bg-indigo-50 px-1.5 py-0.5 rounded">
@@ -707,15 +707,15 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
       {/* PARTITION MANAGEMENT MODAL */}
       {isManagePartitionsOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <div>
-                <h3 className="text-xl font-black text-slate-900">Gerenciar Partições</h3>
-                <p className="text-sm text-slate-500">Configure os pisos e setores visuais da unidade {activeUnit.name}</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">Gerenciar Partições</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Configure os pisos e setores visuais da unidade {activeUnit.name}</p>
               </div>
               <button 
                 onClick={() => setIsManagePartitionsOpen(false)}
-                className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition"
+                className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 dark:text-slate-400 dark:text-slate-500 rounded-full hover:bg-slate-200 transition"
               >
                 <X size={20} />
               </button>
@@ -725,7 +725,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
               <div className="space-y-4">
                 {currentUnitPartitions.map((part, index) => (
                   <div key={part.id} className="flex gap-3 items-center">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 dark:text-slate-400 dark:text-slate-500 flex items-center justify-center font-bold text-xs shrink-0">
                       {index + 1}
                     </div>
                     <div className="flex-1">
@@ -737,7 +737,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                           newParts[index].label = e.target.value;
                           onUpdateUnitPartitions(activeUnit?.id || '', newParts);
                         }}
-                        className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-slate-700"
+                        className="w-full px-4 py-2 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-slate-700 dark:text-slate-200"
                       />
                     </div>
                   </div>
@@ -764,18 +764,18 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
       {/* ALLOCATE ASSET MODAL */}
       {isAllocateModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <div>
-                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <MapPin size={24} className="text-indigo-600" />
                   Alocar Ativo
                 </h3>
-                <p className="text-sm text-slate-500 mt-1">Selecione um ativo para enviar para <strong className="text-indigo-600">{currentUnitPartitions.find(f=>f.id===activeFloor)?.label}</strong></p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Selecione um ativo para enviar para <strong className="text-indigo-600">{currentUnitPartitions.find(f=>f.id===activeFloor)?.label}</strong></p>
               </div>
               <button 
                 onClick={() => setIsAllocateModalOpen(false)}
-                className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition"
+                className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 dark:text-slate-400 dark:text-slate-500 rounded-full hover:bg-slate-200 transition"
               >
                 <X size={20} />
               </button>
@@ -784,15 +784,15 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
               <div className="space-y-3">
                 {assets.filter(a => a.unit === activeUnit.name && a.currentFloor !== activeFloor).length === 0 ? (
-                  <div className="text-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                    <p className="text-slate-500 font-medium">Não há ativos não-alocados nesta unidade.</p>
+                  <div className="text-center py-10 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                    <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">Não há ativos não-alocados nesta unidade.</p>
                   </div>
                 ) : (
                   assets.filter(a => a.unit === activeUnit.name && a.currentFloor !== activeFloor).map((asset) => (
-                    <div key={asset.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
+                    <div key={asset.id} className="flex justify-between items-center p-4 border border-slate-200 dark:border-slate-700 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
                       <div>
-                        <h4 className="font-bold text-slate-800 text-sm">{asset.name}</h4>
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">{asset.patrimonio}</p>
+                        <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm">{asset.name}</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono mt-0.5">{asset.patrimonio}</p>
                       </div>
                       <button
                         onClick={() => {
@@ -821,19 +821,19 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
       {/* Modal / Dialog for New Unit creation */}
       {isNewUnitOpen && (
         <div id="new-unit-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-250 animate-zoom-in leading-normal text-left">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-250 animate-zoom-in leading-normal text-left">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <MapPin className="text-indigo-700" size={20} />
                   Criar Nova Unidade
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Cadastre um novo polo físico para controle de ativos.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Cadastre um novo polo físico para controle de ativos.</p>
               </div>
               <button 
                 id="close-new-unit-modal"
                 onClick={() => setIsNewUnitOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 dark:text-slate-200 transition"
                 type="button"
               >
                 <X size={18} />
@@ -842,7 +842,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
 
             <form onSubmit={handleCreateUnitSubmit} className="space-y-4 text-xs font-sans">
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Nome Comercial da Unidade *</label>
+                <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Nome Comercial da Unidade *</label>
                 <input 
                   type="text" 
                   id="form-unit-name"
@@ -850,13 +850,13 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   value={newUnitForm.name}
                   onChange={(e) => setNewUnitForm(p => ({ ...p, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">Cidade / UF *</label>
+                  <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Cidade / UF *</label>
                   <input 
                     type="text" 
                     id="form-unit-city"
@@ -864,11 +864,11 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                     value={newUnitForm.city}
                     onChange={(e) => setNewUnitForm(p => ({ ...p, city: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">Responsável Geral *</label>
+                  <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Responsável Geral *</label>
                   <input 
                     type="text" 
                     id="form-unit-manager"
@@ -876,32 +876,32 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                     value={newUnitForm.manager}
                     onChange={(e) => setNewUnitForm(p => ({ ...p, manager: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Endereço Completo</label>
+                <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Endereço Completo</label>
                 <input 
                   type="text" 
                   id="form-unit-address"
                   placeholder="Ex: Av. do Contorno, 5000 - Savassi" 
                   value={newUnitForm.address}
                   onChange={(e) => setNewUnitForm(p => ({ ...p, address: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">E-mail Administrativo</label>
+                <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">E-mail Administrativo</label>
                 <input 
                   type="email" 
                   id="form-unit-email"
                   placeholder="Ex: bh.filial@ativosapoio.com.br" 
                   value={newUnitForm.email}
                   onChange={(e) => setNewUnitForm(p => ({ ...p, email: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
@@ -909,7 +909,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 <button 
                   type="button"
                   onClick={() => setIsNewUnitOpen(false)}
-                  className="px-4 py-2 hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600"
+                  className="px-4 py-2 hover:bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
                 >
                   Cancelar
                 </button>
@@ -928,18 +928,18 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
       {/* Modal / Dialog for Edit Unit */}
       {isEditUnitOpen && (
         <div id="edit-unit-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-250 animate-zoom-in leading-normal text-left">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-250 animate-zoom-in leading-normal text-left">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Settings className="text-indigo-700" size={20} />
                   Editar Unidade
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Altere os dados comerciais do polo físico.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Altere os dados comerciais do polo físico.</p>
               </div>
               <button 
                 onClick={() => setIsEditUnitOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 dark:text-slate-200 transition"
                 type="button"
               >
                 <X size={18} />
@@ -948,56 +948,56 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
 
             <form onSubmit={handleEditUnitSubmit} className="space-y-4 text-xs font-sans">
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Nome Comercial da Unidade *</label>
+                <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Nome Comercial da Unidade *</label>
                 <input 
                   type="text" 
                   value={editUnitForm.name}
                   onChange={(e) => setEditUnitForm(p => ({ ...p, name: e.target.value }))}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">Cidade / UF *</label>
+                  <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Cidade / UF *</label>
                   <input 
                     type="text" 
                     value={editUnitForm.city}
                     onChange={(e) => setEditUnitForm(p => ({ ...p, city: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">Responsável Geral *</label>
+                  <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Responsável Geral *</label>
                   <input 
                     type="text" 
                     value={editUnitForm.manager}
                     onChange={(e) => setEditUnitForm(p => ({ ...p, manager: e.target.value }))}
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Endereço Completo</label>
+                <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">Endereço Completo</label>
                 <input 
                   type="text" 
                   value={editUnitForm.address}
                   onChange={(e) => setEditUnitForm(p => ({ ...p, address: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">E-mail Administrativo</label>
+                <label className="block text-slate-700 dark:text-slate-200 font-bold mb-1.5">E-mail Administrativo</label>
                 <input 
                   type="email" 
                   value={editUnitForm.email}
                   onChange={(e) => setEditUnitForm(p => ({ ...p, email: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:bg-slate-900 outline-none"
                 />
               </div>
 
@@ -1005,7 +1005,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 <button 
                   type="button"
                   onClick={() => setIsEditUnitOpen(false)}
-                  className="px-4 py-2 hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600"
+                  className="px-4 py-2 hover:bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
                 >
                   Cancelar
                 </button>
@@ -1024,21 +1024,21 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
       {/* Dynamic Partitions Manager Modal */}
       {isManagePartitionsOpen && (
         <div id="partitions-manager-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 w-full max-w-lg max-h-[85vh] overflow-y-auto flex flex-col justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg max-h-[85vh] overflow-y-auto flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex justify-between items-start">
                 <div className="space-y-1 text-left">
-                  <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                     <Settings className="text-indigo-750 text-indigo-600" size={20} />
                     Configurar Partições
                   </h3>
-                  <p className="text-slate-500 text-xs leading-normal">
+                  <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs leading-normal">
                     Edite ou crie as partições/setores de <strong>{activeUnit.name}</strong>. Cada partição define um setor do mapa.
                   </p>
                 </div>
                 <button 
                   onClick={() => setIsManagePartitionsOpen(false)}
-                  className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-full transition"
+                  className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 dark:text-slate-300 rounded-full transition"
                   title="Fechar"
                 >
                   <X size={18} />
@@ -1047,17 +1047,17 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
 
               {/* Editable Partitions List */}
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                <label className="block text-[11px] font-black uppercase text-slate-400 tracking-wider text-left">Setores Cadastrados</label>
+                <label className="block text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider text-left">Setores Cadastrados</label>
                 {partitionsFormList.length === 0 ? (
-                  <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl bg-slate-50">
-                    <p className="text-slate-400 text-xs">Nenhum setor cadastrado para esta unidade. Adicione um abaixo!</p>
+                  <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl bg-slate-50 dark:bg-slate-800">
+                    <p className="text-slate-400 dark:text-slate-500 text-xs">Nenhum setor cadastrado para esta unidade. Adicione um abaixo!</p>
                   </div>
                 ) : (
                   partitionsFormList.map((part, index) => (
-                    <div key={part.id} className="flex flex-wrap md:flex-nowrap items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-2xl">
+                    <div key={part.id} className="flex flex-wrap md:flex-nowrap items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-2xl">
                       <input
                         type="text"
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         value={part.label}
                         onChange={(e) => {
                           const newVal = e.target.value;
@@ -1067,7 +1067,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                         required
                       />
                       <select
-                        className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none cursor-pointer"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 font-semibold focus:outline-none cursor-pointer"
                         value={part.layout}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1082,7 +1082,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                       <button
                         type="button"
                         onClick={() => handleDeletePartitionLocal(part.id)}
-                        className="p-1.5 bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition shadow-xs"
+                        className="p-1.5 bg-white dark:bg-slate-900 hover:bg-rose-50 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-rose-600 rounded-xl transition shadow-xs"
                         title="Remover partição"
                       >
                         <X size={14} />
@@ -1093,25 +1093,25 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
               </div>
 
               {/* Add New Partition Section */}
-              <form onSubmit={handleAddPartitionLocal} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-left space-y-3 shadow-xs">
+              <form onSubmit={handleAddPartitionLocal} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 text-left space-y-3 shadow-xs">
                 <h4 className="text-[10px] font-black uppercase text-indigo-700 tracking-wider">Adicionar Novo Setor</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-1">Nome do Setor / Partição *</label>
+                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">Nome do Setor / Partição *</label>
                     <input
                       type="text"
                       placeholder="Ex: Mezanino, Doca C"
                       value={newPartitionName}
                       onChange={(e) => setNewPartitionName(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-600 outline-none"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-600 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-1">Fundo Visual Técnico *</label>
+                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">Fundo Visual Técnico *</label>
                     <select
                       value={newPartitionLayout}
                       onChange={(e) => setNewPartitionLayout(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer"
                     >
                       <option value="office">Escritório Corporativo</option>
                       <option value="cpd">CPD / Computador de rede</option>
@@ -1133,7 +1133,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
               <button 
                 type="button"
                 onClick={() => setIsManagePartitionsOpen(false)}
-                className="px-4 py-2 hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600"
+                className="px-4 py-2 hover:bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
               >
                 Cancelar
               </button>
