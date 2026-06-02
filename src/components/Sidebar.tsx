@@ -22,9 +22,10 @@ interface SidebarProps {
   activeScreen: ActiveScreen;
   setActiveScreen: (screen: ActiveScreen) => void;
   totalAssetsCount: number;
+  isCollapsed: boolean;
 }
 
-export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCount }: SidebarProps) {
+export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCount, isCollapsed }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
     { id: 'inventory', label: 'Inventário', icon: Boxes },
@@ -38,12 +39,12 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
   return (
     <aside 
       id="side-bar"
-      className="hidden md:flex flex-col w-64 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-64px)] sticky top-16 shrink-0 justify-between select-none"
+      className={`hidden md:flex flex-col ${isCollapsed ? 'w-20' : 'w-64'} bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-64px)] sticky top-16 shrink-0 justify-between select-none transition-all duration-300`}
     >
       <div className="flex-1 flex flex-col pt-6 overflow-y-auto">
         {/* User Card */}
-        <div className="px-6 mb-6">
-          <div className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+        <div className={`mb-6 transition-all ${isCollapsed ? 'px-2' : 'px-6'}`}>
+          <div className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-3'} bg-white border border-slate-200 rounded-xl shadow-sm`}>
             <div className="relative">
               <img 
                 src="https://lh3.googleusercontent.com/aida/AP1WRLsBYYnnV-luFdNkqjmViVKgBL_wnBHD1mm0U_1MBJNBc0Nq2Ta13pem3-6e70vJuGD9K7KMYM-NjXowD6knnAkEbc7KveeBYKI-AIJxM1shD7XyOPQ9sOMz-qiauEObw7rtu7DybOldDRMRMion_3zk4LjzGAUsr2nUQ-p1vG-QG6yrwNBDvVhZlmmcy-bWfQ6-Sd24IOrs_-tDGvp39-kSVYDMJEf0jfDLv33a_N3xFAf3wwaZMFW3IA" 
@@ -52,18 +53,20 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
               />
               <span className="absolute -bottom-1 -right-1 bg-emerald-500 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800" />
             </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-0.5">Admin Geral</h3>
-              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-500 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Atendimento Ativo
-              </p>
-            </div>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-0.5">Admin Geral</h3>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-500 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Atendimento Ativo
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Dynamic Nav link Items */}
-        <nav className="px-3 space-y-1">
+        <nav className={`space-y-1 ${isCollapsed ? 'px-2' : 'px-3'}`}>
           {menuItems.map((item) => {
             const IconComponent = item.icon;
             const isSelected = activeScreen === item.id || (item.id === 'inventory' && activeScreen === 'detail');
@@ -72,7 +75,8 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
                 key={item.id}
                 id={`side-nav-btn-${item.id}`}
                 onClick={() => setActiveScreen(item.id as ActiveScreen)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 mb-1 font-bold ${
+                title={isCollapsed ? item.label : undefined}
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-4 py-3 rounded-2xl transition-all duration-200 mb-1 font-bold ${
                   isSelected 
                     ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 shadow-sm' 
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
@@ -83,9 +87,9 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
                     size={18} 
                     className={`transition-colors ${isSelected ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`} 
                   />
-                  <span>{item.label}</span>
+                  {!isCollapsed && <span>{item.label}</span>}
                 </div>
-                {item.id === 'inventory' && (
+                {!isCollapsed && item.id === 'inventory' && (
                   <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                     isSelected ? 'bg-indigo-200 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                   }`}>
@@ -103,33 +107,36 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
         <button 
           id="side-nav-btn-support"
           onClick={() => setActiveScreen('scanner')}
-          className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-all group ${
+          title={isCollapsed ? "Leitor QR Rápido" : undefined}
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 w-full'} px-4 py-3 rounded-lg text-sm font-medium transition-all group ${
             activeScreen === 'scanner'
               ? 'bg-indigo-50 dark:bg-indigo-900/30 border-r-4 border-indigo-700 text-indigo-700 dark:text-indigo-400'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >
           <QrCode size={18} className={activeScreen === 'scanner' ? 'text-indigo-700' : 'text-slate-400'} />
-          <span>Leitor QR Rápido</span>
+          {!isCollapsed && <span>Leitor QR Rápido</span>}
         </button>
 
         <a 
           id="side-nav-btn-help"
           href="#help"
           onClick={(e) => { e.preventDefault(); alert("Central de Suporte: Ligue para o ramal 4004 ou envie um e-mail para suporte@ativosapoio.com.br"); }}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all group"
+          title={isCollapsed ? "Suporte Técnico" : undefined}
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 w-full'} px-4 py-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all group`}
         >
           <HelpCircle size={18} className="text-slate-400" />
-          <span>Suporte Técnico</span>
+          {!isCollapsed && <span>Suporte Técnico</span>}
         </a>
 
         <button 
           id="side-nav-btn-logout"
           onClick={() => { if(confirm("Deseja realmente sair do Ativos Apoio?")) alert("Sessão finalizada com sucesso!"); }}
-          className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 rounded-2xl w-full transition-colors text-sm font-bold"
+          title={isCollapsed ? "Sair" : undefined}
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 w-full'} px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 rounded-2xl transition-colors text-sm font-bold`}
         >
           <LogOut size={18} />
-          <span>Sair</span>
+          {!isCollapsed && <span>Sair</span>}
         </button>
       </div>
     </aside>

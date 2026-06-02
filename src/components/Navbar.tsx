@@ -6,7 +6,8 @@ import {
   Briefcase,
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Menu
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { ActiveScreen } from '../types';
@@ -24,9 +25,11 @@ interface NavbarProps {
   notifications: Notification[];
   handleNotificationsClear: () => void;
   userEmail?: string;
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: (collapsed: boolean) => void;
 }
 
-export default function Navbar({ setActiveScreen, notifications, handleNotificationsClear, userEmail }: NavbarProps) {
+export default function Navbar({ setActiveScreen, notifications, handleNotificationsClear, userEmail, isSidebarCollapsed, setIsSidebarCollapsed }: NavbarProps) {
   const [globalSearch, setGlobalSearch] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -47,17 +50,26 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
     <header className="h-16 border-b border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-40 select-none flex items-center justify-between px-6 shadow-xs leading-none transition-colors duration-200">
       
       {/* Brand visual header logos matching mockups exactly */}
-      <div 
-        onClick={() => setActiveScreen('dashboard')}
-        className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 active:scale-95 transition-all text-slate-900"
-      >
-        <span className="bg-gradient-to-tr from-indigo-700 to-indigo-500 w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold shadow-sm relative overflow-hidden">
-          <Briefcase size={18} />
-          <span className="absolute inset-0 bg-white/10 animate-pulse duration-1000" />
-        </span>
-        <div>
-          <h1 className="text-[17px] font-black tracking-tight text-slate-950 dark:text-white">Ativos Apoio</h1>
-          <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-0.5">Controladoria Técnica</p>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="text-slate-400 hover:text-indigo-700 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl transition duration-150 active:scale-90"
+          title="Alternar Menu"
+        >
+          <Menu size={20} />
+        </button>
+        <div 
+          onClick={() => setActiveScreen('dashboard')}
+          className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 active:scale-95 transition-all text-slate-900"
+        >
+          <span className="bg-gradient-to-tr from-indigo-700 to-indigo-500 w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold shadow-sm relative overflow-hidden">
+            <Briefcase size={18} />
+            <span className="absolute inset-0 bg-white/10 animate-pulse duration-1000" />
+          </span>
+          <div>
+            <h1 className="text-[17px] font-black tracking-tight text-slate-950 dark:text-white">Ativos Apoio</h1>
+            <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-0.5">Controladoria Técnica</p>
+          </div>
         </div>
       </div>
 

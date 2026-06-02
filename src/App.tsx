@@ -89,9 +89,18 @@ export default function App() {
     return (saved as ActiveScreen) || 'dashboard';
   });
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('ativos_sidebar_collapsed');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
   useEffect(() => {
     localStorage.setItem('ativos_active_screen', activeScreen);
   }, [activeScreen]);
+
+  useEffect(() => {
+    localStorage.setItem('ativos_sidebar_collapsed', JSON.stringify(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
@@ -373,6 +382,8 @@ export default function App() {
         notifications={notifications} 
         handleNotificationsClear={handleNotificationsClear} 
         userEmail={session.user.email}
+        isSidebarCollapsed={isSidebarCollapsed}
+        setIsSidebarCollapsed={setIsSidebarCollapsed}
       />
 
       {/* Main Workspace Frame */}
@@ -383,10 +394,11 @@ export default function App() {
           activeScreen={activeScreen} 
           setActiveScreen={setActiveScreen} 
           totalAssetsCount={assets.length}
+          isCollapsed={isSidebarCollapsed}
         />
 
         {/* Dynamic content rendering with loading animations */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-[calc(100vw-256px)] select-text">
+        <main className={`flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto ${isSidebarCollapsed ? 'max-w-[calc(100vw-80px)]' : 'max-w-[calc(100vw-256px)]'} select-text transition-all duration-300`}>
           
           {/* Dashboard (Visão Geral Executiva) View */}
           {activeScreen === 'dashboard' && (
