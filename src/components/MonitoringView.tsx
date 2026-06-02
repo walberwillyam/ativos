@@ -149,18 +149,21 @@ export default function MonitoringView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {devices.map(device => {
-              const status = getStatus(device.last_ping);
+              const isOffline = Date.now() - new Date(device.last_ping).getTime() > 30000;
+              const isCriticalCpu = device.cpu_usage > 90;
               const ramPerc = (device.ram_used / device.ram_total) * 100;
+              const isCriticalRam = ramPerc > 90;
               const diskPerc = (device.disk_used / device.disk_total) * 100;
+              const isCriticalDisk = diskPerc > 90;
 
               return (
-                <div key={device.id} className={`bg-white rounded-xl border ${status === 'online' ? 'border-emerald-200 shadow-emerald-100' : 'border-slate-200'} p-5 shadow-sm transition-all`}>
+                <div key={device.id} className={`bg-white dark:bg-slate-800 rounded-xl border ${!isOffline ? 'border-emerald-200 dark:border-emerald-900/50 shadow-emerald-100/50' : 'border-slate-200 dark:border-slate-700 opacity-60'} p-5 shadow-sm transition-all`}>
                   
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                          <Server size={16} className="text-slate-400" />
+                        <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                          <Server size={16} className="text-slate-400 dark:text-slate-500" />
                           {device.custom_name || device.asset_id}
                         </h3>
                         <button 
@@ -168,28 +171,25 @@ export default function MonitoringView() {
                             setEditingDevice(device);
                             setEditFormData({ custom_name: device.custom_name || '', sector: device.sector || '' });
                           }}
-                          className="text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                          className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
                           title="Editar Nome e Setor"
                         >
                           <Edit2 size={14} />
                         </button>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Unidade: {device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
                       </p>
                       {device.custom_name && (
-                        <p className="text-[10px] text-slate-400">Hostname: {device.asset_id}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Hostname: {device.asset_id}</p>
                       )}
                     </div>
                   </div>
                   
                   <div className="mb-4">
-                        <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{device.asset_id}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-md">
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-lg w-max">
                       <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-slate-300 dark:bg-slate-600' : 'bg-emerald-500 animate-pulse'}`} />
-                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                         {isOffline ? 'Offline' : 'Online'}
                       </span>
                     </div>
@@ -249,8 +249,8 @@ export default function MonitoringView() {
                   </div>
 
                   <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span className="truncate" title={device.os_info}>{device.os_info}</span>
-                    <span>{device.sector || 'S/ Setor'}</span>
+                    <span className="truncate flex-1" title={device.os_info}>{device.os_info}</span>
+                    <span className="ml-2 font-mono text-[10px]">Ping: {new Date(device.last_ping).toLocaleTimeString()}</span>
                   </div>
                 </div>
               );
