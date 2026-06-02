@@ -81,7 +81,15 @@ export default function App() {
   const [units, setUnits] = useState<any[]>([]);
 
   // Active view constraints
-  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('dashboard');
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>(() => {
+    const saved = localStorage.getItem('ativos_active_screen');
+    return (saved as ActiveScreen) || 'dashboard';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ativos_active_screen', activeScreen);
+  }, [activeScreen]);
+
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   // Register dynamic unit addition
