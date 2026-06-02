@@ -691,7 +691,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                           href={doc.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 dark:bg-slate-800 cursor-pointer transition block"
+                          className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition block"
                         >
                           <div className="flex items-center gap-2.5">
                             <FileText size={18} className="text-indigo-600" />
@@ -814,7 +814,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <button 
                 type="button" 
                 onClick={() => setIsTransferOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Cancelar
               </button>
@@ -885,7 +885,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <button 
                 type="button" 
                 onClick={() => setIsMaintenanceOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Cancelar
               </button>
@@ -1125,7 +1125,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <button 
                 type="button" 
                 onClick={() => setIsEditOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Cancelar
               </button>

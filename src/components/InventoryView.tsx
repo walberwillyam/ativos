@@ -451,7 +451,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           <button 
             id="btn-import-assets"
             onClick={() => alert("Função de importação de planilhas de ativos. Formato compatível: .CSV ou .XLSX corporativo padrão.")}
-            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
           >
             <Upload size={14} />
             Importar CSV
@@ -460,7 +460,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           <button 
             id="btn-export-all-assets"
             onClick={() => alert("Planilha de inventário completa gerada e baixada com sucesso (formato XLSX).")}
-            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
           >
             <Download size={14} />
             Exportar XLS
@@ -1006,7 +1006,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 <button 
                   type="button"
                   onClick={() => setIsNewAssetOpen(false)}
-                  className="w-1/2 py-3 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800 text-center"
+                  className="w-1/2 py-3 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-center"
                 >
                   Cancelar
                 </button>

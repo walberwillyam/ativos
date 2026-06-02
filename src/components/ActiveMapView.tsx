@@ -295,7 +295,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
               <button
                 id="btn-edit-unit-modal-trigger"
                 onClick={openEditUnitModal}
-                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+                className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
               >
                 <Settings size={14} className="text-indigo-700" /> Editar Unidade
               </button>
@@ -304,7 +304,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   navigator.clipboard.writeText(selectedUnitId);
                   alert(`ID da unidade copiado: ${selectedUnitId}`);
                 }}
-                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+                className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
                 title="Copiar ID da Unidade para instalar o robô"
               >
                 <Copy size={14} className="text-indigo-700" /> Copiar ID
@@ -313,7 +313,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 select-none h-fit">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 select-none h-fit">
               {currentUnitPartitions.map((fl) => (
                 <button
                   key={fl.id}
@@ -326,7 +326,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${
                     activeFloor === fl.id
                       ? 'bg-indigo-700 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 dark:text-white hover:bg-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700'
                   }`}
                 >
                   {fl.label}
@@ -337,7 +337,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             <button
               id="btn-edit-partitions-trigger"
               onClick={handleOpenManagePartitions}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+              className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
               title="Criar, editar ou remover partições desta unidade"
             >
               <Settings size={14} className="text-indigo-700" /> Gerenciar Partições
@@ -614,7 +614,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             ) : (
               <button 
                 onClick={() => setIsLegendOpen(true)}
-                className="bg-white dark:bg-slate-900/95 backdrop-blur-md px-3 py-2.5 rounded-2xl border border-slate-200/80 shadow-md hover:bg-slate-50 dark:bg-slate-800 transition flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200"
+                className="bg-white dark:bg-slate-900/95 backdrop-blur-md px-3 py-2.5 rounded-2xl border border-slate-200/80 shadow-md hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200"
                 title="Expandir Legenda de Status"
               >
                 <span className="flex gap-1 shrink-0">
@@ -910,7 +910,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 <button 
                   type="button"
                   onClick={() => setIsNewUnitOpen(false)}
-                  className="px-4 py-2 hover:bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
+                  className="px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
                 >
                   Cancelar
                 </button>
@@ -1006,7 +1006,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 <button 
                   type="button"
                   onClick={() => setIsEditUnitOpen(false)}
-                  className="px-4 py-2 hover:bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
+                  className="px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
                 >
                   Cancelar
                 </button>
@@ -1134,7 +1134,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
               <button 
                 type="button"
                 onClick={() => setIsManagePartitionsOpen(false)}
-                className="px-4 py-2 hover:bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
+                className="px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
               >
                 Cancelar
               </button>

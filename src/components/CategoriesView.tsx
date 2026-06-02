@@ -112,7 +112,7 @@ export default function CategoriesView({ categories, assets, onCreateCategory, o
             {categories.map(cat => {
               const count = assets.filter(a => a.category === cat.name).length;
               return (
-                <tr key={cat.id} className="hover:bg-slate-50 dark:bg-slate-800 transition-colors">
+                <tr key={cat.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -201,7 +201,7 @@ export default function CategoriesView({ categories, assets, onCreateCategory, o
                       className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-colors ${
                         formData.icon === iconName 
                           ? 'bg-indigo-50 border-indigo-200 text-indigo-700' 
-                          : 'bg-white dark:bg-slate-900 border-slate-200 text-slate-500 hover:bg-slate-50 dark:bg-slate-800'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       {getIconComponent(iconName)}
@@ -215,7 +215,7 @@ export default function CategoriesView({ categories, assets, onCreateCategory, o
               <button 
                 type="button" 
                 onClick={() => setIsModalOpen(false)}
-                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:bg-slate-800"
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Cancelar
               </button>

@@ -123,10 +123,10 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
   };
 
   return (
-    <div id="scanner-view" className="space-y-6 max-w-md mx-auto select-none bg-slate-50 border border-slate-200 p-6 rounded-3xl shadow-lg pb-10">
+    <div id="scanner-view" className="space-y-6 max-w-md mx-auto select-none bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-lg pb-10">
       {/* Mobile-Vibe Header controls */}
       <header className="space-y-3">
-        <div className="flex justify-between items-center bg-white border border-slate-200/80 px-4 py-2.5 rounded-2xl shadow-xs">
+        <div className="flex justify-between items-center bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 px-4 py-2.5 rounded-2xl shadow-xs">
           <div className="flex items-center gap-1.5 text-xs text-indigo-700 font-black tracking-wide">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>Ativos Apoio Scan</span>
@@ -138,13 +138,13 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
         </div>
 
         <div>
-          <h2 className="text-2xl font-black text-slate-900 leading-tight">Inventário Rápido</h2>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Inventário Rápido</h2>
           <p className="text-xs text-slate-400 mt-0.5">Leitor e varredura física para rondas de campo técnico patrimoniais.</p>
         </div>
       </header>
 
       {/* Simulator picker support dropdown card */}
-      <section className="bg-white border border-indigo-100 p-4 rounded-2xl shadow-xs space-y-2">
+      <section className="bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900 p-4 rounded-2xl shadow-xs space-y-2">
         <label className="block text-[10px] font-black uppercase text-indigo-700 tracking-wider">Simulador de Código de Barras / QR</label>
         <div className="space-y-1.5">
           <span className="text-[11px] text-slate-400 block font-medium leading-tight">Selecione qual item técnico você está fisicamente "segurando com a mão" para aproximar do leitor óptico:</span>
@@ -152,7 +152,7 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
             id="scanner-simulate-picker"
             value={selectedSimAssetIndex}
             onChange={(e) => setSelectedSimAssetIndex(parseInt(e.target.value))}
-            className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-600"
+            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-600"
           >
             {assets.map((asset, index) => (
               <option key={asset.id} value={index}>
@@ -212,19 +212,19 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
         <button 
           id="scanner-shortcut-new"
           onClick={onOpenNewAssetForm}
-          className="flex flex-col items-center justify-center p-3.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl shadow-xs transition active:scale-95"
+          className="flex flex-col items-center justify-center p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl shadow-xs transition active:scale-95"
         >
-          <PlusSquare size={24} className="text-indigo-700 mb-1" />
-          <span className="font-extrabold text-[11px] text-slate-700 uppercase tracking-wider">Novo Ativo</span>
+          <PlusSquare size={24} className="text-indigo-700 dark:text-indigo-400 mb-1" />
+          <span className="font-extrabold text-[11px] text-slate-700 dark:text-slate-200 uppercase tracking-wider">Novo Ativo</span>
         </button>
 
         <button 
           id="scanner-shortcut-error"
           onClick={handleReportError}
-          className="flex flex-col items-center justify-center p-3.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl shadow-xs transition active:scale-95"
+          className="flex flex-col items-center justify-center p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl shadow-xs transition active:scale-95"
         >
           <AlertTriangle size={24} className="text-rose-500 mb-1" />
-          <span className="font-extrabold text-[11px] text-slate-700 uppercase tracking-wider">Declarar Defeito</span>
+          <span className="font-extrabold text-[11px] text-slate-700 dark:text-slate-200 uppercase tracking-wider">Declarar Defeito</span>
         </button>
       </section>
 
@@ -243,12 +243,12 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
           ].map((item, i) => {
             const Icon = item.icon;
             return (
-              <div key={i} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-xs">
-                <span className="p-2 bg-slate-50 text-slate-400 rounded-xl">
+              <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs">
+                <span className="p-2 bg-slate-50 dark:bg-slate-900 text-slate-400 rounded-xl">
                   <Icon size={16} />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-slate-800 truncate leading-tight">{item.name}</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">{item.name}</p>
                   <p className="text-[10px] text-slate-400 mt-0.5 truncate uppercase">S/N: {item.sn}</p>
                 </div>
                 <div className="flex flex-col items-end shrink-0">

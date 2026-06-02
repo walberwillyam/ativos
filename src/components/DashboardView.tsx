@@ -351,7 +351,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                   // Look up actual asset object
                   const actualAsset = assets.find(a => a.id === w.id);
                   return (
-                    <tr key={w.id} className="hover:bg-slate-50 dark:bg-slate-800 transition-colors">
+                    <tr key={w.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                       <td className="px-6 py-4 flex items-center gap-3">
                         <span className="p-2 bg-slate-100 text-slate-500 dark:text-slate-400 dark:text-slate-500 rounded-lg">
                           <Icon size={14} />
