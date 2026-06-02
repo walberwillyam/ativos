@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { 
   Scan, 
   MapPin, 
@@ -36,23 +37,45 @@ interface ScannerMobileViewProps {
 }
 
 export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity, onOpenNewAssetForm }: ScannerMobileViewProps) {
-  // Simulator support states
-  const [targetSearchScan, setTargetSearchScan] = useState('');
   const [selectedSimAssetIndex, setSelectedSimAssetIndex] = useState(0);
-  const [scanningEffect, setScanningEffect] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Pick asset to scan from current list
   const activeSimAsset = assets[selectedSimAssetIndex] || assets[0];
 
-  const handleScanAction = () => {
-    setScanningEffect(true);
-    // Mimic quick camera light beep effect
-    setTimeout(() => {
-      setScanningEffect(false);
-      setIsModalOpen(true);
-    }, 1500);
-  };
+  // HTML5 QR Code setup
+  useEffect(() => {
+    const scanner = new Html5QrcodeScanner(
+      "reader",
+      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+      false
+    );
+
+    function onScanSuccess(decodedText: string) {
+      // Tentar encontrar o ativo lido pelo ID
+      const foundAsset = assets.find(a => a.id === decodedText || a.serialNumber === decodedText);
+      
+      if (foundAsset) {
+        // Pausar o leitor ao encontrar
+        scanner.pause(true);
+        setSelectedSimAssetIndex(assets.findIndex(a => a.id === foundAsset.id));
+        setIsModalOpen(true);
+      } else {
+        alert(`Código ${decodedText} lido, mas ativo não localizado no inventário.`);
+        scanner.pause(true);
+        setTimeout(() => scanner.resume(), 2000);
+      }
+    }
+
+    function onScanFailure() {
+      // Falhas normais de frame ignoradas
+    }
+
+    scanner.render(onScanSuccess, onScanFailure);
+
+    return () => {
+      scanner.clear().catch(console.error);
+    };
+  }, [assets]);
 
   const handleConfirmPresence = () => {
     if (!activeSimAsset) return;
@@ -143,67 +166,18 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
         </div>
       </header>
 
-      {/* Simulator picker support dropdown card */}
-      <section className="bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900 p-4 rounded-2xl shadow-xs space-y-2">
-        <label className="block text-[10px] font-black uppercase text-indigo-700 tracking-wider">Simulador de Código de Barras / QR</label>
-        <div className="space-y-1.5">
-          <span className="text-[11px] text-slate-400 block font-medium leading-tight">Selecione qual item técnico você está fisicamente "segurando com a mão" para aproximar do leitor óptico:</span>
-          <select
-            id="scanner-simulate-picker"
-            value={selectedSimAssetIndex}
-            onChange={(e) => setSelectedSimAssetIndex(parseInt(e.target.value))}
-            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-600"
-          >
-            {assets.map((asset, index) => (
-              <option key={asset.id} value={index}>
-                [{asset.id}] {asset.name} ({asset.unit.split(' ')[0]})
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-
-      {/* Camera Viewport laser Scanner layout */}
-      <section className="relative flex justify-center">
-        <div className="aspect-square w-full max-w-[280px] rounded-[32px] overflow-hidden bg-slate-900 relative border border-slate-800 shadow-inner group">
-          {/* Simulated scanning feed images overlay */}
-          <div className="absolute inset-0 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-300 pointer-events-none">
-            <img 
-              src="https://images.unsplash.com/photo-1629654297299-c8506221ca97?auto=format&fit=crop&q=80&w=400" 
-              alt="Scan Feed Cam View" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Visual laser overlays */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            {/* Holographic frame lines */}
-            <div className="w-40 h-40 border-2 border-indigo-500/80 rounded-2xl relative shadow-md">
-              {/* Scan glowing laser line slider overlay if scanning active */}
-              <div className={`absolute left-0 right-0 h-1 bg-indigo-500 shadow-[0_0_12px_#3b82f6] ${
-                scanningEffect ? 'animate-bounce' : 'top-1/2'
-              }`} />
-            </div>
-            
-            <p className="mt-4 text-[10px] text-slate-300 font-extrabold uppercase tracking-widest bg-slate-950/75 px-3 py-1 rounded-full border border-slate-800">
-              {scanningEffect ? 'VARRENDO CÓDIGO...' : 'APROXIME O CÓDIGO'}
-            </p>
-          </div>
-
-          {/* Overlay laser scan lines flash animation triggers */}
-          {scanningEffect && (
-            <div className="absolute inset-0 bg-indigo-500/10 animate-pulse duration-100" />
-          )}
-
-          {/* Camera overlay hover buttons */}
-          <button 
-            id="scanner-viewport-btn"
-            onClick={handleScanAction}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-700 hover:bg-indigo-850 text-white px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition-transform"
-          >
-            <Scan size={14} className="animate-spin" style={{ animationDuration: '4s' }} />
-            Disparar Captura
-          </button>
+      {/* Camera Viewport Real Scanner */}
+      <section className="relative flex justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-4 shadow-sm">
+        <div className="w-full max-w-[320px] rounded-2xl overflow-hidden relative" id="reader-wrapper">
+          <div id="reader" className="w-full rounded-2xl overflow-hidden"></div>
+          <style>{`
+            #reader { border: none !important; }
+            #reader video { object-fit: cover !important; border-radius: 1rem !important; }
+            #reader__dashboard_section_csr button { 
+              background: #4f46e5; color: white; padding: 6px 12px; border-radius: 8px; font-weight: bold; border: none; font-size: 12px; margin-bottom: 8px;
+            }
+            #reader__dashboard_section_swaplink { text-decoration: none; color: #4f46e5; font-weight: bold; }
+          `}</style>
         </div>
       </section>
 

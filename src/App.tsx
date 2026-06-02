@@ -356,7 +356,7 @@ export default function App() {
   }
 
   return (
-    <div id="app-root-container" className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col font-sans">
+    <div id="app-root-container" className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col font-sans overflow-x-hidden">
       {/* Universal Top Header bar of the high fidelity application */}
       <Navbar 
         setActiveScreen={setActiveScreen} 
@@ -380,7 +380,7 @@ export default function App() {
         />
 
         {/* Dynamic content rendering with loading animations */}
-        <main className={`flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full ${isSidebarCollapsed ? 'md:max-w-[calc(100vw-80px)]' : 'md:max-w-[calc(100vw-256px)]'} select-text transition-all duration-300`}>
+        <main className={`flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full ${isSidebarCollapsed ? 'md:max-w-[calc(100vw-80px)]' : 'md:max-w-[calc(100vw-256px)]'} select-text transition-all duration-300`}>
           
           {/* Dashboard (Visão Geral Executiva) View */}
           {activeScreen === 'dashboard' && (

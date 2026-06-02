@@ -51,7 +51,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
         id="side-bar"
         className={`${
           isCollapsed ? '-translate-x-full md:translate-x-0 md:w-20' : 'translate-x-0 w-64 md:w-64'
-        } fixed md:sticky top-16 md:top-16 z-50 md:z-0 flex flex-col bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-64px)] shrink-0 justify-between select-none transition-all duration-300`}
+        } fixed left-0 md:sticky md:left-auto top-16 md:top-16 z-50 md:z-0 flex flex-col bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-64px)] shrink-0 justify-between select-none transition-all duration-300`}
       >
       <div className="flex-1 flex flex-col pt-6 overflow-y-auto">
         {/* User Card */}
