@@ -47,7 +47,10 @@ ALTER TABLE public.devices_health
 ADD COLUMN IF NOT EXISTS custom_name TEXT,
 ADD COLUMN IF NOT EXISTS sector TEXT;
 
--- ====== NOVO ESQUEMA: ATIVOS E UNIDADES (EXECUTE TUDO ABAIXO) ======
+-- ====== NOVO ESQUEMA CORRIGIDO COM ASPAS (EXECUTE TUDO ABAIXO) ======
+-- Apaga as tabelas antigas para criar as novas com as colunas corretas (case sensitive)
+DROP TABLE IF EXISTS public.assets CASCADE;
+DROP TABLE IF EXISTS public.activities CASCADE;
 
 CREATE TABLE public.units (
   id TEXT PRIMARY KEY,
@@ -71,19 +74,19 @@ CREATE TABLE public.assets (
   name TEXT NOT NULL,
   category TEXT NOT NULL,
   model TEXT NOT NULL,
-  serialNumber TEXT NOT NULL,
+  "serialNumber" TEXT NOT NULL,
   unit TEXT NOT NULL,
   location TEXT NOT NULL,
-  currentFloor TEXT NOT NULL,
-  mapCoordinates JSONB NOT NULL DEFAULT '{"x":50,"y":50}'::jsonb,
+  "currentFloor" TEXT NOT NULL,
+  "mapCoordinates" JSONB NOT NULL DEFAULT '{"x":50,"y":50}'::jsonb,
   responsible JSONB NOT NULL DEFAULT '{}'::jsonb,
   status TEXT NOT NULL,
   value NUMERIC NOT NULL,
-  acquisitionDate TEXT NOT NULL,
-  warrantyExpiry TEXT NOT NULL,
+  "acquisitionDate" TEXT NOT NULL,
+  "warrantyExpiry" TEXT NOT NULL,
   specifications JSONB NOT NULL DEFAULT '{}'::jsonb,
   history JSONB NOT NULL DEFAULT '[]'::jsonb,
-  imageUrl TEXT,
+  "imageUrl" TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
@@ -100,7 +103,7 @@ CREATE TABLE public.activities (
   details TEXT NOT NULL,
   by_user TEXT NOT NULL,
   icon TEXT NOT NULL,
-  badgeColor TEXT NOT NULL,
+  "badgeColor" TEXT NOT NULL,
   time TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
@@ -108,4 +111,3 @@ CREATE TABLE public.activities (
 ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow anonymous selects on activities" ON public.activities FOR SELECT TO anon USING (true);
 CREATE POLICY "Allow anonymous inserts on activities" ON public.activities FOR INSERT TO anon WITH CHECK (true);
-
