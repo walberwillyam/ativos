@@ -44,7 +44,7 @@ import { INITIAL_NOTIFICATIONS } from './data/initialData';
 export default function App() {
   // Collection States
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
   const [activities, setActivities] = useState<TimelineStep[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);

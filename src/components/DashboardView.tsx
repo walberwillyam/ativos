@@ -179,32 +179,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
         </div>
       </section>
 
-      {/* TOP KPI METRICS - Main Focus */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Total em Operação", val: activeAssets, sub: "+12 ativos nesta semana", icon: Laptop, color: "indigo" },
-          { label: "Alertas Manutenção", val: maintenanceAssets, sub: "Prioridade: Unidade CD Logístico", icon: AlertTriangle, color: "amber" },
-          { label: "Baixa / Descartados", val: discardedAssets, sub: "Equipamentos em processo final", icon: ArchiveX, color: "rose" },
-          { label: "Auditoria Finalizada", val: "92%", sub: "Unidades Matriz e SP Auditadas", icon: CheckCircle2, color: "emerald" },
-        ].map((kpi, idx) => {
-          const IconComponent = kpi.icon;
-          return (
-            <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between select-none">
-              <div className="flex justify-between items-start mb-4">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center bg-${kpi.color}-50 dark:bg-${kpi.color}-900/20 text-${kpi.color}-600 dark:text-${kpi.color}-400`}>
-                  <IconComponent size={20} />
-                </div>
-                <button className="text-slate-400 hover:text-slate-600 dark:text-slate-300 transition"><MoreVertical size={16} /></button>
-              </div>
-              <div>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{kpi.val}</h3>
-                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">{kpi.label}</p>
-                <p className={`text-[10px] font-bold text-${kpi.color}-500 mt-2`}>{kpi.sub}</p>
-              </div>
-            </div>
-          );
-        })}
-      </section>
+
 
       {/* Main Content Charts & Activity Feed */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
