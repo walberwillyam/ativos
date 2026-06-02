@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { 
   Scan, 
   MapPin, 
@@ -49,10 +49,10 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
 
     function onScanSuccess(decodedText: string) {
       if (!isComponentMounted || !html5QrCode) return;
+      
       const foundAsset = assets.find(a => a.id === decodedText || a.serialNumber === decodedText);
       
       if (foundAsset) {
-        // Stop scanning to prevent multiple reads
         html5QrCode.stop().then(() => {
           setSelectedSimAssetIndex(assets.findIndex(a => a.id === foundAsset.id));
           setIsModalOpen(true);
@@ -69,7 +69,19 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
     html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+      { 
+        fps: 10, 
+        qrbox: { width: 300, height: 150 },
+        aspectRatio: 1.0,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A
+        ]
+      },
       onScanSuccess,
       onScanFailure
     ).catch(err => {

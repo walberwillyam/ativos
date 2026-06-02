@@ -380,7 +380,7 @@ export default function App() {
         />
 
         {/* Dynamic content rendering with loading animations */}
-        <main className={`flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full ${isSidebarCollapsed ? 'md:max-w-[calc(100vw-80px)]' : 'md:max-w-[calc(100vw-256px)]'} select-text transition-all duration-300`}>
+        <main className={`flex-1 min-w-0 p-4 sm:p-6 lg:p-8 w-full ${isSidebarCollapsed ? 'md:max-w-[calc(100vw-80px)]' : 'md:max-w-[calc(100vw-256px)]'} select-text transition-all duration-300`}>
           
           {/* Dashboard (Visão Geral Executiva) View */}
           {activeScreen === 'dashboard' && (
