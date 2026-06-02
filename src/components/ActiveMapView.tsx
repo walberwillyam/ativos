@@ -17,7 +17,8 @@ import {
   Search,
   User,
   X,
-  Settings
+  Settings,
+  Copy
 } from 'lucide-react';
 import { Asset, AssetStatus } from '../types';
 
@@ -294,6 +295,16 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                 className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all"
               >
                 <Settings size={14} className="text-indigo-700" /> Editar Unidade
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(selectedUnitId);
+                  alert(`ID da unidade copiado: ${selectedUnitId}`);
+                }}
+                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all"
+                title="Copiar ID da Unidade para instalar o robô"
+              >
+                <Copy size={14} className="text-indigo-700" /> Copiar ID
               </button>
             </div>
           </div>
