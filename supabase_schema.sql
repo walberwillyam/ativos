@@ -49,6 +49,7 @@ ADD COLUMN IF NOT EXISTS sector TEXT;
 
 -- ====== NOVO ESQUEMA CORRIGIDO COM ASPAS (EXECUTE TUDO ABAIXO) ======
 -- Apaga as tabelas antigas para criar as novas com as colunas corretas (case sensitive)
+DROP TABLE IF EXISTS public.units CASCADE;
 DROP TABLE IF EXISTS public.assets CASCADE;
 DROP TABLE IF EXISTS public.activities CASCADE;
 
