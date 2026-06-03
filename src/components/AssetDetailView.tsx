@@ -135,20 +135,22 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       if (!isComponentMounted) return;
       isStarting = true;
       try {
-        html5QrCode = new Html5Qrcode("patrimonio-reader");
+        html5QrCode = new Html5Qrcode("patrimonio-reader", {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A
+          ],
+          verbose: false
+        });
         await html5QrCode.start(
           { facingMode: "environment" },
           { 
             fps: 10, 
-            qrbox: { width: 250, height: 100 },
-            formatsToSupport: [
-              Html5QrcodeSupportedFormats.QR_CODE,
-              Html5QrcodeSupportedFormats.CODE_128,
-              Html5QrcodeSupportedFormats.CODE_39,
-              Html5QrcodeSupportedFormats.EAN_13,
-              Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.UPC_A
-            ]
+            qrbox: { width: 250, height: 100 }
           },
           onScanSuccess,
           onScanFailure

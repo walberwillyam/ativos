@@ -25,9 +25,10 @@ interface SidebarProps {
   totalAssetsCount: number;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  userRole: string;
 }
 
-export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCount, isCollapsed, setIsCollapsed }: SidebarProps) {
+export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCount, isCollapsed, setIsCollapsed, userRole }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
     { id: 'inventory', label: 'Inventário', icon: Boxes },
@@ -35,7 +36,10 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
     { id: 'categories', label: 'Categorias', icon: Tags },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
     { id: 'monitoring', label: 'Monitoramento', icon: Activity },
-    { id: 'settings', label: 'Configurações', icon: Settings },
+    ...(userRole === 'admin' ? [
+      { id: 'settings', label: 'Configurações', icon: Settings },
+      { id: 'users', label: 'Gestão de Usuários', icon: UserCheck }
+    ] : [])
   ];
 
   return (

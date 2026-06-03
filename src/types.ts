@@ -53,7 +53,7 @@ export interface Asset {
   imageUrl?: string;
 }
 
-export type ActiveScreen = 'dashboard' | 'inventory' | 'units' | 'scanner' | 'detail' | 'monitoring';
+export type ActiveScreen = 'dashboard' | 'inventory' | 'units' | 'scanner' | 'detail' | 'monitoring' | 'categories' | 'reports' | 'settings' | 'users' | 'noc';
 
 export interface QueryFilters {
   unit: string;
@@ -61,4 +61,15 @@ export interface QueryFilters {
   status: string;
   startDate: string;
   endDate: string;
+}
+
+export type UserRole = 'admin' | 'employee' | 'noc';
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name?: string;
+  role: UserRole;
+  unit?: string;
+  created_at?: string;
 }

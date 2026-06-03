@@ -37,6 +37,8 @@ import ScannerMobileView from './components/ScannerMobileView';
 import MonitoringView from './components/MonitoringView';
 import CategoriesView from './components/CategoriesView';
 import AuthScreen from './components/AuthScreen';
+import UserManagementView from './components/UserManagementView';
+import NocView from './components/NocView';
 import { supabase } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
@@ -51,17 +53,31 @@ export default function App() {
 
   // Auth State
   const [session, setSession] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        setUserProfile(null);
+      }
     });
+
+    const fetchUserProfile = async (userId: string) => {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (data) setUserProfile(data);
+    };
 
     // Fetch all real data
     const fetchAllData = async () => {
@@ -88,6 +104,13 @@ export default function App() {
     const saved = localStorage.getItem('ativos_active_screen');
     return (saved as ActiveScreen) || 'dashboard';
   });
+
+  // Override active screen if NOC
+  useEffect(() => {
+    if (userProfile?.role === 'noc' && activeScreen !== 'noc') {
+      setActiveScreen('noc');
+    }
+  }, [userProfile?.role, activeScreen]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('ativos_sidebar_collapsed');
@@ -355,6 +378,11 @@ export default function App() {
     return <AuthScreen />;
   }
 
+  // If user is NOC, render full screen NOC view without Sidebar or Navbar
+  if (userProfile?.role === 'noc') {
+    return <NocView assets={assets} />;
+  }
+
   return (
     <div id="app-root-container" className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col font-sans overflow-x-hidden">
       {/* Universal Top Header bar of the high fidelity application */}
@@ -377,6 +405,7 @@ export default function App() {
           totalAssetsCount={assets.length}
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
+          userRole={userProfile?.role || 'employee'}
         />
 
         {/* Dynamic content rendering with loading animations */}
@@ -458,7 +487,8 @@ export default function App() {
             />
           )}
           {activeScreen === 'reports' && renderReportsScreen()}
-          {activeScreen === 'settings' && renderSettingsView()}
+          {activeScreen === 'settings' && userProfile?.role === 'admin' && renderSettingsView()}
+          {activeScreen === 'users' && userProfile?.role === 'admin' && <UserManagementView units={units} />}
         </main>
       </div>
     </div>
