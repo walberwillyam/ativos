@@ -40,12 +40,26 @@ async function collectAndSendHealth() {
       serialNumber = baseboardData.serial && baseboardData.serial !== '-' && baseboardData.serial !== 'Default string' ? baseboardData.serial : null;
     }
 
-    if (serialNumber) {
-      await supabase
-        .from('assets')
-        .update({ serialNumber: serialNumber })
-        .eq('id', ASSET_ID);
-    }
+    const hardwareModel = `${systemData.manufacturer && systemData.manufacturer !== 'Default string' ? systemData.manufacturer : ''} ${systemData.model && systemData.model !== 'Default string' ? systemData.model : ''}`.trim();
+    const osString = `${osInfo.distro} ${osInfo.release}`;
+
+    const { data: assetData } = await supabase
+      .from('assets')
+      .select('specifications')
+      .eq('id', ASSET_ID)
+      .single();
+
+    const currentSpecs = assetData?.specifications || {};
+    currentSpecs["Sistema Operacional"] = osString;
+
+    const updatePayload = { specifications: currentSpecs };
+    if (serialNumber) updatePayload.serialNumber = serialNumber;
+    if (hardwareModel && hardwareModel.length > 2) updatePayload.model = hardwareModel;
+
+    await supabase
+      .from('assets')
+      .update(updatePayload)
+      .eq('id', ASSET_ID);
 
     const healthData = {
       asset_id: ASSET_ID,

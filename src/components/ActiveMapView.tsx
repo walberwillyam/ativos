@@ -257,6 +257,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
       case 'Manutenção': return 'bg-amber-500';
       case 'Armazenado': return 'bg-slate-50 dark:bg-slate-8000';
       case 'Extraviado': return 'bg-rose-500';
+      case 'Obsoleto': return 'bg-purple-500';
       default: return 'bg-slate-400';
     }
   };

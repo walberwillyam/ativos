@@ -20,7 +20,7 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
-import { Asset, TimelineStep } from '../types';
+import { Asset, TimelineStep, AssetStatus } from '../types';
 
 interface ScannerMobileViewProps {
   assets: Asset[];
@@ -39,8 +39,15 @@ interface ScannerMobileViewProps {
 export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity, onOpenNewAssetForm }: ScannerMobileViewProps) {
   const [selectedSimAssetIndex, setSelectedSimAssetIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [scannedAssetStatus, setScannedAssetStatus] = useState<AssetStatus>('Em Uso');
 
   const activeSimAsset = assets[selectedSimAssetIndex] || assets[0];
+
+  useEffect(() => {
+    if (activeSimAsset && isModalOpen) {
+      setScannedAssetStatus(activeSimAsset.status);
+    }
+  }, [activeSimAsset, isModalOpen]);
 
   // HTML5 QR Code setup
   useEffect(() => {
@@ -137,11 +144,12 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
       date: new Date().toISOString().split('T')[0],
       time: new Date().toTimeString().slice(0, 5),
       type: "scan",
-      description: "Leitura física do QR Code no local. Integridade posicional confirmada e reconciliada via GPS (SLA)."
+      description: `Leitura física do QR Code no local. Integridade posicional confirmada. Estado operacional definido como: ${scannedAssetStatus}.`
     };
 
     const updatedAsset: Asset = {
       ...activeSimAsset,
+      status: scannedAssetStatus,
       history: [auditStep, ...activeSimAsset.history]
     };
 
@@ -151,7 +159,7 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
     onAddActivity({
       type: "transfer",
       title: "Varredura de Auditoria",
-      details: `Presença verificada física em campo para ${activeSimAsset.name}.`,
+      details: `Presença verificada física em campo para ${activeSimAsset.name} com status ${scannedAssetStatus}.`,
       by: "Técnico de Campo",
       icon: "sync_alt",
       badgeColor: "bg-emerald-500"
@@ -357,6 +365,20 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
                     <p className="font-bold text-slate-800">{activeSimAsset.unit}</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">{activeSimAsset.location}</p>
                   </div>
+                </div>
+                <div className="flex justify-between items-center pt-2.5 border-t border-slate-200/50 dark:border-slate-700">
+                  <span className="text-slate-500 dark:text-slate-400 font-bold">Estado Operacional</span>
+                  <select 
+                    value={scannedAssetStatus}
+                    onChange={(e) => setScannedAssetStatus(e.target.value as AssetStatus)}
+                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                  >
+                    <option value="Em Uso">Em Uso</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Armazenado">Armazenado</option>
+                    <option value="Extraviado">Extraviado</option>
+                    <option value="Obsoleto">Obsoleto</option>
+                  </select>
                 </div>
               </div>
 

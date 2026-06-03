@@ -31,6 +31,7 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [newRole, setNewRole] = useState<UserRole>('employee');
   const [newUnit, setNewUnit] = useState<string>('');
+  const [newFullName, setNewFullName] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -62,6 +63,7 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
     setEditingProfile(profile);
     setNewRole(profile.role);
     setNewUnit(profile.unit || '');
+    setNewFullName(profile.full_name || '');
     setMessage(null);
   };
 
@@ -74,6 +76,7 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
       const { error } = await supabase
         .from('profiles')
         .update({
+          full_name: newFullName,
           role: newRole,
           unit: newUnit || null
         })
@@ -83,10 +86,10 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
 
       // Update local state
       setProfiles(prev => 
-        prev.map(p => p.id === editingProfile.id ? { ...p, role: newRole, unit: newUnit || undefined } : p)
+        prev.map(p => p.id === editingProfile.id ? { ...p, full_name: newFullName, role: newRole, unit: newUnit || undefined } : p)
       );
 
-      setMessage({ text: `Perfil de ${editingProfile.full_name || editingProfile.email} atualizado com sucesso.`, type: 'success' });
+      setMessage({ text: `Perfil de ${newFullName || editingProfile.email} atualizado com sucesso.`, type: 'success' });
       
       // Auto close modal after a brief moment
       setTimeout(() => {
@@ -294,17 +297,20 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
             </div>
 
             <div className="p-6 space-y-5">
-              {/* User Metadata */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                <p className="text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500">Usuário Selecionado</p>
-                <h4 className="font-bold text-slate-800 dark:text-white mt-0.5">
-                  {editingProfile.full_name || 'Sem Nome'}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{editingProfile.email}</p>
-              </div>
-
-              {/* Form Input fields */}
+              {/* User Metadata / Form Input fields */}
               <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-755 text-slate-700 dark:text-slate-300 uppercase tracking-wider">Nome Completo</label>
+                  <input 
+                    type="text" 
+                    value={newFullName}
+                    onChange={e => setNewFullName(e.target.value)}
+                    placeholder="Nome completo do colaborador"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-white font-semibold transition-all"
+                  />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{editingProfile.email}</p>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Nível de Permissão (Função)</label>
                   <select 

@@ -240,11 +240,42 @@ export default function App() {
 
   // Perform updates to individual assets (e.g. transfer, maintenance changes)
   const handleUpdateAsset = (updatedAsset: Asset) => {
-    setAssets(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
-    setSelectedAsset(updatedAsset);
+    const oldAsset = assets.find(a => a.id === updatedAsset.id);
+    let finalAsset = { ...updatedAsset };
+
+    if (updatedAsset.status === 'Armazenado' && oldAsset?.handover_term && oldAsset.handover_term.status === 'signed') {
+      const closedTerm = {
+        ...oldAsset.handover_term,
+        status: 'returned' as const,
+        returnedAt: new Date().toISOString()
+      };
+
+      const returnStep: TimelineStep = {
+        id: `step-term-return-${Date.now()}`,
+        title: "Termo de Responsabilidade Finalizado",
+        responsible: closedTerm.recipientName,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().slice(0, 5),
+        type: "reception",
+        description: `Equipamento retornado ao estoque como Armazenado. Termo assinado por Técnico: ${closedTerm.technicianName} e Recebedor: ${closedTerm.recipientName} finalizado e arquivado.`
+      };
+
+      finalAsset.handover_term = null;
+      
+      const currentPastTerms = oldAsset.specifications?.past_terms ? JSON.parse(oldAsset.specifications.past_terms) : [];
+      finalAsset.specifications = {
+        ...finalAsset.specifications,
+        past_terms: JSON.stringify([closedTerm, ...currentPastTerms])
+      };
+      
+      finalAsset.history = [returnStep, ...finalAsset.history];
+    }
+
+    setAssets(prev => prev.map(a => a.id === finalAsset.id ? finalAsset : a));
+    setSelectedAsset(finalAsset);
     
     // Save to DB
-    supabase.from('assets').update(updatedAsset).eq('id', updatedAsset.id).then();
+    supabase.from('assets').update(finalAsset).eq('id', finalAsset.id).then();
   };
 
   // Category Handlers

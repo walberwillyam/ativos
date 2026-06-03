@@ -115,7 +115,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     return ['Todas Categorias', ...Array.from(list).sort()];
   }, [assets, categories]);
 
-  const statusesList = ['Qualquer Status', 'Em Uso', 'Manutenção', 'Armazenado', 'Extraviado'];
+  const statusesList = ['Qualquer Status', 'Em Uso', 'Manutenção', 'Armazenado', 'Extraviado', 'Obsoleto'];
 
   // Apply filters in client side memory
   const filteredAssets = useMemo(() => {
@@ -212,6 +212,9 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     } else if (status === 'Extraviado') {
       classes = 'bg-rose-50 text-rose-700 border-rose-200';
       dotColor = 'bg-rose-500';
+    } else if (status === 'Obsoleto') {
+      classes = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/50';
+      dotColor = 'bg-purple-500';
     }
 
     return (
@@ -926,6 +929,8 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     <option>Em Uso</option>
                     <option>Manutenção</option>
                     <option>Armazenado</option>
+                    <option>Extraviado</option>
+                    <option>Obsoleto</option>
                   </select>
                 </div>
               </div>
@@ -1088,6 +1093,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 <option>Manutenção</option>
                 <option>Armazenado</option>
                 <option>Extraviado</option>
+                <option>Obsoleto</option>
               </select>
             </div>
 

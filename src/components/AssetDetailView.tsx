@@ -31,8 +31,238 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Asset, AssetStatus, Category, TimelineStep } from '../types';
+import { Asset, AssetStatus, Category, TimelineStep, HandoverTerm } from '../types';
 import { supabase } from '../lib/supabaseClient';
+import { useRef } from 'react';
+
+const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (dataUrl: string) => void, clearTrigger: boolean }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Ajustar para alta resolução de telas modernas
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+
+    ctx.strokeStyle = '#1e293b'; // slate-800
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const getPos = (e: MouseEvent | TouchEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    };
+
+    const startDrawing = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      isDrawing.current = true;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    };
+
+    const draw = (e: MouseEvent | TouchEvent) => {
+      if (!isDrawing.current) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+
+    const stopDrawing = () => {
+      if (isDrawing.current) {
+        isDrawing.current = false;
+        onSave(canvas.toDataURL());
+      }
+    };
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing);
+
+    return () => {
+      canvas.removeEventListener('mousedown', startDrawing);
+      canvas.removeEventListener('mousemove', draw);
+      canvas.removeEventListener('mouseup', stopDrawing);
+      canvas.removeEventListener('mouseleave', stopDrawing);
+      canvas.removeEventListener('touchstart', startDrawing);
+      canvas.removeEventListener('touchmove', draw);
+      canvas.removeEventListener('touchend', stopDrawing);
+    };
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    onSave('');
+  }, [clearTrigger]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="w-full h-32 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-crosshair touch-none" 
+    />
+  );
+};
+
+const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, onUpdateAsset: (a: Asset) => void, onAddActivity: any }) => {
+  const [techName, setTechName] = useState('Suporte Técnico TI');
+  const [recipName, setRecipName] = useState('');
+  const [techSig, setTechSig] = useState('');
+  const [recipSig, setRecipSig] = useState('');
+  const [clearTrigger, setClearTrigger] = useState(false);
+
+  const handleCreateTerm = () => {
+    if (!recipName.trim()) {
+      alert("Por favor, preencha o Nome do Recebedor.");
+      return;
+    }
+    if (!techSig || !recipSig) {
+      alert("Por favor, colha ambas as assinaturas desenhando no painel.");
+      return;
+    }
+
+    const newTerm: HandoverTerm = {
+      id: `TR-${Math.floor(100000 + Math.random() * 900000)}`,
+      assetId: asset.id,
+      technicianName: techName,
+      technicianSignature: techSig,
+      recipientName: recipName,
+      recipientSignature: recipSig,
+      signedAt: new Date().toISOString(),
+      specifications: asset.specifications,
+      status: 'signed'
+    };
+
+    const deliveryStep: TimelineStep = {
+      id: `step-term-delivery-${Date.now()}`,
+      title: "Termo de Responsabilidade Assinado",
+      responsible: techName,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toTimeString().slice(0, 5),
+      type: "transfer",
+      description: `Equipamento alocado e entregue para o colaborador ${recipName}. Termo de responsabilidade digital ativo.`
+    };
+
+    const updatedAsset: Asset = {
+      ...asset,
+      status: 'Em Uso',
+      responsible: {
+        name: recipName,
+        initials: recipName.split(' ').map(n=>n[0]).join('').slice(0, 2).toUpperCase()
+      },
+      handover_term: newTerm,
+      history: [deliveryStep, ...asset.history]
+    };
+
+    onUpdateAsset(updatedAsset);
+
+    onAddActivity({
+      type: "transfer",
+      title: "Ativo Entregue",
+      details: `${asset.name} entregue a ${recipName} sob termo.`,
+      by: techName,
+      icon: "assignment",
+      badgeColor: "bg-indigo-600"
+    });
+
+    alert("Termo de Responsabilidade assinado e gravado com sucesso! Ativo movido para Em Uso.");
+  };
+
+  const handleClear = () => {
+    setClearTrigger(prev => !prev);
+  };
+
+  return (
+    <div className="space-y-5 text-left bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+      <div>
+        <h4 className="font-extrabold text-slate-800 dark:text-white text-base">Emitir Termo de Responsabilidade</h4>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Colha as assinaturas físicas na tela para registrar a entrega do ativo patrimonial.</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Técnico que está Entregando</label>
+            <input 
+              type="text" 
+              value={techName}
+              onChange={e => setTechName(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-800 dark:text-white"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Colaborador Recebedor *</label>
+            <input 
+              type="text" 
+              placeholder="Ex: João da Silva"
+              value={recipName}
+              onChange={e => setRecipName(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-800 dark:text-white"
+            />
+          </div>
+        </div>
+
+        {/* Canvas de Assinaturas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">Assinatura do Técnico</label>
+              {techSig && <span className="text-[9px] text-emerald-600 font-extrabold flex items-center gap-0.5">✓ Assinado</span>}
+            </div>
+            <SignatureCanvas id="tech" onSave={setTechSig} clearTrigger={clearTrigger} />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">Assinatura do Recebedor</label>
+              {recipSig && <span className="text-[9px] text-emerald-600 font-extrabold flex items-center gap-0.5">✓ Assinado</span>}
+            </div>
+            <SignatureCanvas id="recip" onSave={setRecipSig} clearTrigger={clearTrigger} />
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-800">
+          <button 
+            type="button"
+            onClick={handleClear}
+            className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 rounded-xl text-xs font-bold bg-white cursor-pointer"
+          >
+            Limpar Assinaturas
+          </button>
+          
+          <button 
+            type="button"
+            onClick={handleCreateTerm}
+            className="px-6 py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold shadow transition-transform active:scale-95 cursor-pointer"
+          >
+            Salvar e Assinar Termo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface AssetDetailViewProps {
   asset: Asset;
@@ -52,7 +282,7 @@ interface AssetDetailViewProps {
 
 export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddActivity, units = [], categories = [] }: AssetDetailViewProps) {
   // Tabs active state
-  const [activeTab, setActiveTab] = useState<'timeline' | 'audit' | 'docs' | 'photos'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'audit' | 'docs' | 'photos' | 'handover'>('timeline');
 
   // Popup forms controls
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -62,7 +292,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   const [isScanningPatrimonio, setIsScanningPatrimonio] = useState(false);
 
   // States for interactive inputs
-  const [transferTargetUnit, setTransferTargetUnit] = useState('CD Logístico');
+  const [transferTargetUnit, setTransferTargetUnit] = useState(units && units.length > 0 ? units[0].name : 'CD Logístico');
   const [transferTargetLoc, setTransferTargetLoc] = useState('Estoque Doca Sul');
   const [transferReason, setTransferReason] = useState('');
 
@@ -202,7 +432,8 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     warrantyExpiry: asset.warrantyExpiry,
     processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
     ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
-    storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || '')
+    storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''),
+    os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || ''
   });
 
   useEffect(() => {
@@ -223,7 +454,8 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         warrantyExpiry: asset.warrantyExpiry,
         processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
         ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
-        storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || '')
+        storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''),
+        os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || ''
       });
     }
   }, [isEditOpen, asset]);
@@ -338,6 +570,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     delete cleanedSpecs["cpu"];
     delete cleanedSpecs["ram"];
     delete cleanedSpecs["disk"];
+    delete cleanedSpecs["os"];
 
     const updatedAsset: Asset = {
       ...asset,
@@ -362,7 +595,8 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         ...cleanedSpecs,
         ...(editForm.processor ? { "Processador": editForm.processor } : {}),
         ...(editForm.ram ? { "Memória RAM": editForm.ram } : {}),
-        ...(editForm.storage ? { "Armazenamento": editForm.storage } : {})
+        ...(editForm.storage ? { "Armazenamento": editForm.storage } : {}),
+        ...(editForm.os ? { "Sistema Operacional": editForm.os } : {})
       }
     };
 
@@ -549,7 +783,9 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <div className="absolute top-4 left-4 z-10">
                 <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider text-white shadow flex items-center gap-1.5 ${
                   asset.status === 'Em Uso' ? 'bg-emerald-600' :
-                  asset.status === 'Manutenção' ? 'bg-amber-500' : 'bg-slate-50 dark:bg-slate-8000 text-slate-800'
+                  asset.status === 'Manutenção' ? 'bg-amber-500' :
+                  asset.status === 'Obsoleto' ? 'bg-purple-600 font-extrabold' :
+                  asset.status === 'Extraviado' ? 'bg-rose-600' : 'bg-slate-600'
                 }`}>
                   <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-900 animate-pulse" />
                   {asset.status}
@@ -739,6 +975,18 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <Camera size={16} />
               Galeria Fotos
             </button>
+            <button 
+              id="detail-tab-trigger-handover"
+              onClick={() => setActiveTab('handover')}
+              className={`px-4 py-4 text-xs font-bold flex items-center gap-2 leading-none transition-colors border-b-2 ${
+                activeTab === 'handover' 
+                  ? 'border-indigo-700 text-indigo-700 font-extrabold' 
+                  : 'border-transparent text-slate-400 hover:text-slate-700 dark:text-slate-200'
+              }`}
+            >
+              <FileCheck2 size={16} />
+              Termo de Responsabilidade
+            </button>
           </div>
 
           {/* Interactive tab output container */}
@@ -865,6 +1113,161 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 </div>
               );
             })()}
+
+            {activeTab === 'handover' && (() => {
+              const term = asset.handover_term;
+              
+              if (term && term.status === 'signed') {
+                return (
+                  <div className="space-y-6 text-left border border-slate-200 dark:border-slate-800 rounded-3xl p-6 bg-slate-50/50 dark:bg-slate-900/50 relative overflow-hidden" id="print-handover-area">
+                    <style>{`
+                      @media print {
+                        body * {
+                          visibility: hidden;
+                        }
+                        #print-handover-area, #print-handover-area * {
+                          visibility: visible;
+                        }
+                        #print-handover-area {
+                          position: absolute;
+                          left: 0;
+                          top: 0;
+                          width: 100%;
+                          border: none !important;
+                          background: white !important;
+                          color: black !important;
+                        }
+                        .no-print {
+                          display: none !important;
+                        }
+                      }
+                    `}</style>
+                    {/* Header para Impressão */}
+                    <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-4">
+                      <div>
+                        <h4 className="text-xl font-extrabold text-indigo-700 dark:text-indigo-400">Termo de Responsabilidade e Outorga</h4>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Nº Termo: {term.id} • Assinado em: {term.signedAt ? new Date(term.signedAt).toLocaleString('pt-BR') : 'N/A'}</p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => window.print()}
+                        className="px-4 py-2 bg-slate-900 dark:bg-slate-800 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 duration-150 active:scale-95 no-print cursor-pointer"
+                      >
+                        <Printer size={14} /> Imprimir Termo
+                      </button>
+                    </div>
+
+                    <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300">
+                      <p className="leading-relaxed">
+                        Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito abaixo em perfeito estado de conservação e funcionamento, assumindo a responsabilidade civil e criminal por sua guarda, zelo e conservação, obrigando-me a devolvê-lo nas mesmas condições quando solicitado ou no término do vínculo corporativo.
+                      </p>
+
+                      {/* Dados do Ativo */}
+                      <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                        <p className="font-bold text-slate-800 dark:text-slate-100 text-xs">Especificações do Equipamento</p>
+                        <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                          <div><span className="text-slate-400 font-medium">Equipamento:</span> <span className="font-bold">{asset.name}</span></div>
+                          <div><span className="text-slate-400 font-medium">Patrimônio:</span> <span className="font-bold font-mono">{asset.patrimonio}</span></div>
+                          <div><span className="text-slate-400 font-medium">Modelo:</span> <span className="font-semibold">{asset.model}</span></div>
+                          <div><span className="text-slate-400 font-medium">Nº de Série:</span> <span className="font-semibold font-mono">{asset.serialNumber}</span></div>
+                        </div>
+                      </div>
+
+                      {/* Assinaturas */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                        <div className="flex flex-col items-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
+                          <p className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider mb-2">Técnico Emitente</p>
+                          {term.technicianSignature ? (
+                            <img src={term.technicianSignature} alt="Assinatura Técnico" className="h-16 object-contain bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 p-1" />
+                          ) : (
+                            <div className="h-16 flex items-center justify-center text-slate-400 italic">Sem assinatura</div>
+                          )}
+                          <p className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-xs">{term.technicianName}</p>
+                        </div>
+
+                        <div className="flex flex-col items-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
+                          <p className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider mb-2">Usuário Recebedor</p>
+                          {term.recipientSignature ? (
+                            <img src={term.recipientSignature} alt="Assinatura Recebedor" className="h-16 object-contain bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 p-1" />
+                          ) : (
+                            <div className="h-16 flex items-center justify-center text-slate-400 italic">Sem assinatura</div>
+                          )}
+                          <p className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-xs">{term.recipientName}</p>
+                        </div>
+                      </div>
+
+                      {/* Devolução Simulado */}
+                      <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-end no-print">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Deseja realmente devolver este ativo ao estoque? O termo assinado atual será finalizado e arquivado.")) {
+                              onUpdateAsset({
+                                ...asset,
+                                status: 'Armazenado'
+                              });
+                            }
+                          }}
+                          className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow cursor-pointer"
+                        >
+                          <RefreshCw size={14} /> Devolver ao Estoque
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Se não há termo, exibir formulário de entrega e canvas para assinar
+              const pastTermsList = asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : [];
+              return (
+                <div className="space-y-6">
+                  <HandoverForm asset={asset} onUpdateAsset={onUpdateAsset} onAddActivity={onAddActivity} />
+                  {pastTermsList.length > 0 && (
+                    <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
+                      <h4 className="font-extrabold text-slate-800 dark:text-white text-base mb-4">Termos Anteriores Arquivados</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {pastTermsList.map((pt: any) => (
+                          <div key={pt.id} className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col justify-between h-full">
+                            <div>
+                              <p className="text-xs font-bold text-slate-500 mb-1">Termo {pt.id}</p>
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Técnico: {pt.technicianName}</p>
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Recebedor: {pt.recipientName}</p>
+                              <p className="text-[10px] text-slate-400 mt-2">Finalizado em: {pt.returnedAt ? new Date(pt.returnedAt).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+                              <button onClick={() => {
+                                const w = window.open();
+                                if (w) {
+                                  w.document.write(`
+                                    <html><head><title>Termo Anterior ${pt.id}</title><style>body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; } .h { border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }</style></head>
+                                    <body>
+                                      <h2 class="h">Termo de Responsabilidade Arquivado - ${pt.id}</h2>
+                                      <p><strong>Equipamento:</strong> ${asset.name}</p>
+                                      <p><strong>Patrimônio:</strong> ${asset.patrimonio} | <strong>Serial:</strong> ${asset.serialNumber}</p>
+                                      <p style="margin-top:20px;">Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito acima em perfeito estado de conservação e funcionamento.</p>
+                                      <div style="display: flex; gap: 40px; margin-top: 40px;">
+                                        <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Técnico Emitente</p><img src="${pt.technicianSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.technicianName}</strong></p></div>
+                                        <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Usuário Recebedor</p><img src="${pt.recipientSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.recipientName}</strong></p></div>
+                                      </div>
+                                      <div style="margin-top: 40px; font-size: 11px; color: #777;">Documento assinado digitalmente em: ${pt.signedAt ? new Date(pt.signedAt).toLocaleString('pt-BR') : 'N/A'}<br/>Termo finalizado/arquivado em: ${pt.returnedAt ? new Date(pt.returnedAt).toLocaleString('pt-BR') : 'N/A'}</div>
+                                      <script>window.print();</script>
+                                    </body></html>
+                                  `);
+                                  w.document.close();
+                                }
+                              }} className="w-full px-3 py-2 text-xs font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center gap-2 cursor-pointer">
+                                <Printer size={14} /> Imprimir Termo Arquivado
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Footer Timeline indicator count */}
@@ -901,10 +1304,18 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   onChange={(e) => setTransferTargetUnit(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm outline-none cursor-pointer"
                 >
-                  <option>Matriz - São Paulo</option>
-                  <option>Filial - Rio de Janeiro</option>
-                  <option>CD Logístico</option>
-                  <option>Depósito - Paraná</option>
+                  {units && units.length > 0 ? (
+                    units.map((u: any) => (
+                      <option key={u.id} value={u.name}>{u.name}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option>Matriz - São Paulo</option>
+                      <option>Filial - Rio de Janeiro</option>
+                      <option>CD Logístico</option>
+                      <option>Depósito - Paraná</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -1088,9 +1499,9 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Marca / Modelo Completo *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Marca / Modelo *</label>
                   <input 
                     type="text" 
                     value={editForm.model}
@@ -1100,7 +1511,16 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Série (Serial) *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Sist. Operacional</label>
+                  <input 
+                    type="text" 
+                    value={editForm.os}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, os: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Nº de Série *</label>
                   <input 
                     type="text" 
                     value={editForm.serialNumber}
@@ -1185,6 +1605,8 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     <option>Em Uso</option>
                     <option>Manutenção</option>
                     <option>Armazenado</option>
+                    <option>Extraviado</option>
+                    <option>Obsoleto</option>
                   </select>
                 </div>
               </div>

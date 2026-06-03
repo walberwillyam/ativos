@@ -9,9 +9,22 @@ export interface Responsible {
   avatarUrl?: string;
 }
 
-export type AssetStatus = 'Em Uso' | 'Manutenção' | 'Armazenado' | 'Extraviado';
+export type AssetStatus = 'Em Uso' | 'Manutenção' | 'Armazenado' | 'Extraviado' | 'Obsoleto';
 
 export type TimelineType = 'transfer' | 'maintenance' | 'reception' | 'scan' | 'creation';
+
+export interface HandoverTerm {
+  id: string;
+  assetId: string;
+  technicianName: string;
+  technicianSignature?: string; // Assinatura em base64 do canvas
+  recipientName: string;
+  recipientSignature?: string; // Assinatura em base64 do canvas
+  signedAt?: string;
+  specifications: Record<string, string>;
+  status: 'pending' | 'signed' | 'returned';
+  returnedAt?: string;
+}
 
 export interface TimelineStep {
   id: string;
@@ -51,6 +64,8 @@ export interface Asset {
   specifications: Record<string, string>; // label: value
   history: TimelineStep[];
   imageUrl?: string;
+  handover_term?: HandoverTerm | null;
+  past_terms?: HandoverTerm[];
 }
 
 export type ActiveScreen = 'dashboard' | 'inventory' | 'units' | 'scanner' | 'detail' | 'monitoring' | 'categories' | 'reports' | 'settings' | 'users' | 'noc';
