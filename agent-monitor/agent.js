@@ -33,6 +33,20 @@ async function collectAndSendHealth() {
       diskUsed = fsSize[0].used;
     }
 
+    const systemData = await si.system();
+    const baseboardData = await si.baseboard();
+    let serialNumber = systemData.serial && systemData.serial !== '-' && systemData.serial !== 'Default string' ? systemData.serial : null;
+    if (!serialNumber) {
+      serialNumber = baseboardData.serial && baseboardData.serial !== '-' && baseboardData.serial !== 'Default string' ? baseboardData.serial : null;
+    }
+
+    if (serialNumber) {
+      await supabase
+        .from('assets')
+        .update({ serialNumber: serialNumber })
+        .eq('id', ASSET_ID);
+    }
+
     const healthData = {
       asset_id: ASSET_ID,
       unit_id: UNIT_ID,
