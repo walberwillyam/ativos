@@ -99,57 +99,59 @@ export default function CategoriesView({ categories, assets, onCreateCategory, o
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-wider">
-              <th className="p-4 font-bold">Categoria</th>
-              <th className="p-4 font-bold">Descrição</th>
-              <th className="p-4 font-bold text-center">Ativos Vinculados</th>
-              <th className="p-4 font-bold text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-sm">
-            {categories.map(cat => {
-              const count = assets.filter(a => a.category === cat.name).length;
-              return (
-                <tr key={cat.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        {getIconComponent(cat.icon)}
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[600px]">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-wider">
+                <th className="p-4 font-bold">Categoria</th>
+                <th className="p-4 font-bold">Descrição</th>
+                <th className="p-4 font-bold text-center">Ativos Vinculados</th>
+                <th className="p-4 font-bold text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {categories.map(cat => {
+                const count = assets.filter(a => a.category === cat.name).length;
+                return (
+                  <tr key={cat.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                          {getIconComponent(cat.icon)}
+                        </div>
+                        <span className="font-bold text-slate-800 dark:text-slate-100">{cat.name}</span>
                       </div>
-                      <span className="font-bold text-slate-800 dark:text-slate-100">{cat.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-4 text-slate-600 dark:text-slate-300">{cat.description || '-'}</td>
-                  <td className="p-4 text-center">
-                    <span className="bg-slate-100 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full text-xs font-bold">
-                      {count} ativos
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => handleOpenEdit(cat)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                        <Edit2 size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(cat)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    </td>
+                    <td className="p-4 text-slate-600 dark:text-slate-300">{cat.description || '-'}</td>
+                    <td className="p-4 text-center">
+                      <span className="bg-slate-100 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full text-xs font-bold">
+                        {count} ativos
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => handleOpenEdit(cat)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(cat)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              
+              {categories.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    Nenhuma categoria cadastrada.
                   </td>
                 </tr>
-              );
-            })}
-            
-            {categories.length === 0 && (
-              <tr>
-                <td colSpan={4} className="p-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">
-                  Nenhuma categoria cadastrada.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {isModalOpen && (

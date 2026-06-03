@@ -313,8 +313,8 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 select-none h-fit">
+          <div className="flex flex-wrap items-center gap-2 max-w-full overflow-hidden">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 select-none h-fit overflow-x-auto whitespace-nowrap custom-scrollbar max-w-full">
               {currentUnitPartitions.map((fl) => (
                 <button
                   key={fl.id}

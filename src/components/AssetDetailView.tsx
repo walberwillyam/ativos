@@ -926,7 +926,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         {/* Right column: Timeline tabs logs */}
         <div className="col-span-12 lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl flex flex-col min-h-[500px] shadow-sm">
           {/* Timeline Tab buttons matching mockup exactly */}
-          <div className="flex border-b border-slate-200 px-6 pt-2 select-none bg-slate-50 dark:bg-slate-800 rounded-t-3xl">
+          <div className="flex border-b border-slate-200 px-6 pt-2 select-none bg-slate-50 dark:bg-slate-800 rounded-t-3xl overflow-x-auto whitespace-nowrap custom-scrollbar">
             <button 
               id="detail-tab-trigger-timeline"
               onClick={() => setActiveTab('timeline')}
