@@ -46,6 +46,7 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
   useEffect(() => {
     let html5QrCode: Html5Qrcode | null = null;
     let isComponentMounted = true;
+    let isStarting = false;
 
     function onScanSuccess(decodedText: string) {
       if (!isComponentMounted || !html5QrCode) return;
@@ -53,10 +54,15 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
       const foundAsset = assets.find(a => a.id === decodedText || a.serialNumber === decodedText || a.patrimonio === decodedText);
       
       if (foundAsset) {
-        html5QrCode.stop().then(() => {
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            setSelectedSimAssetIndex(assets.findIndex(a => a.id === foundAsset.id));
+            setIsModalOpen(true);
+          }).catch(err => console.log("Stop error", err));
+        } else {
           setSelectedSimAssetIndex(assets.findIndex(a => a.id === foundAsset.id));
           setIsModalOpen(true);
-        }).catch(err => console.log("Stop error", err));
+        }
       } else {
         alert(`Código ${decodedText} lido, mas ativo não localizado no inventário.`);
       }
@@ -66,34 +72,54 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
       // Ignora falhas de frame
     }
 
-    html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { 
-        fps: 10, 
-        qrbox: { width: 300, height: 150 },
-        aspectRatio: 1.0,
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A
-        ]
-      },
-      onScanSuccess,
-      onScanFailure
-    ).catch(err => {
-      console.error("Camera start failed", err);
-    });
+    async function initScanner() {
+      if (!isComponentMounted) return;
+      isStarting = true;
+      try {
+        html5QrCode = new Html5Qrcode("reader");
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { 
+            fps: 10, 
+            qrbox: { width: 250, height: 150 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.QR_CODE,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A
+            ]
+          },
+          onScanSuccess,
+          onScanFailure
+        );
+      } catch (err) {
+        console.error("Camera start failed", err);
+      } finally {
+        isStarting = false;
+        if (!isComponentMounted && html5QrCode) {
+          if (html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => html5QrCode?.clear()).catch(console.error);
+          } else {
+            try { html5QrCode.clear(); } catch(e){}
+          }
+        }
+      }
+    }
+
+    initScanner();
 
     return () => {
       isComponentMounted = false;
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-          html5QrCode?.clear();
-        }).catch(console.error);
+      if (html5QrCode && !isStarting) {
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            html5QrCode?.clear();
+          }).catch(console.error);
+        } else {
+          try { html5QrCode.clear(); } catch(e){}
+        }
       }
     };
   }, [assets]);

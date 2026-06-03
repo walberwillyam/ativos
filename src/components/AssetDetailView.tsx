@@ -26,8 +26,10 @@ import {
   Cpu,
   Activity,
   HardDrive,
-  Clock
+  Clock,
+  Scan
 } from 'lucide-react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Asset, AssetStatus, Category, TimelineStep } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
@@ -56,6 +58,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPrintBadgeOpen, setIsPrintBadgeOpen] = useState(false);
+  const [isScanningPatrimonio, setIsScanningPatrimonio] = useState(false);
 
   // States for interactive inputs
   const [transferTargetUnit, setTransferTargetUnit] = useState('CD Logístico');
@@ -103,6 +106,81 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     };
     fetchTelemetry();
   }, [asset.id]);
+
+  useEffect(() => {
+    if (!isScanningPatrimonio) return;
+
+    let html5QrCode: Html5Qrcode | null = null;
+    let isComponentMounted = true;
+    let isStarting = false;
+
+    function onScanSuccess(decodedText: string) {
+      if (!isComponentMounted || !html5QrCode) return;
+      
+      setEditForm(prev => ({ ...prev, patrimonio: decodedText }));
+      
+      if (html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          setIsScanningPatrimonio(false);
+        }).catch(err => console.log("Stop error", err));
+      } else {
+        setIsScanningPatrimonio(false);
+      }
+    }
+
+    function onScanFailure() {}
+
+    async function initScanner() {
+      if (!isComponentMounted) return;
+      isStarting = true;
+      try {
+        html5QrCode = new Html5Qrcode("patrimonio-reader");
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { 
+            fps: 10, 
+            qrbox: { width: 250, height: 100 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.QR_CODE,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A
+            ]
+          },
+          onScanSuccess,
+          onScanFailure
+        );
+      } catch (err) {
+        console.error("Camera start failed", err);
+      } finally {
+        isStarting = false;
+        if (!isComponentMounted && html5QrCode) {
+          if (html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => html5QrCode?.clear()).catch(console.error);
+          } else {
+            try { html5QrCode.clear(); } catch(e){}
+          }
+        }
+      }
+    }
+
+    initScanner();
+
+    return () => {
+      isComponentMounted = false;
+      if (html5QrCode && !isStarting) {
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            html5QrCode?.clear();
+          }).catch(console.error);
+        } else {
+          try { html5QrCode.clear(); } catch(e){}
+        }
+      }
+    };
+  }, [isScanningPatrimonio]);
 
   // Edit asset states
   const [editForm, setEditForm] = useState({
@@ -925,12 +1003,22 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Patrimônio (Opcional)</label>
-                  <input 
-                    type="text" 
-                    value={editForm.patrimonio}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, patrimonio: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
-                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={editForm.patrimonio}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, patrimonio: e.target.value }))}
+                      className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setIsScanningPatrimonio(true)}
+                      className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-2 rounded-xl border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 transition"
+                      title="Escanear Código de Barras/QR"
+                    >
+                      <Scan size={20} />
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Categoria de Inventário *</label>
@@ -1137,6 +1225,37 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Scanner Modal for Patrimonio */}
+      {isScanningPatrimonio && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="p-4 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Scan size={18} className="text-indigo-600" />
+                Ler Código de Patrimônio
+              </h3>
+              <button onClick={() => setIsScanningPatrimonio(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-4 bg-black">
+              <div id="patrimonio-reader" className="w-full rounded-xl overflow-hidden bg-black min-h-[250px]"></div>
+              <style>{`
+                #patrimonio-reader { border: none !important; }
+                #patrimonio-reader video { object-fit: cover !important; border-radius: 0.75rem !important; }
+                #patrimonio-reader__dashboard_section_csr button { 
+                  background: #4f46e5; color: white; padding: 6px 12px; border-radius: 8px; font-weight: bold; border: none; font-size: 12px; margin-bottom: 8px;
+                }
+                #patrimonio-reader__dashboard_section_swaplink { text-decoration: none; color: #4f46e5; font-weight: bold; }
+              `}</style>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-800 text-center text-xs text-slate-500">
+              Aponte a câmera para a etiqueta de patrimônio para preencher automaticamente.
+            </div>
+          </div>
         </div>
       )}
 
