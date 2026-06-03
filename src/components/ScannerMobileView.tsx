@@ -257,31 +257,60 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
         </div>
 
         <div className="space-y-2 select-none">
-          {[
-            { name: "Motor AC Trifásico 15HP", sn: "884-293-XP", type: "Ativo", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-100", dot: "bg-emerald-500", time: "10:45", icon: Cpu },
-            { name: "Braço Robótico KUKA L3", sn: "112-990-MN", type: "Manutenção", tagColor: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500", time: "Ontem", icon: Laptop },
-            { name: "Painel Elétrico Central", sn: "556-121-PL", type: "Armazenado", tagColor: "bg-slate-100 text-slate-600 border-slate-200", dot: "bg-slate-400", time: "Ontem", icon: Layers }
-          ].map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs">
-                <span className="p-2 bg-slate-50 dark:bg-slate-900 text-slate-400 rounded-xl">
-                  <Icon size={16} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">{item.name}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5 truncate uppercase">S/N: {item.sn}</p>
+          {(() => {
+            // Get recently scanned assets based on their history
+            const scannedAssets = assets
+              .filter(a => a.history.some(h => h.type === 'scan'))
+              .map(a => {
+                const lastScan = a.history.find(h => h.type === 'scan')!;
+                return {
+                  name: a.name,
+                  sn: a.serialNumber || a.id,
+                  type: a.status,
+                  tagColor: a.status === 'Em Uso' ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                            a.status === 'Manutenção' ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            "bg-slate-100 text-slate-600 border-slate-200",
+                  dot: a.status === 'Em Uso' ? "bg-emerald-500" :
+                       a.status === 'Manutenção' ? "bg-amber-500" :
+                       "bg-slate-400",
+                  time: lastScan.time,
+                  date: new Date(`${lastScan.date}T${lastScan.time}`),
+                  icon: Cpu
+                };
+              })
+              .sort((a, b) => b.date.getTime() - a.date.getTime())
+              .slice(0, 3);
+
+            if (scannedAssets.length === 0) {
+              return (
+                <div className="p-4 text-center text-xs text-slate-400 border border-slate-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-800">
+                  Nenhuma leitura de ronda registrada ainda.
                 </div>
-                <div className="flex flex-col items-end shrink-0">
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border flex items-center gap-1 ${item.tagColor}`}>
-                    <span className={`w-1 h-1 rounded-full ${item.dot}`} />
-                    {item.type}
+              );
+            }
+
+            return scannedAssets.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs">
+                  <span className="p-2 bg-slate-50 dark:bg-slate-900 text-slate-400 rounded-xl">
+                    <Icon size={16} />
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-1 font-medium">{item.time}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">{item.name}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5 truncate uppercase">S/N: {item.sn}</p>
+                  </div>
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border flex items-center gap-1 ${item.tagColor}`}>
+                      <span className={`w-1 h-1 rounded-full ${item.dot}`} />
+                      {item.type}
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1 font-medium">{item.time}</span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </section>
 
@@ -338,6 +367,15 @@ export default function ScannerMobileView({ assets, onUpdateAsset, onAddActivity
                 >
                   <CheckCircle size={16} />
                   Confirmar Presença (Auditar)
+                </button>
+
+                <button 
+                  id="scanner-report-error-btn"
+                  onClick={handleReportError}
+                  className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold flex items-center justify-center gap-1.5 shadow"
+                >
+                  <AlertTriangle size={16} />
+                  Registrar Manutenção
                 </button>
 
                 <button 

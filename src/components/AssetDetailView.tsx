@@ -27,7 +27,8 @@ import {
   Activity,
   HardDrive,
   Clock,
-  Scan
+  Scan,
+  CheckCircle
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Asset, AssetStatus, Category, TimelineStep } from '../types';
@@ -296,6 +297,37 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     alert(`Ativo colocado sob manutenção com sucesso! Status redefinido e ordem de serviço registrada.`);
   };
 
+  const handleFinishMaintenance = () => {
+    const maintenanceStep: TimelineStep = {
+      id: `step-maint-finish-${Date.now()}`,
+      title: `Manutenção Finalizada`,
+      responsible: "Técnico de Manutenção",
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toTimeString().slice(0, 5),
+      type: "creation",
+      description: `Equipamento reparado e liberado para uso.`,
+    };
+
+    const updatedAsset: Asset = {
+      ...asset,
+      status: "Em Uso",
+      history: [maintenanceStep, ...asset.history]
+    };
+
+    onUpdateAsset(updatedAsset);
+
+    onAddActivity({
+      type: "maintenance",
+      title: "Manutenção Concluída",
+      details: `${asset.name} (#${asset.id}) retornou para Em Uso.`,
+      by: "Admin Geral",
+      icon: "check_circle",
+      badgeColor: "bg-emerald-500"
+    });
+
+    alert(`Ativo liberado da manutenção com sucesso! Status redefinido para Em Uso.`);
+  };
+
   const handleEditAssetSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -468,14 +500,25 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
             Mover/Transferir
           </button>
 
-          <button 
-            id="detail-action-maintenance"
-            onClick={() => setIsMaintenanceOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 shadow-xs focus:outline-none"
-          >
-            <Wrench size={14} className="text-amber-500" />
-            Registrar Manutenção
-          </button>
+          {asset.status === 'Manutenção' ? (
+            <button 
+              id="detail-action-finish-maintenance"
+              onClick={handleFinishMaintenance}
+              className="flex items-center gap-2 px-3.5 py-2.5 border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-800 transition-colors rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 shadow-xs focus:outline-none"
+            >
+              <CheckCircle size={14} className="text-emerald-500" />
+              Finalizar Manutenção
+            </button>
+          ) : (
+            <button 
+              id="detail-action-maintenance"
+              onClick={() => setIsMaintenanceOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 shadow-xs focus:outline-none"
+            >
+              <Wrench size={14} className="text-amber-500" />
+              Registrar Manutenção
+            </button>
+          )}
 
           <button 
             id="detail-action-print"
