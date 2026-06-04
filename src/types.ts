@@ -11,7 +11,7 @@ export interface Responsible {
 
 export type AssetStatus = 'Em Uso' | 'Manutenção' | 'Armazenado' | 'Extraviado' | 'Obsoleto';
 
-export type TimelineType = 'transfer' | 'maintenance' | 'reception' | 'scan' | 'creation';
+export type TimelineType = 'transfer' | 'maintenance' | 'reception' | 'scan' | 'creation' | 'audit';
 
 export interface HandoverTerm {
   id: string;

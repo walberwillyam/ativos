@@ -700,6 +700,35 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     }
   };
 
+  const handleAuditRegistration = async () => {
+    try {
+      const newStep: TimelineStep = {
+        id: `AD-${Math.floor(100000 + Math.random() * 900000)}`,
+        title: "Auditoria Física de Inventário",
+        responsible: "Usuário do Sistema",
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().slice(0, 5),
+        type: "audit",
+        description: "Equipamento vistoriado presencialmente e validado."
+      };
+
+      const updatedHistory = [newStep, ...(asset.history || [])];
+
+      const { error } = await supabase
+        .from('assets')
+        .update({ history: updatedHistory })
+        .eq('id', asset.id);
+
+      if (error) throw error;
+
+      onUpdateAsset({ ...asset, history: updatedHistory });
+      alert("Auditoria registrada com sucesso!");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao registrar auditoria física.");
+    }
+  };
+
   return (
     <div id="asset-detail-sheet" className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Breadcrumbs trace navigation and actionable links */}
@@ -1001,7 +1030,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-100" />
 
                 {/* Timeline loops */}
-                {(asset.history || []).map((step) => (
+                {(asset.history || []).filter(step => step.type !== 'audit').map((step) => (
                   <div key={step.id} className="relative select-none">
                     {/* Circle marker styled depending on event node type */}
                     <div className={`absolute -left-[31px] top-1 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center shadow-xs ${
@@ -1034,14 +1063,58 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               </div>
             )}
 
-            {activeTab === 'audit' && (
-              <div className="space-y-4 select-none">
-                <div className="flex items-center gap-2 text-slate-500 font-bold text-xs mb-3">
-                  <FileCheck2 size={14} />
-                  <span>Nenhum dado de auditoria disponível no momento.</span>
+            {activeTab === 'audit' && (() => {
+              const auditHistory = (asset.history || []).filter(step => step.type === 'audit');
+              
+              return (
+                <div className="space-y-6 select-none">
+                  <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                    <div>
+                      <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Registro de Auditoria Física</h3>
+                      <p className="text-xs text-slate-500 mt-1">Carimbe a vistoria presencial deste equipamento para garantir o SLA.</p>
+                    </div>
+                    <button 
+                      onClick={handleAuditRegistration}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-2 shadow-sm"
+                    >
+                      <FileCheck2 size={16} />
+                      Registrar Auditoria
+                    </button>
+                  </div>
+
+                  {auditHistory.length === 0 ? (
+                    <div className="flex items-center justify-center gap-2 text-slate-400 font-medium text-xs py-8 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                      <FileCheck2 size={16} />
+                      <span>Nenhum dado de auditoria disponível no momento.</span>
+                    </div>
+                  ) : (
+                    <div className="relative pl-8 space-y-6">
+                      <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-emerald-100 dark:bg-emerald-900/30" />
+                      
+                      {auditHistory.map((step) => (
+                        <div key={step.id} className="relative">
+                          <div className="absolute -left-[31px] top-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center shadow-xs bg-emerald-500" />
+                          
+                          <div className="flex justify-between items-start gap-4">
+                            <div>
+                              <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{step.title}</p>
+                              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Responsável técnico: {step.responsible}</p>
+                              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 px-3 py-1.5 rounded-xl inline-block mt-2 font-medium">
+                                {step.description}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">{new Date(step.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}</p>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">{step.time}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {activeTab === 'docs' && (() => {
               const docsList = asset.specifications.documents ? JSON.parse(asset.specifications.documents) : [];

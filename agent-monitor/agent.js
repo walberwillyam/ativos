@@ -99,7 +99,7 @@ async function collectAndSendHealth() {
           responsible: "Sistema (Agente)",
           date: dateObj.toISOString().split('T')[0],
           time: dateObj.toTimeString().split(' ')[0].substring(0, 5),
-          type: "maintenance",
+          type: "audit",
           description: alertMsg
         };
 
