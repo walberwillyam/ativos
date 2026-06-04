@@ -29,7 +29,11 @@ const formatUptime = (seconds?: number) => {
   return `${m}m`;
 };
 
-export default function MonitoringView() {
+interface MonitoringViewProps {
+  units?: any[];
+}
+
+export default function MonitoringView({ units = [] }: MonitoringViewProps) {
   const [devices, setDevices] = useState<DeviceHealth[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
@@ -192,9 +196,10 @@ export default function MonitoringView() {
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600 outline-none dark:text-white appearance-none"
               >
                 <option value="">Todas as Unidades</option>
-                {Array.from(new Set(devices.map(d => d.unit_id))).filter(Boolean).map(unit => (
-                  <option key={unit} value={unit}>{unit}</option>
-                ))}
+                {Array.from(new Set(devices.map(d => d.unit_id))).filter(Boolean).map(unitId => {
+                  const unitName = units.find(u => u.id === unitId)?.name || unitId;
+                  return <option key={unitId} value={unitId}>{unitName}</option>;
+                })}
               </select>
             </div>
             
@@ -254,7 +259,7 @@ export default function MonitoringView() {
                         </button>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
-                        Unidade: {device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
+                        Unidade: {units.find(u => u.id === device.unit_id)?.name || device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
                       </p>
                       {device.custom_name && (
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">Hostname: {device.asset_id}</p>

@@ -34,14 +34,26 @@ interface DeviceHealth {
 
 interface NocViewProps {
   assets: Asset[];
+  userProfile?: any;
+  units?: any[];
 }
 
-export default function NocView({ assets }: NocViewProps) {
+export default function NocView({ assets, userProfile, units = [] }: NocViewProps) {
   const [devices, setDevices] = useState<DeviceHealth[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'critical'>('all');
+  const [filterUnit, setFilterUnit] = useState(() => localStorage.getItem('noc_filter_unit') || '');
+  const [filterIsServer, setFilterIsServer] = useState(() => localStorage.getItem('noc_filter_isServer') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('noc_filter_unit', filterUnit);
+  }, [filterUnit]);
+
+  useEffect(() => {
+    localStorage.setItem('noc_filter_isServer', filterIsServer.toString());
+  }, [filterIsServer]);
 
   const fetchDevices = async () => {
     try {
@@ -157,7 +169,14 @@ export default function NocView({ assets }: NocViewProps) {
     const status = getDeviceStatus(device);
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit;
+    
+    const matchesServer = !filterIsServer || 
+      (device.os_info && device.os_info.toLowerCase().includes('server')) || 
+      (device.custom_name && (device.custom_name.toLowerCase().includes('server') || device.custom_name.toLowerCase().includes('servidor'))) ||
+      (device.asset_id && (device.asset_id.toLowerCase().includes('server') || device.asset_id.toLowerCase().includes('srv') || device.asset_id.toLowerCase().includes('servidor')));
+
+    return matchesSearch && matchesStatus && matchesUnit && matchesServer;
   });
 
   return (
@@ -182,6 +201,11 @@ export default function NocView({ assets }: NocViewProps) {
         {/* Live status indicators & clocks */}
         <div className="flex items-center gap-6">
           <div className="text-right shrink-0">
+            {userProfile && (
+              <p className="text-xs font-bold text-indigo-400 mb-0.5">
+                Olá, {userProfile.full_name || userProfile.email}
+              </p>
+            )}
             <p className="text-sm font-mono font-bold tracking-widest text-slate-200">
               {currentTime.toLocaleTimeString()}
             </p>
@@ -283,7 +307,7 @@ export default function NocView({ assets }: NocViewProps) {
 
         {/* Filters and search section */}
         <section className="bg-slate-900/20 border border-slate-900 rounded-3xl p-5 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="relative w-full md:max-w-md">
+          <div className="relative w-full md:max-w-xs lg:max-w-md flex-1">
             <span className="absolute inset-y-0 left-3 flex items-center text-slate-500">
               <Search size={16} />
             </span>
@@ -294,6 +318,30 @@ export default function NocView({ assets }: NocViewProps) {
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full bg-slate-950 border border-slate-900 focus:border-indigo-800 rounded-2xl pl-10 pr-4 py-2 text-sm outline-none text-slate-200 transition-colors"
             />
+          </div>
+
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <select 
+              value={filterUnit}
+              onChange={(e) => setFilterUnit(e.target.value)}
+              className="bg-slate-950 border border-slate-900 text-slate-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-indigo-800 transition-colors appearance-none"
+            >
+              <option value="">Todas as Unidades</option>
+              {Array.from(new Set(devices.map(d => d.unit_id))).filter(Boolean).map(unitId => {
+                const unitName = units.find(u => u.id === unitId)?.name || unitId;
+                return <option key={unitId} value={unitId}>{unitName}</option>;
+              })}
+            </select>
+            
+            <label className="flex items-center gap-2 cursor-pointer bg-slate-950 border border-slate-900 text-slate-200 px-4 py-2 rounded-xl text-sm transition-colors hover:border-indigo-800 whitespace-nowrap">
+              <input 
+                type="checkbox" 
+                checked={filterIsServer}
+                onChange={(e) => setFilterIsServer(e.target.checked)}
+                className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-600"
+              />
+              <span className="font-semibold text-slate-300">Apenas Servidores</span>
+            </label>
           </div>
 
           <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -388,7 +436,7 @@ export default function NocView({ assets }: NocViewProps) {
                         {device.custom_name || assetName || device.asset_id}
                       </h4>
                       <p className="text-[10px] text-slate-500 font-semibold truncate mt-0.5">
-                        Polo: {device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
+                        Polo: {units.find(u => u.id === device.unit_id)?.name || device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
                       </p>
                       {device.custom_name && (
                         <p className="text-[9px] text-slate-600 font-mono tracking-tight mt-0.5">Host: {device.asset_id}</p>

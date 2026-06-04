@@ -411,7 +411,7 @@ export default function App() {
 
   // If user is NOC, render full screen NOC view without Sidebar or Navbar
   if (userProfile?.role === 'noc') {
-    return <NocView assets={assets} />;
+    return <NocView assets={assets} userProfile={userProfile} units={units} />;
   }
 
   return (
@@ -505,7 +505,7 @@ export default function App() {
           )}
 
           {/* Monitoring Dashboard View */}
-          {activeScreen === 'monitoring' && <MonitoringView />}
+          {activeScreen === 'monitoring' && <MonitoringView units={units} />}
 
           {/* Dynamic Mock views resolved safely */}
           {activeScreen === 'categories' && (
