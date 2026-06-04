@@ -144,10 +144,13 @@ async function collectAndSendHealth() {
       .single();
 
     if (existingAsset) {
+      // Remove o unit_id para não sobrescrever a unidade definida manualmente pelo admin no painel
+      const { unit_id, ...updateData } = healthData;
+
       // Faz UPDATE
       const { error } = await supabase
         .from('devices_health')
-        .update(healthData)
+        .update(updateData)
         .eq('id', existingAsset.id);
       
       if (error) console.error("Erro no UPDATE:", error.message);
