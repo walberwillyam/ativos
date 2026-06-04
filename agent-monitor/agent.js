@@ -110,6 +110,37 @@ console.log(`=== Agente de Monitoramento Iniciado ===`);
 console.log(`Máquina: ${ASSET_ID} | Unidade: ${UNIT_ID}`);
 console.log(`Aguardando... Enviando dados a cada ${PING_INTERVAL_MS / 1000} segundos.\n`);
 
+// --- LÓGICA DE AUTO ATUALIZAÇÃO ---
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+
+const CURRENT_VERSION = "1.0.0";
+const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 24; // 24h
+const UPDATE_URL = "https://sua-api.com/api/agent-version"; // Troque pelo link real depois
+
+async function checkAndUpdate() {
+  try {
+    console.log(`[${new Date().toLocaleTimeString()}] Checando atualizações... Versão: ${CURRENT_VERSION}`);
+    // Descomente quando configurar sua API/Supabase:
+    /*
+    const response = await axios.get(UPDATE_URL);
+    if (response.data.version !== CURRENT_VERSION) {
+      console.log('Atualizando robô para nova versão...');
+      const scriptResponse = await axios.get(response.data.scriptUrl, { responseType: 'text' });
+      fs.writeFileSync(path.join(__dirname, 'agent.js'), scriptResponse.data, 'utf8');
+      process.exit(0);
+    }
+    */
+  } catch (err) {
+    console.error('Erro no auto-update:', err.message);
+  }
+}
+
 // Executa na hora que liga e depois a cada 10s
 collectAndSendHealth();
 setInterval(collectAndSendHealth, PING_INTERVAL_MS);
+
+// Executa update a cada 24h
+setInterval(checkAndUpdate, UPDATE_CHECK_INTERVAL);
+checkAndUpdate();
