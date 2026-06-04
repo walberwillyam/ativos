@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Activity, Server, Cpu, HardDrive, Clock, Edit2, X } from 'lucide-react';
+import { Activity, Server, Cpu, HardDrive, Clock, Edit2, X, Search, Filter } from 'lucide-react';
 
 interface DeviceHealth {
   id: string;
@@ -34,6 +34,9 @@ export default function MonitoringView() {
   const [loading, setLoading] = useState(true);
   const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
   const [editFormData, setEditFormData] = useState({ custom_name: '', sector: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterUnit, setFilterUnit] = useState('');
+  const [filterIsServer, setFilterIsServer] = useState(false);
 
   const fetchDevices = async () => {
     try {
@@ -119,6 +122,23 @@ export default function MonitoringView() {
     }
   };
 
+  const filteredDevices = devices.filter(device => {
+    const matchesSearch = searchQuery === '' || 
+      device.asset_id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (device.custom_name && device.custom_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (device.sector && device.sector.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit;
+    
+    const matchesServer = !filterIsServer || 
+      (device.os_info && device.os_info.toLowerCase().includes('server')) || 
+      (device.custom_name && device.custom_name.toLowerCase().includes('server')) ||
+      (device.asset_id && device.asset_id.toLowerCase().includes('server')) ||
+      (device.asset_id && device.asset_id.toLowerCase().includes('srv'));
+
+    return matchesSearch && matchesUnit && matchesServer;
+  });
+
   if (loading) {
     return (
       <div className="flex-1 p-8 flex items-center justify-center">
@@ -140,15 +160,60 @@ export default function MonitoringView() {
           </div>
         </div>
 
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nome, setor ou hostname..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600 outline-none dark:text-white"
+            />
+          </div>
+          
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative flex-1 md:w-48">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <select 
+                value={filterUnit}
+                onChange={(e) => setFilterUnit(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600 outline-none dark:text-white appearance-none"
+              >
+                <option value="">Todas as Unidades</option>
+                {Array.from(new Set(devices.map(d => d.unit_id))).filter(Boolean).map(unit => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+            </div>
+            
+            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl whitespace-nowrap">
+              <input 
+                type="checkbox" 
+                checked={filterIsServer}
+                onChange={(e) => setFilterIsServer(e.target.checked)}
+                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+              />
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Apenas Servidores</span>
+            </label>
+          </div>
+        </div>
+
         {devices.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-700 text-center shadow-sm">
             <Server size={48} className="mx-auto text-slate-300 mb-4" />
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Nenhum ativo transmitindo</h3>
             <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2">Instale o agente em uma máquina e comece a receber os dados.</p>
           </div>
+        ) : filteredDevices.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+            <Server size={48} className="mx-auto text-slate-300 mb-4" />
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Nenhum ativo encontrado</h3>
+            <p className="text-slate-500 dark:text-slate-400 mt-2">Nenhum ativo corresponde aos filtros atuais.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {devices.map(device => {
+            {filteredDevices.map(device => {
               const isOffline = Date.now() - new Date(device.last_ping).getTime() > 240000;
               const isCriticalCpu = device.cpu_usage > 90;
               const ramPerc = (device.ram_used / device.ram_total) * 100;
