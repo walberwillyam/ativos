@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Activity, Server, Cpu, HardDrive, Clock, Edit2, X, Search, Filter } from 'lucide-react';
+import { Activity, Server, Cpu, HardDrive, Clock, Edit2, X, Search, Filter, Trash2 } from 'lucide-react';
 
 interface DeviceHealth {
   id: string;
@@ -37,7 +37,7 @@ export default function MonitoringView({ units = [] }: MonitoringViewProps) {
   const [devices, setDevices] = useState<DeviceHealth[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
-  const [editFormData, setEditFormData] = useState({ custom_name: '', sector: '' });
+  const [editFormData, setEditFormData] = useState({ custom_name: '', sector: '', unit_id: '' });
   const [searchQuery, setSearchQuery] = useState(() => localStorage.getItem('noc_search') || '');
   const [filterUnit, setFilterUnit] = useState(() => localStorage.getItem('noc_unit') || '');
   const [filterIsServer, setFilterIsServer] = useState(() => localStorage.getItem('noc_isServer') === 'true');
@@ -123,18 +123,32 @@ export default function MonitoringView({ units = [] }: MonitoringViewProps) {
         .from('devices_health')
         .update({
           custom_name: editFormData.custom_name,
-          sector: editFormData.sector
+          sector: editFormData.sector,
+          unit_id: editFormData.unit_id
         })
         .eq('id', editingDevice.id);
 
       if (error) throw error;
       
       // Update local state optimisticly (Realtime might also catch it)
-      setDevices(prev => prev.map(d => d.id === editingDevice.id ? { ...d, custom_name: editFormData.custom_name, sector: editFormData.sector } : d));
+      setDevices(prev => prev.map(d => d.id === editingDevice.id ? { ...d, custom_name: editFormData.custom_name, sector: editFormData.sector, unit_id: editFormData.unit_id } : d));
       setEditingDevice(null);
     } catch (err) {
       console.error("Erro ao salvar:", err);
       alert("Falha ao salvar. Verifique se as novas colunas foram criadas no banco.");
+    }
+  };
+
+  const handleDeleteDevice = async (id: string) => {
+    if (!window.confirm("Deseja realmente remover este dispositivo da telemetria? (Isso não desinstala o agente da máquina, apenas apaga o registro atual)")) return;
+    try {
+      const { error } = await supabase.from('devices_health').delete().eq('id', id);
+      if (error) throw error;
+      setDevices(prev => prev.filter(d => d.id !== id));
+      if (editingDevice?.id === id) setEditingDevice(null);
+    } catch (err) {
+      console.error("Erro ao deletar:", err);
+      alert("Falha ao remover dispositivo.");
     }
   };
 
@@ -250,7 +264,11 @@ export default function MonitoringView({ units = [] }: MonitoringViewProps) {
                         <button 
                           onClick={() => {
                             setEditingDevice(device);
-                            setEditFormData({ custom_name: device.custom_name || '', sector: device.sector || '' });
+                            setEditFormData({ 
+                              custom_name: device.custom_name || '', 
+                              sector: device.sector || '',
+                              unit_id: device.unit_id || ''
+                            });
                           }}
                           className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
                           title="Editar Nome e Setor"
@@ -379,17 +397,41 @@ export default function MonitoringView({ units = [] }: MonitoringViewProps) {
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:focus:bg-slate-800 outline-none dark:text-white"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Unidade Alocada</label>
+                <select 
+                  value={editFormData.unit_id}
+                  onChange={e => setEditFormData(prev => ({ ...prev, unit_id: e.target.value }))}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:focus:bg-slate-800 outline-none dark:text-white appearance-none"
+                >
+                  <option value="">Selecione uma Unidade</option>
+                  {units.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                  {/* Keep the current one if it's unknown so it doesn't break */}
+                  {!units.find(u => u.id === editFormData.unit_id) && editFormData.unit_id && (
+                    <option value={editFormData.unit_id}>{editFormData.unit_id}</option>
+                  )}
+                </select>
+              </div>
             </div>
             <div className="flex gap-2.5 p-5 border-t border-slate-100 dark:border-slate-700">
               <button 
+                onClick={() => handleDeleteDevice(editingDevice.id)}
+                className="px-3.5 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/30 dark:text-rose-400 dark:hover:bg-rose-900/40 rounded-xl transition-colors"
+                title="Excluir Ativo da Telemetria"
+              >
+                <Trash2 size={18} />
+              </button>
+              <button 
                 onClick={() => setEditingDevice(null)}
-                className="w-1/2 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
+                className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 Cancelar
               </button>
               <button 
                 onClick={handleSaveEdit}
-                className="w-1/2 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 shadow-sm"
+                className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 shadow-sm"
               >
                 Salvar
               </button>
