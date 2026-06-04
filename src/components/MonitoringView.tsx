@@ -129,6 +129,14 @@ export default function MonitoringView({ units = [] }: MonitoringViewProps) {
         .eq('id', editingDevice.id);
 
       if (error) throw error;
+
+      // Sincroniza o "Nome Legível" com o "Nome Descritivo" do Inventário
+      if (editFormData.custom_name) {
+        await supabase
+          .from('assets')
+          .update({ name: editFormData.custom_name })
+          .eq('id', editingDevice.asset_id);
+      }
       
       // Update local state optimisticly (Realtime might also catch it)
       setDevices(prev => prev.map(d => d.id === editingDevice.id ? { ...d, custom_name: editFormData.custom_name, sector: editFormData.sector, unit_id: editFormData.unit_id } : d));
