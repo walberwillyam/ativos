@@ -34,9 +34,21 @@ export default function MonitoringView() {
   const [loading, setLoading] = useState(true);
   const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
   const [editFormData, setEditFormData] = useState({ custom_name: '', sector: '' });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterUnit, setFilterUnit] = useState('');
-  const [filterIsServer, setFilterIsServer] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(() => localStorage.getItem('noc_search') || '');
+  const [filterUnit, setFilterUnit] = useState(() => localStorage.getItem('noc_unit') || '');
+  const [filterIsServer, setFilterIsServer] = useState(() => localStorage.getItem('noc_isServer') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('noc_search', searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    localStorage.setItem('noc_unit', filterUnit);
+  }, [filterUnit]);
+
+  useEffect(() => {
+    localStorage.setItem('noc_isServer', filterIsServer.toString());
+  }, [filterIsServer]);
 
   const fetchDevices = async () => {
     try {
@@ -132,9 +144,8 @@ export default function MonitoringView() {
     
     const matchesServer = !filterIsServer || 
       (device.os_info && device.os_info.toLowerCase().includes('server')) || 
-      (device.custom_name && device.custom_name.toLowerCase().includes('server')) ||
-      (device.asset_id && device.asset_id.toLowerCase().includes('server')) ||
-      (device.asset_id && device.asset_id.toLowerCase().includes('srv'));
+      (device.custom_name && (device.custom_name.toLowerCase().includes('server') || device.custom_name.toLowerCase().includes('servidor'))) ||
+      (device.asset_id && (device.asset_id.toLowerCase().includes('server') || device.asset_id.toLowerCase().includes('srv') || device.asset_id.toLowerCase().includes('servidor')));
 
     return matchesSearch && matchesUnit && matchesServer;
   });
