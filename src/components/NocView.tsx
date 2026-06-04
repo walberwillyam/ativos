@@ -67,6 +67,10 @@ export default function NocView({ assets }: NocViewProps) {
       .channel('noc_devices_health_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'devices_health' }, (payload) => {
         setDevices((currentDevices) => {
+          if (payload.eventType === 'DELETE') {
+            return currentDevices.filter(d => d.id !== payload.old.id);
+          }
+          
           const newDevice = payload.new as DeviceHealth;
           const index = currentDevices.findIndex(d => d.asset_id === newDevice.asset_id);
           
@@ -147,7 +151,7 @@ export default function NocView({ assets }: NocViewProps) {
   const filteredDevices = devices.filter(device => {
     const matchesSearch = 
       (device.custom_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.asset_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (device.asset_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (device.sector || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const status = getDeviceStatus(device);
