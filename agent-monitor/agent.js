@@ -15,7 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 const ASSET_ID = process.env.ASSET_ID || os.hostname();
 const UNIT_ID = process.env.UNIT_ID || 'UNKNOWN_UNIT';
 
-const PING_INTERVAL_MS = 10000; // 10 segundos
+const PING_INTERVAL_MS = 180000; // 3 minutos (180.000 ms)
 
 async function collectAndSendHealth() {
   try {
