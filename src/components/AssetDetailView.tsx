@@ -869,10 +869,14 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {Object.entries(asset.specifications).map(([key, value]) => (
+                    {Object.entries(asset.specifications)
+                      .filter(([key]) => !['documents', 'photos', 'past_terms', 'hardware_baseline'].includes(key))
+                      .map(([key, value]) => (
                       <div key={key} className="flex justify-between border-b border-slate-100/60 pb-1.5 text-xs text-slate-700 dark:text-slate-300">
                         <span className="text-slate-400 dark:text-slate-500 font-medium select-none">{key}</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-100 text-right">{value}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-100 text-right truncate pl-4">
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </span>
                       </div>
                     ))}
                   </div>
