@@ -84,8 +84,8 @@ export default function MonitoringView() {
     const now = new Date().getTime();
     const diffSeconds = (now - pingTime) / 1000;
     
-    // Se o ping foi há mais de 30 segundos, considera offline
-    if (diffSeconds > 30) return 'offline';
+    // Se o ping foi há mais de 240 segundos (4 min), considera offline
+    if (diffSeconds > 240) return 'offline';
     return 'online';
   };
 
@@ -149,7 +149,7 @@ export default function MonitoringView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {devices.map(device => {
-              const isOffline = Date.now() - new Date(device.last_ping).getTime() > 30000;
+              const isOffline = Date.now() - new Date(device.last_ping).getTime() > 240000;
               const isCriticalCpu = device.cpu_usage > 90;
               const ramPerc = (device.ram_used / device.ram_total) * 100;
               const isCriticalRam = ramPerc > 90;

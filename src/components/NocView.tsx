@@ -97,7 +97,7 @@ export default function NocView({ assets }: NocViewProps) {
   };
 
   const getDeviceStatus = (device: DeviceHealth) => {
-    const isOffline = Date.now() - new Date(device.last_ping).getTime() > 30000;
+    const isOffline = Date.now() - new Date(device.last_ping).getTime() > 240000;
     if (isOffline) return 'offline';
 
     const ramPerc = (device.ram_used / device.ram_total) * 100;

@@ -45,14 +45,73 @@ async function collectAndSendHealth() {
 
     const { data: assetData } = await supabase
       .from('assets')
-      .select('specifications')
+      .select('specifications, history')
       .eq('id', ASSET_ID)
       .single();
 
     const currentSpecs = assetData?.specifications || {};
     currentSpecs["Sistema Operacional"] = osString;
 
+    let currentHistory = assetData?.history || [];
+    let historyChanged = false;
+
+    // --- RASTREAMENTO DE MUDANÇA DE HARDWARE (BASELINE) ---
+    const currentRamGB = Math.round(mem.total / 1024 / 1024 / 1024);
+    // Allow fallback if fsSize fails
+    const currentDiskGB = diskTotal > 0 ? Math.round(diskTotal / 1024 / 1024 / 1024) : 0;
+
+    if (!currentSpecs.hardware_baseline && currentDiskGB > 0) {
+      // Cria a assinatura inicial
+      currentSpecs.hardware_baseline = {
+        ramGB: currentRamGB,
+        diskGB: currentDiskGB
+      };
+      console.log(`[Baseline] Assinatura de hardware criada: ${currentRamGB}GB RAM, ${currentDiskGB}GB Disco.`);
+    } else if (currentSpecs.hardware_baseline && currentDiskGB > 0) {
+      const baselineRam = currentSpecs.hardware_baseline.ramGB;
+      const baselineDisk = currentSpecs.hardware_baseline.diskGB;
+
+      let alerts = [];
+
+      // Checa Memória RAM (se mudou)
+      if (currentRamGB !== baselineRam) {
+        const action = currentRamGB > baselineRam ? 'adicionada' : 'removida';
+        alerts.push(`Memória RAM ${action}: Mudou de ${baselineRam}GB para ${currentRamGB}GB`);
+        currentSpecs.hardware_baseline.ramGB = currentRamGB;
+      }
+
+      // Checa Disco (tolerância de 5GB para variações de partição/formatação)
+      if (Math.abs(currentDiskGB - baselineDisk) > 5) {
+        const action = currentDiskGB > baselineDisk ? 'adicionado' : 'removido';
+        alerts.push(`Armazenamento (Disco) ${action}: Mudou de ~${baselineDisk}GB para ~${currentDiskGB}GB`);
+        currentSpecs.hardware_baseline.diskGB = currentDiskGB;
+      }
+
+      // Se houver algum alerta, injeta na linha do tempo
+      if (alerts.length > 0) {
+        const alertMsg = alerts.join(" | ");
+        console.log(`[ALERTA] ${alertMsg}`);
+        
+        const dateObj = new Date();
+        const newStep = {
+          id: `TR-${Math.floor(100000 + Math.random() * 900000)}`,
+          title: "Alteração de Hardware Detectada (Agente)",
+          responsible: "Sistema (Agente)",
+          date: dateObj.toISOString().split('T')[0],
+          time: dateObj.toTimeString().split(' ')[0].substring(0, 5),
+          type: "maintenance",
+          description: alertMsg
+        };
+
+        // Inserir no topo do histórico
+        currentHistory = [newStep, ...currentHistory];
+        historyChanged = true;
+      }
+    }
+    // --- FIM RASTREAMENTO ---
+
     const updatePayload = { specifications: currentSpecs };
+    if (historyChanged) updatePayload.history = currentHistory;
     if (serialNumber) updatePayload.serialNumber = serialNumber;
     if (hardwareModel && hardwareModel.length > 2) updatePayload.model = hardwareModel;
 
