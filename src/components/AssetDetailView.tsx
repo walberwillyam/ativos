@@ -997,7 +997,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-100" />
 
                 {/* Timeline loops */}
-                {asset.history.map((step) => (
+                {(asset.history || []).map((step) => (
                   <div key={step.id} className="relative select-none">
                     {/* Circle marker styled depending on event node type */}
                     <div className={`absolute -left-[31px] top-1 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center shadow-xs ${
@@ -1272,7 +1272,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
           {/* Footer Timeline indicator count */}
           <div className="p-5 border-t border-slate-150 bg-slate-50 dark:bg-slate-800 flex justify-between items-center rounded-b-3xl text-xs text-slate-400 dark:text-slate-500 select-none">
-            <span>Constam {asset.history.length} ocorrências e auditorias registradas no prontuário físico.</span>
+            <span>Constam {(asset.history || []).length} ocorrências e auditorias registradas no prontuário físico.</span>
             <div className="flex gap-1.5">
               <button className="p-1 border border-slate-200 rounded-lg hover:bg-slate-200 transition bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 <ChevronLeft size={14} />
