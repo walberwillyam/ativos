@@ -292,23 +292,35 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-const CURRENT_VERSION = "1.0.0";
+const CURRENT_VERSION = "1.1.0";
 const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 24; // 24h
-const UPDATE_URL = "https://sua-api.com/api/agent-version"; // Troque pelo link real depois
 
 async function checkAndUpdate() {
   try {
     console.log(`[${new Date().toLocaleTimeString()}] Checando atualizações... Versão: ${CURRENT_VERSION}`);
-    // Descomente quando configurar sua API/Supabase:
-    /*
-    const response = await axios.get(UPDATE_URL);
-    if (response.data.version !== CURRENT_VERSION) {
-      console.log('Atualizando robô para nova versão...');
-      const scriptResponse = await axios.get(response.data.scriptUrl, { responseType: 'text' });
-      fs.writeFileSync(path.join(__dirname, 'agent.js'), scriptResponse.data, 'utf8');
-      process.exit(0);
+    
+    const { data, error } = await supabase
+      .from('agent_releases')
+      .select('version, script_content')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code !== 'PGRST116') {
+        console.error('Erro ao verificar atualização no Supabase:', error.message);
+      }
+      return;
     }
-    */
+
+    if (data && data.version && data.version !== CURRENT_VERSION) {
+      console.log(`Nova versão encontrada (${data.version})! Atualizando o robô...`);
+      fs.writeFileSync(path.join(__dirname, 'agent.js'), data.script_content, 'utf8');
+      console.log('Atualização concluída com sucesso. Reiniciando o agente...');
+      process.exit(0);
+    } else {
+      console.log('O agente já está na versão mais recente.');
+    }
   } catch (err) {
     console.error('Erro no auto-update:', err.message);
   }
