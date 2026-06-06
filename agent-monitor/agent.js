@@ -110,6 +110,121 @@ async function collectAndSendHealth() {
     }
     // --- FIM RASTREAMENTO ---
 
+    // --- AUTODESCOBERTA DE PERIFÉRICOS ---
+    try {
+      const graphics = await si.graphics();
+      const usbs = await si.usb();
+      const printers = await si.printer();
+      
+      const newAssets = [];
+      const nowString = new Date().toISOString().split('T')[0];
+
+      // 1. Monitores
+      if (graphics && graphics.displays) {
+        graphics.displays.forEach((disp, idx) => {
+          if (!disp.model || disp.model.includes('Genérico') || disp.model.includes('Default') || disp.model.includes('padrão')) return;
+          const name = disp.model || `Monitor ${idx+1}`;
+          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
+          newAssets.push({
+            id: `MON-${ASSET_ID.substring(0,6)}-${safeName}-${idx}`,
+            patrimonio: `AUTO-MON-${idx}`,
+            name: `${disp.vendor || 'Monitor'} ${name}`,
+            category: 'Monitores',
+            model: name,
+            serialNumber: 'N/A',
+            unit: UNIT_ID,
+            location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
+            currentFloor: 'office',
+            mapCoordinates: { x: 50, y: 50 },
+            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
+            status: 'Em Uso',
+            value: 0,
+            acquisitionDate: nowString,
+            warrantyExpiry: nowString,
+            specifications: { "Resolução": `${disp.resolutionX}x${disp.resolutionY}`, "Host": ASSET_ID },
+            history: []
+          });
+        });
+      }
+
+      // 2. USB (Mouses, Teclados, Webcams)
+      if (usbs) {
+        usbs.forEach((usb, idx) => {
+          if (!usb.name || usb.name.includes('Hub') || usb.name.includes('Root') || usb.name.includes('Composite')) return;
+          const name = usb.name;
+          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
+          newAssets.push({
+            id: `USB-${ASSET_ID.substring(0,6)}-${safeName}-${idx}`,
+            patrimonio: `AUTO-USB-${idx}`,
+            name: name,
+            category: 'Notebooks e Periféricos',
+            model: name,
+            serialNumber: usb.serialNumber || 'N/A',
+            unit: UNIT_ID,
+            location: 'Conectado a ' + ASSET_ID,
+            currentFloor: 'office',
+            mapCoordinates: { x: 50, y: 50 },
+            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
+            status: 'Em Uso',
+            value: 0,
+            acquisitionDate: nowString,
+            warrantyExpiry: nowString,
+            specifications: { "Host": ASSET_ID, "Fabricante": usb.vendor || 'Desconhecido' },
+            history: []
+          });
+        });
+      }
+
+      // 3. Impressoras
+      if (printers) {
+        printers.forEach((prn, idx) => {
+          if (!prn.name || prn.name.includes('PDF') || prn.name.includes('OneNote') || prn.name.includes('XPS')) return;
+          const name = prn.name;
+          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
+          newAssets.push({
+            id: `PRN-${ASSET_ID.substring(0,6)}-${safeName}-${idx}`,
+            patrimonio: `AUTO-PRN-${idx}`,
+            name: name,
+            category: 'Impressoras',
+            model: prn.model || name,
+            serialNumber: 'N/A',
+            unit: UNIT_ID,
+            location: prn.local ? 'Local - ' + ASSET_ID : 'Rede',
+            currentFloor: 'office',
+            mapCoordinates: { x: 50, y: 50 },
+            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
+            status: 'Em Uso',
+            value: 0,
+            acquisitionDate: nowString,
+            warrantyExpiry: nowString,
+            specifications: { "Host/Rede": prn.local ? ASSET_ID : 'Rede', "Local": prn.local ? "Sim" : "Não" },
+            history: []
+          });
+        });
+      }
+
+      // Salva os ativos na tabela
+      for (const asset of newAssets) {
+        const { data: existingPeripheral } = await supabase
+          .from('assets')
+          .select('id')
+          .eq('id', asset.id)
+          .single();
+
+        if (!existingPeripheral) {
+          const { error: insErr } = await supabase.from('assets').insert([asset]);
+          if (insErr) {
+            console.error(`Erro ao inserir periférico ${asset.name}:`, insErr.message);
+          } else {
+            console.log(`[Autodescoberta] Periférico cadastrado como novo Ativo: ${asset.name}`);
+          }
+        }
+      }
+    } catch (discoveryErr) {
+      console.error("Erro na autodescoberta de periféricos:", discoveryErr);
+    }
+    // --- FIM AUTODESCOBERTA ---
+
     const updatePayload = { specifications: currentSpecs };
     if (historyChanged) updatePayload.history = currentHistory;
     if (serialNumber) updatePayload.serialNumber = serialNumber;
