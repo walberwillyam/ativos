@@ -96,7 +96,36 @@ export default function App() {
 
     fetchAllData();
 
-    return () => subscription.unsubscribe();
+    // Monitor hardware changes to push top-bar notifications
+    const assetsSubscription = supabase
+      .channel('assets_alerts')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'assets' }, (payload) => {
+        const newAsset = payload.new as Asset;
+        if (newAsset.history && Array.isArray(newAsset.history) && newAsset.history.length > 0) {
+          const latestStep = newAsset.history[0];
+          if (latestStep.title === "Alteração de Hardware Detectada (Agente)") {
+            setNotifications(prev => {
+              const alreadyNotified = prev.some(n => n.id === latestStep.id);
+              if (alreadyNotified) return prev;
+              
+              const newNotif = {
+                id: latestStep.id,
+                title: "Aviso de Hardware",
+                description: `Ativo ${newAsset.name || newAsset.id}: ${latestStep.description}`,
+                time: "Agora mesmo",
+                read: false
+              };
+              return [newNotif, ...prev];
+            });
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(assetsSubscription);
+    };
   }, []);
 
   // Active view constraints
