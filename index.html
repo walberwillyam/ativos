@@ -7,6 +7,29 @@
     <link rel="icon" type="image/png" href="/logo.png?v=2" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
     <title>Gestão de Ativos</title>
+    <script>
+      // Clear service workers and cache to force immediate update
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          if (registrations.length > 0) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+            if (window.caches) {
+              caches.keys().then(function(names) {
+                for (let name of names) {
+                  caches.delete(name);
+                }
+              }).then(function() {
+                window.location.reload();
+              });
+            } else {
+              window.location.reload();
+            }
+          }
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
