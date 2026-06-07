@@ -17,6 +17,17 @@ const UNIT_ID = process.env.UNIT_ID || 'UNKNOWN_UNIT';
 
 const PING_INTERVAL_MS = 180000; // 3 minutos (180.000 ms)
 
+const { execSync } = require('child_process');
+
+function getMonitorSerials() {
+  try {
+    const output = execSync('powershell "Get-WmiObject WmiMonitorID -Namespace root\\\\wmi | ForEach-Object { [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID) }"').toString();
+    return output.split('\\n').map(s => s.replace(/\\0/g, '').trim()).filter(s => s.length > 0);
+  } catch (e) {
+    return [];
+  }
+}
+
 async function collectAndSendHealth() {
   try {
     // 1. Coleta de Dados
@@ -122,6 +133,7 @@ async function collectAndSendHealth() {
 
       // 1. Monitores
       if (graphics && graphics.displays) {
+        const monitorSerials = getMonitorSerials();
         graphics.displays.forEach((disp, idx) => {
           if (!disp.model || disp.model.includes('Genérico') || disp.model.includes('Default') || disp.model.includes('padrão')) return;
           const name = disp.model || `Monitor ${idx+1}`;
@@ -132,7 +144,7 @@ async function collectAndSendHealth() {
             name: `${disp.vendor || 'Monitor'} ${name}`,
             category: 'Monitores',
             model: name,
-            serialNumber: 'N/A',
+            serialNumber: monitorSerials[idx] || 'N/A',
             unit: hostUnit,
             location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
             currentFloor: 'office',
