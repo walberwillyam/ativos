@@ -96,28 +96,41 @@ export default function App() {
 
     fetchAllData();
 
-    // Monitor hardware changes to push top-bar notifications
+    // Monitor hardware changes to push top-bar notifications and sync state in real-time
     const assetsSubscription = supabase
       .channel('assets_alerts')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'assets' }, (payload) => {
-        const newAsset = payload.new as Asset;
-        if (newAsset.history && Array.isArray(newAsset.history) && newAsset.history.length > 0) {
-          const latestStep = newAsset.history[0];
-          if (latestStep.title === "Alteração de Hardware Detectada (Agente)") {
-            setNotifications(prev => {
-              const alreadyNotified = prev.some(n => n.id === latestStep.id);
-              if (alreadyNotified) return prev;
-              
-              const newNotif = {
-                id: latestStep.id,
-                title: "Aviso de Hardware",
-                description: `Ativo ${newAsset.name || newAsset.id}: ${latestStep.description}`,
-                time: "Agora mesmo",
-                read: false
-              };
-              return [newNotif, ...prev];
-            });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newAsset = payload.new as Asset;
+          setAssets(prev => {
+            if (prev.some(a => a.id === newAsset.id)) return prev;
+            return [...prev, newAsset];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          const newAsset = payload.new as Asset;
+          setAssets(prev => prev.map(a => a.id === newAsset.id ? newAsset : a));
+          
+          if (newAsset.history && Array.isArray(newAsset.history) && newAsset.history.length > 0) {
+            const latestStep = newAsset.history[0];
+            if (latestStep.title === "Alteração de Hardware Detectada (Agente)") {
+              setNotifications(prev => {
+                const alreadyNotified = prev.some(n => n.id === latestStep.id);
+                if (alreadyNotified) return prev;
+                
+                const newNotif = {
+                  id: latestStep.id,
+                  title: "Aviso de Hardware",
+                  description: `Ativo ${newAsset.name || newAsset.id}: ${latestStep.description}`,
+                  time: "Agora mesmo",
+                  read: false
+                };
+                return [newNotif, ...prev];
+              });
+            }
           }
+        } else if (payload.eventType === 'DELETE') {
+          const oldAsset = payload.old as { id: string };
+          setAssets(prev => prev.filter(a => a.id !== oldAsset.id));
         }
       })
       .subscribe();

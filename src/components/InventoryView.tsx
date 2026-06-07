@@ -245,6 +245,10 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   const [endDate, setEndDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // Bulk Select state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -342,6 +346,23 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       return true;
     });
   }, [assets, searchTerm, selectedUnit, selectedCategory, selectedStatus, startDate, endDate]);
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedUnit, selectedCategory, selectedStatus, startDate, endDate]);
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredAssets.length / itemsPerPage));
+  const paginatedAssets = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAssets.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAssets, currentPage, itemsPerPage]);
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  React.useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages]);
 
   // Handle Multi-selection
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -820,7 +841,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   <input 
                     type="checkbox"
                     id="bulk-select-all"
-                    checked={filteredAssets.length > 0 && selectedIds.length === filteredAssets.length}
+                    checked={paginatedAssets.length > 0 && selectedIds.length === filteredAssets.length}
                     onChange={handleSelectAll}
                     className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer h-4 w-4"
                   />
@@ -839,7 +860,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredAssets.length === 0 ? (
+              {paginatedAssets.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="text-center py-24 px-6">
                     <div className="max-w-md mx-auto flex flex-col items-center">
@@ -856,7 +877,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   </td>
                 </tr>
               ) : (
-                filteredAssets.map((asset) => {
+                paginatedAssets.map((asset) => {
                   const isChecked = selectedIds.includes(asset.id);
                   return (
                     <tr 
@@ -926,16 +947,68 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         </div>
 
         {/* Footer pagination and metrics indicators */}
-        <div className="flex justify-between items-center px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 text-xs">
-          <div className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold select-none">
-            Mostrando <span className="text-slate-900 dark:text-white">{filteredAssets.length}</span> corporativos de <span className="text-slate-900 dark:text-white">{assets.length}</span> ativos totais catalogados.
+        <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 text-xs gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-slate-500 dark:text-slate-400 font-semibold select-none">
+              Mostrando <span className="text-slate-900 dark:text-white">{((safeCurrentPage - 1) * itemsPerPage) + 1}–{Math.min(safeCurrentPage * itemsPerPage, filteredAssets.length)}</span> de <span className="text-slate-900 dark:text-white">{filteredAssets.length}</span> resultados ({assets.length} ativos totais)
+            </span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-600"
+            >
+              <option value={10}>10 por página</option>
+              <option value={25}>25 por página</option>
+              <option value={50}>50 por página</option>
+              <option value={100}>100 por página</option>
+            </select>
           </div>
           <div className="flex items-center gap-1 select-none">
-            <span className="text-slate-400 dark:text-slate-500 mr-2">Páginas:</span>
-            <button className="w-7 h-7 bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm">1</button>
-            <button className="w-7 h-7 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-300 text-xs">2</button>
-            <span className="px-1 text-slate-400 dark:text-slate-500">...</span>
-            <button className="w-7 h-7 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-300 text-xs">42</button>
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={safeCurrentPage <= 1}
+              className="w-7 h-7 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+            >«</button>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={safeCurrentPage <= 1}
+              className="w-7 h-7 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+            >‹</button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 1)
+              .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 dark:text-slate-500">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setCurrentPage(item as number)}
+                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                      safeCurrentPage === item
+                        ? 'bg-indigo-700 text-white shadow-sm'
+                        : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )
+            }
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage >= totalPages}
+              className="w-7 h-7 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+            >›</button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={safeCurrentPage >= totalPages}
+              className="w-7 h-7 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+            >»</button>
           </div>
         </div>
       </section>

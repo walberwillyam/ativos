@@ -130,11 +130,23 @@ export default function MonitoringView({ units = [] }: MonitoringViewProps) {
 
       if (error) throw error;
 
-      // Sincroniza o "Nome Legível" com o "Nome Descritivo" do Inventário
+      // Sincroniza o "Nome Legível", "Setor" e "Unidade" com o Inventário
+      const assetUpdates: any = {};
       if (editFormData.custom_name) {
+        assetUpdates.name = editFormData.custom_name;
+      }
+      if (editFormData.sector) {
+        assetUpdates.location = editFormData.sector;
+      }
+      if (editFormData.unit_id) {
+        const unitName = units.find(u => u.id === editFormData.unit_id)?.name || editFormData.unit_id;
+        assetUpdates.unit = unitName;
+      }
+
+      if (Object.keys(assetUpdates).length > 0) {
         await supabase
           .from('assets')
-          .update({ name: editFormData.custom_name })
+          .update(assetUpdates)
           .eq('id', editingDevice.asset_id);
       }
       
