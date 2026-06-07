@@ -57,6 +57,186 @@ interface InventoryViewProps {
 }
 
 export default function InventoryView({ assets, setAssets, onSelectAsset, onAddActivity, units, categories = [] }: InventoryViewProps) {
+  const handleExportCSV = () => {
+    if (assets.length === 0) {
+      alert("Nenhum ativo disponível para exportação.");
+      return;
+    }
+
+    const headers = [
+      "ID Interno",
+      "Nome",
+      "Patrimônio",
+      "Categoria",
+      "Modelo",
+      "Nº de Série",
+      "Filial / Unidade",
+      "Localização Específica",
+      "Responsável Atual",
+      "Status Geral",
+      "Valor (R$)",
+      "Data de Aquisição",
+      "Vencimento de Garantia"
+    ];
+
+    const csvRows = [headers.join(";")];
+
+    assets.forEach(asset => {
+      const values = [
+        asset.id,
+        asset.name,
+        asset.patrimonio,
+        asset.category,
+        asset.model,
+        asset.serialNumber,
+        asset.unit,
+        asset.location,
+        asset.responsible?.name || "",
+        asset.status,
+        asset.value !== undefined ? asset.value.toFixed(2) : "",
+        asset.acquisitionDate,
+        asset.warrantyExpiry || ""
+      ].map(val => {
+        const clean = (val || "").toString().replace(/"/g, '""');
+        return clean.includes(";") || clean.includes("\n") || clean.includes('"') ? `"${clean}"` : clean;
+      });
+      csvRows.push(values.join(";"));
+    });
+
+    const csvContent = "\uFEFF" + csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio_ativos_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split(/\r?\n/);
+      if (lines.length < 2) {
+        alert("O arquivo CSV selecionado está vazio ou não possui cabeçalho.");
+        return;
+      }
+
+      const separator = lines[0].includes(';') ? ';' : ',';
+      const importedAssets: Asset[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let charIndex = 0; charIndex < line.length; charIndex++) {
+          const char = line[charIndex];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === separator && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+
+        if (values.length < 5) continue;
+
+        const randomIDNum = Math.floor(1000 + Math.random() * 9000);
+        const name = values[1] || `Ativo Importado ${randomIDNum}`;
+        const patrimonio = values[2] || `#PAT-${randomIDNum}`;
+        const category = values[3] || 'Notebooks';
+        const model = values[4] || 'Modelo Genérico';
+        const serialNumber = values[5] || `SN-${randomIDNum}-X`;
+        const unit = values[6] || 'Matriz - São Paulo';
+        const location = values[7] || 'Escritório Geral';
+        const responsibleName = values[8] || 'Administrador';
+        const status = (values[9] || 'Em Uso') as AssetStatus;
+        const value = parseFloat(values[10]) || 1500.00;
+        const acquisitionDate = values[11] || new Date().toISOString().split('T')[0];
+        const warrantyExpiry = values[12] || new Date(Date.now() + 365*2*24*60*60*1000).toISOString().split('T')[0];
+
+        const newAsset: Asset = {
+          id: values[0] || `KINETIC-${randomIDNum}`,
+          patrimonio,
+          name,
+          category,
+          model,
+          serialNumber,
+          unit,
+          location,
+          currentFloor: category === 'Hardware de Rede' ? 'cpd' : 'office',
+          mapCoordinates: { x: Math.floor(15 + Math.random() * 70), y: Math.floor(15 + Math.random() * 70) },
+          responsible: {
+            name: responsibleName,
+            initials: responsibleName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+          },
+          status,
+          value,
+          acquisitionDate,
+          warrantyExpiry,
+          specifications: {
+            "Sistema Operacional": "Homologado Corporativo"
+          },
+          history: [
+            {
+              id: `hist-import-${Date.now()}-${i}`,
+              title: "Ativo Importado via CSV",
+              responsible: "Sistema",
+              date: new Date().toISOString().split('T')[0],
+              time: new Date().toTimeString().slice(0, 5),
+              type: "creation",
+              description: `Ativo importado com sucesso no almoxarifado de ${unit}.`
+            }
+          ],
+          imageUrl: category === 'Notebooks' 
+            ? "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=800"
+            : "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=800"
+        };
+        importedAssets.push(newAsset);
+      }
+
+      if (importedAssets.length === 0) {
+        alert("Nenhum ativo válido foi encontrado no CSV.");
+        return;
+      }
+
+      const { error } = await supabase.from('assets').insert(importedAssets);
+      if (error) {
+        alert("Erro ao salvar ativos importados no banco: " + error.message);
+        return;
+      }
+
+      setAssets(prev => [...importedAssets, ...prev]);
+
+      onAddActivity({
+        type: "creation",
+        title: "Importação via CSV",
+        details: `${importedAssets.length} novos ativos importados com sucesso.`,
+        by: "Administrador",
+        icon: "add_circle",
+        badgeColor: "bg-indigo-600"
+      });
+
+      alert(`${importedAssets.length} ativos importados com sucesso!`);
+    };
+    reader.readAsText(file);
+  };
+
   // Filters state
   const [selectedUnit, setSelectedUnit] = useState('Todas as Unidades');
   const [selectedCategory, setSelectedCategory] = useState('Todas Categorias');
@@ -341,7 +521,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           date: "2026-06-01",
           time: "12:00",
           type: "maintenance" as const,
-          description: `Fase operacional atualizada em lote para: ${bulkTargetStatus}.`
+          description: `Fase operacional actualizada em lote para: ${bulkTargetStatus}.`
         };
         return {
           ...a,
@@ -445,18 +625,25 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
   return (
     <div id="inventory-view" className="space-y-6 max-w-7xl mx-auto pb-10">
+      <input 
+        type="file" 
+        id="csv-file-import-input" 
+        accept=".csv" 
+        onChange={handleImportCSV} 
+        style={{ display: 'none' }} 
+      />
       {/* Header action menu */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Gestão de Ativos</h2>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Visualize, filtre e gerencie o ciclo de vida completo de seus ativos de TI e mobiliário corporativos.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize, filtre e gerencie o ciclo de vida completo de seus ativos de TI e mobiliário corporativos.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button 
             id="btn-import-assets"
-            onClick={() => alert("Função de importação de planilhas de ativos. Formato compatível: .CSV ou .XLSX corporativo padrão.")}
-            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
+            onClick={() => document.getElementById('csv-file-import-input')?.click()}
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
           >
             <Upload size={14} />
             Importar CSV
@@ -464,8 +651,8 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
           <button 
             id="btn-export-all-assets"
-            onClick={() => alert("Planilha de inventário completa gerada e baixada com sucesso (formato XLSX).")}
-            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
           >
             <Download size={14} />
             Exportar XLS

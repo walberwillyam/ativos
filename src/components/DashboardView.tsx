@@ -114,6 +114,64 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
     })
     .slice(0, 5) as any[];
 
+  const exportToCSV = () => {
+    if (assets.length === 0) {
+      alert("Nenhum ativo disponível para exportação.");
+      return;
+    }
+
+    const headers = [
+      "ID Interno",
+      "Nome",
+      "Patrimônio",
+      "Categoria",
+      "Modelo",
+      "Nº de Série",
+      "Filial / Unidade",
+      "Localização Específica",
+      "Responsável Atual",
+      "Status Geral",
+      "Valor (R$)",
+      "Data de Aquisição",
+      "Vencimento de Garantia"
+    ];
+
+    const csvRows = [headers.join(";")];
+
+    assets.forEach(asset => {
+      const values = [
+        asset.id,
+        asset.name,
+        asset.patrimonio,
+        asset.category,
+        asset.model,
+        asset.serialNumber,
+        asset.unit,
+        asset.location,
+        asset.responsible?.name || "",
+        asset.status,
+        asset.value !== undefined ? asset.value.toFixed(2) : "",
+        asset.acquisitionDate,
+        asset.warrantyExpiry || ""
+      ].map(val => {
+        const clean = (val || "").toString().replace(/"/g, '""');
+        return clean.includes(";") || clean.includes("\n") || clean.includes('"') ? `"${clean}"` : clean;
+      });
+      csvRows.push(values.join(";"));
+    });
+
+    const csvContent = "\uFEFF" + csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio_ativos_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div id="dashboard-view" className="space-y-6 max-w-7xl mx-auto">
       {/* Executive Welcome Section */}
@@ -143,8 +201,8 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
 
           <button 
             id="btn-export-rep"
-            onClick={() => alert("Relatório gerado com sucesso! Iniciando download do PDF corporativo unificado...")}
-            className="bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-indigo-800 transition-all shadow active:scale-95 whitespace-nowrap"
+            onClick={exportToCSV}
+            className="bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-indigo-800 transition-all shadow active:scale-95 whitespace-nowrap cursor-pointer"
           >
             <Download size={16} />
             Exportar Relatório

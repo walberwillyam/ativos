@@ -336,6 +336,64 @@ export default function App() {
     setNotifications([]);
   };
 
+  const handleExportCSV = () => {
+    if (assets.length === 0) {
+      alert("Nenhum ativo disponível para exportação.");
+      return;
+    }
+
+    const headers = [
+      "ID Interno",
+      "Nome",
+      "Patrimônio",
+      "Categoria",
+      "Modelo",
+      "Nº de Série",
+      "Filial / Unidade",
+      "Localização Específica",
+      "Responsável Atual",
+      "Status Geral",
+      "Valor (R$)",
+      "Data de Aquisição",
+      "Vencimento de Garantia"
+    ];
+
+    const csvRows = [headers.join(";")];
+
+    assets.forEach(asset => {
+      const values = [
+        asset.id,
+        asset.name,
+        asset.patrimonio,
+        asset.category,
+        asset.model,
+        asset.serialNumber,
+        asset.unit,
+        asset.location,
+        asset.responsible?.name || "",
+        asset.status,
+        asset.value !== undefined ? asset.value.toFixed(2) : "",
+        asset.acquisitionDate,
+        asset.warrantyExpiry || ""
+      ].map(val => {
+        const clean = (val || "").toString().replace(/"/g, '""');
+        return clean.includes(";") || clean.includes("\n") || clean.includes('"') ? `"${clean}"` : clean;
+      });
+      csvRows.push(values.join(";"));
+    });
+
+    const csvContent = "\uFEFF" + csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio_ativos_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Quick custom reports dashboard layout view
   const renderReportsScreen = () => {
     return (
@@ -345,7 +403,7 @@ export default function App() {
             <FileSpreadsheet className="text-indigo-700" size={28} />
             Relatórios Consolidados
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Exportação e auditoria legal da carga de ativos patrimoniais para controladoria.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Exportação e auditoria legal da carga de ativos patrimoniais para controladoria.</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-8 rounded-3xl shadow-sm text-center">
@@ -355,8 +413,8 @@ export default function App() {
             Gere relatórios reais com base na sua base de dados atual. 
           </p>
           <button 
-            onClick={() => alert(`Gerando relatório geral de ativos...`)}
-            className="bg-indigo-700 hover:bg-indigo-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow inline-flex items-center gap-2 transition"
+            onClick={handleExportCSV}
+            className="bg-indigo-700 hover:bg-indigo-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow inline-flex items-center gap-2 transition cursor-pointer"
           >
             Gerar Planilha Geral
           </button>
