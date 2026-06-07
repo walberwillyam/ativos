@@ -12,12 +12,28 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   global: { WebSocket: ws }
 });
 
-const ASSET_ID = process.env.ASSET_ID || os.hostname();
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Persiste o ASSET_ID original para não perder o vínculo se o usuário mudar o nome do computador
+const idFilePath = path.join(__dirname, 'agent-id.json');
+let ASSET_ID = process.env.ASSET_ID || os.hostname();
+
+if (fs.existsSync(idFilePath)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(idFilePath, 'utf8'));
+    if (data.asset_id) {
+      ASSET_ID = data.asset_id;
+    }
+  } catch(e) {}
+} else {
+  fs.writeFileSync(idFilePath, JSON.stringify({ asset_id: ASSET_ID }));
+}
+
 const UNIT_ID = process.env.UNIT_ID || 'UNKNOWN_UNIT';
 
 const PING_INTERVAL_MS = 180000; // 3 minutos (180.000 ms)
-
-const { execSync } = require('child_process');
 
 function getMonitorSerials() {
   try {
@@ -217,6 +233,13 @@ async function collectAndSendHealth() {
     if (serialNumber) updatePayload.serialNumber = serialNumber;
     if (hardwareModel && hardwareModel.length > 2) updatePayload.model = hardwareModel;
 
+    // Se o usuário mudou o nome da máquina no SO, atualizamos o nome do ativo no inventário
+    const currentHostname = os.hostname();
+    if (ASSET_ID !== currentHostname && !process.env.ASSET_ID) {
+      updatePayload.name = currentHostname;
+      console.log(`[!] Mudança de hostname detectada: ${ASSET_ID} -> ${currentHostname}. Atualizando nome no inventário.`);
+    }
+
     await supabase
       .from('assets')
       .update(updatePayload)
@@ -275,8 +298,7 @@ console.log(`Máquina: ${ASSET_ID} | Unidade: ${UNIT_ID}`);
 console.log(`Aguardando... Enviando dados a cada ${PING_INTERVAL_MS / 1000} segundos.\n`);
 
 // --- LÓGICA DE AUTO ATUALIZAÇÃO ---
-const fs = require('fs');
-const path = require('path');
+// --- LÓGICA DE AUTO ATUALIZAÇÃO ---
 const axios = require('axios');
 
 const CURRENT_VERSION = "1.1.0";
