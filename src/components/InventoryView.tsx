@@ -27,7 +27,10 @@ import {
   FileSpreadsheet,
   Wifi,
   Archive,
-  Tags
+  Tags,
+  Camera,
+  QrCode,
+  ImagePlus
 } from 'lucide-react';
 import { Asset, AssetStatus, ActiveScreen, Category } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -275,7 +278,8 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     processor: '',
     ram: '',
     storage: '',
-    connectedTo: ''
+    connectedTo: '',
+    imageUrl: ''
   });
 
   // Bulk edits helpers
@@ -301,6 +305,84 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   }, [assets, categories]);
 
   const statusesList = ['Qualquer Status', 'Em Uso', 'Manutenção', 'Armazenado', 'Extraviado', 'Obsoleto'];
+
+  // Photo upload state
+  const [assetImageFile, setAssetImageFile] = useState<File | null>(null);
+  const [assetImagePreview, setAssetImagePreview] = useState<string>('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Barcode scanner handler - uses the device camera via BarcodeDetector API or fallback
+  const handleBarcodeScan = async (targetField: 'patrimonio' | 'serialNumber') => {
+    // Check if BarcodeDetector is available (Chrome/Edge on Android, etc.)
+    if ('BarcodeDetector' in window) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        await video.play();
+
+        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'code_93', 'codabar', 'itf', 'upc_a', 'upc_e'] });
+        
+        let found = false;
+        const scanInterval = setInterval(async () => {
+          if (found) return;
+          try {
+            const barcodes = await detector.detect(video);
+            if (barcodes.length > 0) {
+              found = true;
+              clearInterval(scanInterval);
+              stream.getTracks().forEach(t => t.stop());
+              const value = barcodes[0].rawValue;
+              setNewAssetForm(prev => ({ ...prev, [targetField]: value }));
+            }
+          } catch (_) { /* scanning */ }
+        }, 300);
+
+        // Auto-cancel after 15 seconds
+        setTimeout(() => {
+          if (!found) {
+            clearInterval(scanInterval);
+            stream.getTracks().forEach(t => t.stop());
+            alert('Tempo esgotado. Nenhum código detectado.');
+          }
+        }, 15000);
+      } catch (err) {
+        console.error('Camera error:', err);
+        const manual = prompt(`Não foi possível acessar a câmera.\nDigite o código manualmente para ${targetField === 'patrimonio' ? 'Patrimônio' : 'Nº de Série'}:`);
+        if (manual) setNewAssetForm(prev => ({ ...prev, [targetField]: manual }));
+      }
+    } else {
+      // Fallback: prompt manual input
+      const manual = prompt(`Leitor de código não suportado neste navegador.\nDigite o código manualmente para ${targetField === 'patrimonio' ? 'Patrimônio' : 'Nº de Série'}:`);
+      if (manual) setNewAssetForm(prev => ({ ...prev, [targetField]: manual }));
+    }
+  };
+
+  // Handle photo selection (from file picker or camera)
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAssetImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAssetImagePreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Upload image to Supabase Storage and return public URL
+  const uploadAssetImage = async (file: File, assetId: string): Promise<string> => {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const filePath = `assets/${assetId}.${ext}`;
+    const { error } = await supabase.storage.from('asset-images').upload(filePath, file, { upsert: true });
+    if (error) {
+      console.error('Upload error:', error);
+      // Fallback: return a data URL
+      return assetImagePreview;
+    }
+    const { data: urlData } = supabase.storage.from('asset-images').getPublicUrl(filePath);
+    return urlData?.publicUrl || assetImagePreview;
+  };
 
   // Apply filters in client side memory
   const filteredAssets = useMemo(() => {
@@ -438,7 +520,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   };
 
   // Submit asset registration form
-  const handleCreateAssetSubmit = (e: React.FormEvent) => {
+  const handleCreateAssetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAssetForm.name || !newAssetForm.model) {
       alert("Por favor, preencha o Nome e o Modelo do ativo.");
@@ -486,10 +568,20 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           description: `Patrimônio inicial registrado no almoxarifado de ${newAssetForm.unit}.`
         }
       ],
-      imageUrl: newAssetForm.category === 'Notebooks' 
-        ? "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=800"
-        : "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=800"
+      imageUrl: ''
     };
+
+    // Upload photo if selected
+    if (assetImageFile) {
+      setIsUploadingImage(true);
+      try {
+        const imageUrl = await uploadAssetImage(assetImageFile, newID);
+        newAsset.imageUrl = imageUrl;
+      } catch (err) {
+        console.error('Erro no upload da foto:', err);
+      }
+      setIsUploadingImage(false);
+    }
 
     setAssets(prev => [newAsset, ...prev]);
     setIsNewAssetOpen(false);
@@ -523,8 +615,12 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       responsibleName: 'Ricardo Mendes',
       processor: '',
       ram: '',
-      storage: ''
+      storage: '',
+      connectedTo: '',
+      imageUrl: ''
     });
+    setAssetImageFile(null);
+    setAssetImagePreview('');
 
     alert(`Ativo ${newID} registrado com sucesso!`);
   };
@@ -1050,14 +1146,24 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Patrimônio (Opcional)</label>
-                  <input 
-                    type="text" 
-                    id="form-patrimonio"
-                    placeholder="Ex: #PAT-004452" 
-                    value={newAssetForm.patrimonio}
-                    onChange={(e) => setNewAssetForm(prev => ({ ...prev, patrimonio: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
-                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      id="form-patrimonio"
+                      placeholder="Ex: #PAT-004452" 
+                      value={newAssetForm.patrimonio}
+                      onChange={(e) => setNewAssetForm(prev => ({ ...prev, patrimonio: e.target.value }))}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleBarcodeScan('patrimonio')}
+                      className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-xl text-indigo-700 dark:text-indigo-400 transition-colors"
+                      title="Escanear Código de Barras/QR"
+                    >
+                      <QrCode size={16} />
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Categoria de Inventário *</label>
@@ -1117,14 +1223,24 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Série (Serial) *</label>
-                  <input 
-                    type="text" 
-                    id="form-serial"
-                    placeholder="Ex: LNV-88339281-Z" 
-                    value={newAssetForm.serialNumber}
-                    onChange={(e) => setNewAssetForm(prev => ({ ...prev, serialNumber: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
-                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      id="form-serial"
+                      placeholder="Ex: LNV-88339281-Z" 
+                      value={newAssetForm.serialNumber}
+                      onChange={(e) => setNewAssetForm(prev => ({ ...prev, serialNumber: e.target.value }))}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleBarcodeScan('serialNumber')}
+                      className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-xl text-indigo-700 dark:text-indigo-400 transition-colors"
+                      title="Escanear Código de Barras/QR"
+                    >
+                      <QrCode size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1286,6 +1402,54 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Foto do Ativo */}
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-3">Foto do Ativo</span>
+                
+                {assetImagePreview ? (
+                  <div className="relative">
+                    <img 
+                      src={assetImagePreview} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover rounded-xl border border-slate-200 dark:border-slate-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setAssetImageFile(null); setAssetImagePreview(''); }}
+                      className="absolute top-2 right-2 bg-rose-600 text-white p-1 rounded-lg hover:bg-rose-700 transition-colors shadow-sm"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    {/* Upload from gallery */}
+                    <label className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-6 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-colors">
+                      <ImagePlus size={24} className="text-slate-400" />
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center">Selecionar Imagem</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handlePhotoSelect}
+                        className="hidden" 
+                      />
+                    </label>
+                    {/* Capture from camera */}
+                    <label className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-6 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-colors">
+                      <Camera size={24} className="text-slate-400" />
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center">Tirar Foto</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="environment" 
+                        onChange={handlePhotoSelect}
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 flex items-center gap-3">
