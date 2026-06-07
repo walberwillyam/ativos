@@ -176,8 +176,45 @@ async function collectAndSendHealth() {
         });
       }
 
-      // 2. USB (Mouses, Teclados, Webcams) - Removido a pedido
+      // 2. USB (Mouses, Teclados, Webcams)
+      if (usbs) {
+        usbs.forEach((usb, idx) => {
+          const name = usb.name || usb.type || 'Dispositivo USB';
+          // Ignorar hubs, root hubs e dispositivos não identificáveis/genéricos
+          if (!name || name.toLowerCase().includes('hub') || name.toLowerCase().includes('host controller') || name.toLowerCase().includes('composite') || name.length < 3) return;
+          
+          // Filtrar apenas o que parece ser periférico de interesse (mouse, teclado, câmera, audio)
+          const isPeripheral = name.toLowerCase().includes('mouse') || 
+                               name.toLowerCase().includes('keyboard') || 
+                               name.toLowerCase().includes('teclado') ||
+                               name.toLowerCase().includes('cam') ||
+                               name.toLowerCase().includes('audio') ||
+                               name.toLowerCase().includes('headset');
+                               
+          if (!isPeripheral) return;
 
+          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 15);
+          newAssets.push({
+            id: `USB-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}-${idx}`,
+            patrimonio: `AUTO-USB-${idx}`,
+            name: `${usb.vendor || 'USB'} ${name}`,
+            category: 'Periféricos (Mouse/Teclado)',
+            model: name,
+            serialNumber: usb.serialNumber || 'N/A',
+            unit: hostUnit,
+            location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
+            currentFloor: 'office',
+            mapCoordinates: { x: 50, y: 50 },
+            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
+            status: 'Em Uso',
+            value: 0,
+            acquisitionDate: nowString,
+            warrantyExpiry: nowString,
+            specifications: { "Fabricante": usb.vendor || 'Desconhecido', "Host": ASSET_ID },
+            history: []
+          });
+        });
+      }
       // 3. Impressoras
       if (printers) {
         printers.forEach((prn, idx) => {
@@ -301,7 +338,7 @@ console.log(`Aguardando... Enviando dados a cada ${PING_INTERVAL_MS / 1000} segu
 // --- LÓGICA DE AUTO ATUALIZAÇÃO ---
 const axios = require('axios');
 
-const CURRENT_VERSION = "1.1.0";
+const CURRENT_VERSION = "1.1.1";
 const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 24; // 24h
 
 async function checkAndUpdate() {

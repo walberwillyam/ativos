@@ -1143,7 +1143,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Número de Patrimônio (Opcional)</label>
                   <div className="flex gap-2">
@@ -1191,24 +1191,22 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
               </div>
 
               {/* Vínculo de Dispositivo Pai para Periféricos e Monitores */}
-              {(newAssetForm.category === 'Monitores' || newAssetForm.category === 'Periféricos (Mouse/Teclado)') && (
-                <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
-                  <label className="block text-xs font-bold text-indigo-900 mb-1.5">Conectado A (Dispositivo Pai) - Opcional</label>
-                  <select 
-                    value={newAssetForm.connectedTo}
-                    onChange={(e) => setNewAssetForm(prev => ({ ...prev, connectedTo: e.target.value }))}
-                    className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer text-slate-700"
-                  >
-                    <option value="">-- Selecione o Computador/Notebook --</option>
-                    {assets.filter(a => a.category === 'Notebooks' || a.category === 'Desktops' || a.model.toLowerCase().includes('pc')).map(a => (
-                      <option key={a.id} value={a.id}>{a.name} ({a.id})</option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-indigo-600 mt-1">Ao vincular, este ativo aparecerá na ficha técnica do dispositivo pai.</p>
-                </div>
-              )}
+              <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                <label className="block text-xs font-bold text-indigo-900 mb-1.5">Conectado A (Dispositivo Pai) - Opcional</label>
+                <select 
+                  value={newAssetForm.connectedTo}
+                  onChange={(e) => setNewAssetForm(prev => ({ ...prev, connectedTo: e.target.value }))}
+                  className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer text-slate-700"
+                >
+                  <option value="">-- Selecione o Computador Pai --</option>
+                  {assets.filter(a => a.category === 'Notebooks' || a.category === 'Desktops' || a.model.toLowerCase().includes('pc')).map(a => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.id})</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-indigo-600 mt-1">Ao vincular, este ativo aparecerá na ficha técnica do dispositivo pai.</p>
+              </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Marca / Modelo Completo *</label>
                   <input 
@@ -1244,7 +1242,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Unidade Polo Inicial *</label>
                   <select 
@@ -1303,7 +1301,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Responsável Nome *</label>
                   <input 
@@ -1332,7 +1330,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Valor Compra R$</label>
                   <input 
@@ -1370,7 +1368,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
               <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest block">Configuração Técnica (Notebook / Servidor)</span>
                 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold mb-1">Processador</label>
                     <input 
