@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['logo.png'],
+        includeAssets: ['logo.png?v=2'],
         manifest: {
           name: 'Gestão de Ativos',
           short_name: 'GA Ativos',
