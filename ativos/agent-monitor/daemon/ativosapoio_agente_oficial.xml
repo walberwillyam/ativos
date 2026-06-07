@@ -1,0 +1,31 @@
+<service>
+	<id>ativosapoio_agente_oficial.exe</id>
+	<name>AtivosApoio_Agente_Oficial</name>
+	<description>Agente oficial de telemetria do sistema Ativos Apoio.</description>
+	<executable>C:\Program Files\nodejs\node.exe</executable>
+	<argument>--harmony</argument>
+	<argument>C:\Users\walber.silva\Downloads\ativos-apoio\ativos\agent-monitor\node_modules\node-windows\lib\wrapper.js</argument>
+	<argument>--file</argument>
+	<argument>C:\Users\walber.silva\Downloads\ativos-apoio\ativos\agent-monitor\agent.js</argument>
+	<argument>--scriptoptions=</argument>
+	<argument>--log</argument>
+	<argument>AtivosApoio_Agente_Oficial wrapper</argument>
+	<argument>--grow</argument>
+	<argument>0.5</argument>
+	<argument>--wait</argument>
+	<argument>2</argument>
+	<argument>--maxrestarts</argument>
+	<argument>10</argument>
+	<argument>--abortonerror</argument>
+	<argument>n</argument>
+	<argument>--stopparentfirst</argument>
+	<argument>undefined</argument>
+	<logmode>rotate</logmode>
+	<stoptimeout>30sec</stoptimeout>
+	<serviceaccount>
+		<domain>WALBER</domain>
+		<user>LocalSystem</user>
+		<password></password>
+	</serviceaccount>
+	<workingdirectory>C:\Users\walber.silva\Downloads\ativos-apoio\ativos\agent-monitor</workingdirectory>
+</service>

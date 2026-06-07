@@ -1,0 +1,14 @@
+{
+  "name": "ativos-apoio-agente",
+  "version": "1.0.0",
+  "description": "Agente de telemetria para rodar como serviço do Windows",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "install-service": "node install_service.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "node-windows": "*"
+  }
+}
