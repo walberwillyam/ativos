@@ -90,7 +90,8 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     responsibleName: 'Ricardo Mendes',
     processor: '',
     ram: '',
-    storage: ''
+    storage: '',
+    connectedTo: ''
   });
 
   // Bulk edits helpers
@@ -270,6 +271,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         ...(newAssetForm.processor ? { "Processador": newAssetForm.processor } : {}),
         ...(newAssetForm.ram ? { "Memória RAM": newAssetForm.ram } : {}),
         ...(newAssetForm.storage ? { "Armazenamento": newAssetForm.storage } : {}),
+        ...(newAssetForm.connectedTo ? { "Host": newAssetForm.connectedTo } : {}),
         "Sistema Operacional": "Homologado Corporativo"
       },
       history: [
@@ -812,6 +814,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                         <option>Notebooks</option>
                         <option>Monitores</option>
                         <option>Impressoras</option>
+                        <option>Periféricos (Mouse/Teclado)</option>
                         <option>Switches</option>
                         <option>Hardware de Rede</option>
                         <option>Mobiliário</option>
@@ -820,6 +823,24 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   </select>
                 </div>
               </div>
+
+              {/* Vínculo de Dispositivo Pai para Periféricos e Monitores */}
+              {(newAssetForm.category === 'Monitores' || newAssetForm.category === 'Periféricos (Mouse/Teclado)') && (
+                <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                  <label className="block text-xs font-bold text-indigo-900 mb-1.5">Conectado A (Dispositivo Pai) - Opcional</label>
+                  <select 
+                    value={newAssetForm.connectedTo}
+                    onChange={(e) => setNewAssetForm(prev => ({ ...prev, connectedTo: e.target.value }))}
+                    className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer text-slate-700"
+                  >
+                    <option value="">-- Selecione o Computador/Notebook --</option>
+                    {assets.filter(a => a.category === 'Notebooks' || a.category === 'Desktops' || a.model.toLowerCase().includes('pc')).map(a => (
+                      <option key={a.id} value={a.id}>{a.name} ({a.id})</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-indigo-600 mt-1">Ao vincular, este ativo aparecerá na ficha técnica do dispositivo pai.</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
