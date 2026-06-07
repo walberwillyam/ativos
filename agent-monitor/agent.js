@@ -45,10 +45,11 @@ async function collectAndSendHealth() {
 
     const { data: assetData } = await supabase
       .from('assets')
-      .select('specifications, history')
+      .select('specifications, history, unit')
       .eq('id', ASSET_ID)
       .single();
 
+    const hostUnit = assetData?.unit || UNIT_ID;
     const currentSpecs = assetData?.specifications || {};
     currentSpecs["Sistema Operacional"] = osString;
 
@@ -126,13 +127,13 @@ async function collectAndSendHealth() {
           const name = disp.model || `Monitor ${idx+1}`;
           const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
           newAssets.push({
-            id: `MON-${ASSET_ID.substring(0,6)}-${safeName}-${idx}`,
+            id: `MON-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}-${idx}`,
             patrimonio: `AUTO-MON-${idx}`,
             name: `${disp.vendor || 'Monitor'} ${name}`,
             category: 'Monitores',
             model: name,
             serialNumber: 'N/A',
-            unit: UNIT_ID,
+            unit: hostUnit,
             location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
             currentFloor: 'office',
             mapCoordinates: { x: 50, y: 50 },
@@ -147,33 +148,7 @@ async function collectAndSendHealth() {
         });
       }
 
-      // 2. USB (Mouses, Teclados, Webcams)
-      if (usbs) {
-        usbs.forEach((usb, idx) => {
-          if (!usb.name || usb.name.includes('Hub') || usb.name.includes('Root') || usb.name.includes('Composite')) return;
-          const name = usb.name;
-          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
-          newAssets.push({
-            id: `USB-${ASSET_ID.substring(0,6)}-${safeName}-${idx}`,
-            patrimonio: `AUTO-USB-${idx}`,
-            name: name,
-            category: 'Notebooks e Periféricos',
-            model: name,
-            serialNumber: usb.serialNumber || 'N/A',
-            unit: UNIT_ID,
-            location: 'Conectado a ' + ASSET_ID,
-            currentFloor: 'office',
-            mapCoordinates: { x: 50, y: 50 },
-            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
-            status: 'Em Uso',
-            value: 0,
-            acquisitionDate: nowString,
-            warrantyExpiry: nowString,
-            specifications: { "Host": ASSET_ID, "Fabricante": usb.vendor || 'Desconhecido' },
-            history: []
-          });
-        });
-      }
+      // 2. USB (Mouses, Teclados, Webcams) - Removido a pedido
 
       // 3. Impressoras
       if (printers) {
@@ -182,13 +157,13 @@ async function collectAndSendHealth() {
           const name = prn.name;
           const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
           newAssets.push({
-            id: `PRN-${ASSET_ID.substring(0,6)}-${safeName}-${idx}`,
-            patrimonio: `AUTO-PRN-${idx}`,
+            id: `PRN-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}`,
+            patrimonio: `AUTO-PRN-${safeName}`,
             name: name,
             category: 'Impressoras',
             model: prn.model || name,
             serialNumber: 'N/A',
-            unit: UNIT_ID,
+            unit: hostUnit,
             location: prn.local ? 'Local - ' + ASSET_ID : 'Rede',
             currentFloor: 'office',
             mapCoordinates: { x: 50, y: 50 },
