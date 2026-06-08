@@ -2188,6 +2188,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}
