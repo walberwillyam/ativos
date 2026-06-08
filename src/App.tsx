@@ -1219,6 +1219,7 @@ export default function App() {
         notifications={notifications} 
         handleNotificationsClear={handleNotificationsClear} 
         userEmail={session.user.email}
+        userProfile={userProfile}
         isSidebarCollapsed={isSidebarCollapsed}
         setIsSidebarCollapsed={setIsSidebarCollapsed}
       />
@@ -1233,7 +1234,7 @@ export default function App() {
           totalAssetsCount={assets.length}
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
-          userRole={userProfile?.role || 'employee'}
+          userProfile={userProfile}
         />
 
         {/* Dynamic content rendering with loading animations */}
