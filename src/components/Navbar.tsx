@@ -25,11 +25,12 @@ interface NavbarProps {
   notifications: Notification[];
   handleNotificationsClear: () => void;
   userEmail?: string;
+  userProfile?: any;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (collapsed: boolean) => void;
 }
 
-export default function Navbar({ setActiveScreen, notifications, handleNotificationsClear, userEmail, isSidebarCollapsed, setIsSidebarCollapsed }: NavbarProps) {
+export default function Navbar({ setActiveScreen, notifications, handleNotificationsClear, userEmail, userProfile, isSidebarCollapsed, setIsSidebarCollapsed }: NavbarProps) {
   const [globalSearch, setGlobalSearch] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -168,12 +169,19 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
         {/* User profile capsule */}
         <div className="flex items-center gap-2.5">
           <img 
-            src="https://lh3.googleusercontent.com/aida/AP1WRLsBYYnnV-luFdNkqjmViVKgBL_wnBHD1mm0U_1MBJNBc0Nq2Ta13pem3-6e70vJuGD9K7KMYM-NjXowD6knnAkEbc7KveeBYKI-AIJxM1shD7XyOPQ9sOMz-qiauEObw7rtu7DybOldDRMRMion_3zk4LjzGAUsr2nUQ-p1vG-QG6yrwNBDvVhZlmmcy-bWfQ6-Sd24IOrs_-tDGvp39-kSVYDMJEf0jfDLv33a_N3xFAf3wwaZMFW3IA" 
+            src={userProfile?.avatar_url || "https://lh3.googleusercontent.com/aida/AP1WRLsBYYnnV-luFdNkqjmViVKgBL_wnBHD1mm0U_1MBJNBc0Nq2Ta13pem3-6e70vJuGD9K7KMYM-NjXowD6knnAkEbc7KveeBYKI-AIJxM1shD7XyOPQ9sOMz-qiauEObw7rtu7DybOldDRMRMion_3zk4LjzGAUsr2nUQ-p1vG-QG6yrwNBDvVhZlmmcy-bWfQ6-Sd24IOrs_-tDGvp39-kSVYDMJEf0jfDLv33a_N3xFAf3wwaZMFW3IA"} 
             alt="Avatar" 
-            className="w-8 h-8 rounded-full border border-slate-200 shadow-xs cursor-pointer object-cover" 
+            onClick={() => {
+              const url = prompt('Cole aqui a URL da sua nova foto de perfil:');
+              if (url && userProfile?.id) {
+                supabase.from('profiles').update({ avatar_url: url }).eq('id', userProfile.id).then(() => window.location.reload());
+              }
+            }}
+            className="w-8 h-8 rounded-full border border-slate-200 shadow-xs cursor-pointer object-cover hover:ring-2 hover:ring-indigo-500 transition-all" 
+            title="Alterar Foto de Perfil"
           />
           <div className="hidden lg:block">
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">Admin Geral</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">{userProfile?.full_name || 'Usuário do Sistema'}</p>
             <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5">{userEmail || 'admin@ativosapoio.com.br'}</p>
           </div>
           

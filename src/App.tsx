@@ -1282,6 +1282,7 @@ export default function App() {
               onAddActivity={handleAddLiveActivity}
               units={units}
               categories={categories}
+              userProfile={userProfile}
             />
           )}
 

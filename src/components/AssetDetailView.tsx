@@ -278,9 +278,10 @@ interface AssetDetailViewProps {
   }) => void;
   units?: any[];
   categories?: Category[];
+  userProfile?: any;
 }
 
-export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddActivity, units = [], categories = [] }: AssetDetailViewProps) {
+export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddActivity, units = [], categories = [], userProfile }: AssetDetailViewProps) {
   // Tabs active state
   const [activeTab, setActiveTab] = useState<'timeline' | 'audit' | 'docs' | 'photos' | 'handover'>('timeline');
 
@@ -467,7 +468,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     const transferStep: TimelineStep = {
       id: `step-trans-${Date.now()}`,
       title: `Transferido para ${transferTargetUnit}`,
-      responsible: "Admin Geral",
+      responsible: userProfile?.full_name || "Admin Geral",
       date: new Date().toISOString().split('T')[0],
       time: new Date().toTimeString().slice(0, 5),
       type: "transfer",
@@ -488,7 +489,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       type: "transfer",
       title: "Ativo Movimentado",
       details: `${asset.name} transferido para polo ${transferTargetUnit}.`,
-      by: "Admin Geral",
+      by: userProfile?.full_name || "Admin Geral",
       icon: "sync_alt",
       badgeColor: "bg-emerald-500"
     });
@@ -523,7 +524,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       type: "maintenance",
       title: "Manutenção Solicitada",
       details: `${asset.name} (#${asset.id}) colocado em manutenção corretiva.`,
-      by: "Admin Geral",
+      by: userProfile?.full_name || "Admin Geral",
       icon: "build",
       badgeColor: "bg-amber-500"
     });
@@ -554,7 +555,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
       type: "maintenance",
       title: "Manutenção Concluída",
       details: `${asset.name} (#${asset.id}) retornou para Em Uso.`,
-      by: "Admin Geral",
+      by: userProfile?.full_name || "Admin Geral",
       icon: "check_circle",
       badgeColor: "bg-emerald-500"
     });
