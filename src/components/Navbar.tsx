@@ -51,17 +51,18 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
     if (e.target.files && e.target.files[0] && userProfile?.id) {
       const file = e.target.files[0];
       try {
-        const fileName = `avatars/${userProfile.id}_${Date.now()}`;
-        const { error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file);
+        const safeName = file.name.replace(/\s+/g, '_');
+        const fileName = `avatars/${userProfile.id}_${Date.now()}_${safeName}`;
+        const { error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file, { upsert: true });
         if (error) throw error;
         
         const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(fileName);
         
         await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', userProfile.id);
         window.location.reload();
-      } catch (err) {
-        console.error(err);
-        alert("Erro ao enviar foto. Tente novamente mais tarde.");
+      } catch (err: any) {
+        console.error("Upload Error:", err);
+        alert(`Erro ao enviar foto: ${err.message || "Tente novamente mais tarde."}`);
       }
     }
   };
