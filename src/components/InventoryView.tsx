@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Asset, AssetStatus, ActiveScreen, Category } from '../types';
 import { supabase } from '../lib/supabaseClient';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 interface InventoryViewProps {
   assets: Asset[];
@@ -961,51 +962,91 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   const [assetImagePreview, setAssetImagePreview] = useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  // Barcode scanner handler - uses the device camera via BarcodeDetector API or fallback
-  const handleBarcodeScan = async (targetField: 'patrimonio' | 'serialNumber') => {
-    // Check if BarcodeDetector is available (Chrome/Edge on Android, etc.)
-    if ('BarcodeDetector' in window) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        await video.play();
+  const [scanningField, setScanningField] = useState<'patrimonio' | 'serialNumber' | null>(null);
 
-        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'code_93', 'codabar', 'itf', 'upc_a', 'upc_e'] });
-        
-        let found = false;
-        const scanInterval = setInterval(async () => {
-          if (found) return;
-          try {
-            const barcodes = await detector.detect(video);
-            if (barcodes.length > 0) {
-              found = true;
-              clearInterval(scanInterval);
-              stream.getTracks().forEach(t => t.stop());
-              const value = barcodes[0].rawValue;
-              setNewAssetForm(prev => ({ ...prev, [targetField]: value }));
-            }
-          } catch (_) { /* scanning */ }
-        }, 300);
+  React.useEffect(() => {
+    if (!scanningField) return;
 
-        // Auto-cancel after 15 seconds
-        setTimeout(() => {
-          if (!found) {
-            clearInterval(scanInterval);
-            stream.getTracks().forEach(t => t.stop());
-            alert('Tempo esgotado. Nenhum código detectado.');
-          }
-        }, 15000);
-      } catch (err) {
-        console.error('Camera error:', err);
-        const manual = prompt(`Não foi possível acessar a câmera.\nDigite o código manualmente para ${targetField === 'patrimonio' ? 'Patrimônio' : 'Nº de Série'}:`);
-        if (manual) setNewAssetForm(prev => ({ ...prev, [targetField]: manual }));
+    let html5QrCode: Html5Qrcode | null = null;
+    let isComponentMounted = true;
+    let isStarting = false;
+
+    function onScanSuccess(decodedText: string) {
+      if (!isComponentMounted || !html5QrCode) return;
+      
+      setNewAssetForm(prev => ({ ...prev, [scanningField as string]: decodedText }));
+      
+      if (html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          setScanningField(null);
+        }).catch(err => console.log("Stop error", err));
+      } else {
+        setScanningField(null);
       }
-    } else {
-      // Fallback: prompt manual input
-      const manual = prompt(`Leitor de código não suportado neste navegador.\nDigite o código manualmente para ${targetField === 'patrimonio' ? 'Patrimônio' : 'Nº de Série'}:`);
-      if (manual) setNewAssetForm(prev => ({ ...prev, [targetField]: manual }));
     }
+
+    function onScanFailure() {}
+
+    async function initScanner() {
+      if (!isComponentMounted) return;
+      isStarting = true;
+      try {
+        html5QrCode = new Html5Qrcode("new-asset-reader", {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A
+          ],
+          verbose: false
+        });
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { 
+            fps: 10, 
+            qrbox: { width: 250, height: 100 }
+          },
+          onScanSuccess,
+          onScanFailure
+        );
+      } catch (err) {
+        console.error("Camera start failed", err);
+        const manual = prompt(`Não foi possível acessar a câmera.\nDigite o código manualmente para ${scanningField === 'patrimonio' ? 'Patrimônio' : 'Nº de Série'}:`);
+        if (manual) setNewAssetForm(prev => ({ ...prev, [scanningField]: manual }));
+        setScanningField(null);
+      } finally {
+        isStarting = false;
+        if (!isComponentMounted && html5QrCode) {
+          if (html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => html5QrCode?.clear()).catch(console.error);
+          } else {
+            try { html5QrCode.clear(); } catch(e){}
+          }
+        }
+      }
+    }
+
+    initScanner();
+
+    return () => {
+      isComponentMounted = false;
+      if (html5QrCode && !isStarting) {
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            html5QrCode?.clear();
+          }).catch(console.error);
+        } else {
+          try { html5QrCode.clear(); } catch(e){}
+        }
+      }
+    };
+  }, [scanningField]);
+
+  // Barcode scanner handler
+  const handleBarcodeScan = (targetField: 'patrimonio' | 'serialNumber') => {
+    setScanningField(targetField);
   };
 
   // Handle photo selection (from file picker or camera)
@@ -1788,7 +1829,28 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
             </div>
 
             {/* Form body scrollable */}
-            <form onSubmit={handleCreateAssetSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+            {scanningField ? (
+              <div className="flex-1 p-6 flex flex-col items-center justify-center bg-slate-900 overflow-hidden">
+                <div className="text-center mb-6">
+                  <h4 className="text-white font-extrabold text-xl tracking-tight flex items-center justify-center gap-2">
+                    <QrCode size={24} className="text-indigo-400" />
+                    Leitor Automático
+                  </h4>
+                  <p className="text-slate-400 text-sm mt-1">
+                    Aponte a câmera para o {scanningField === 'patrimonio' ? 'Patrimônio' : 'Nº de Série'}
+                  </p>
+                </div>
+                <div id="new-asset-reader" className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl bg-black border-4 border-indigo-500"></div>
+                <button 
+                  type="button" 
+                  onClick={() => setScanningField(null)}
+                  className="mt-8 px-8 py-3 bg-slate-800 hover:bg-rose-600 text-white rounded-xl font-bold transition shadow"
+                >
+                  Cancelar Leitura
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateAssetSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Nome Descritivo do Ativo *</label>
                 <input 
