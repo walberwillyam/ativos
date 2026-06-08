@@ -35,10 +35,46 @@ const UNIT_ID = process.env.UNIT_ID || 'UNKNOWN_UNIT';
 
 const PING_INTERVAL_MS = 180000; // 3 minutos (180.000 ms)
 
-function getMonitorSerials() {
+function getMonitorDetails() {
   try {
-    const output = execSync('powershell "Get-WmiObject WmiMonitorID -Namespace root\\\\wmi | ForEach-Object { [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID) }"').toString();
-    return output.split('\\n').map(s => s.replace(/\\0/g, '').trim()).filter(s => s.length > 0);
+    const psScript = `
+      [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+      $monitors = Get-WmiObject WmiMonitorID -Namespace root\\wmi
+      $res = @()
+      foreach ($m in $monitors) {
+        try {
+          $name = [System.Text.Encoding]::ASCII.GetString($m.UserFriendlyName).Replace([char]0, '').Trim()
+          $serial = [System.Text.Encoding]::ASCII.GetString($m.SerialNumberID).Replace([char]0, '').Trim()
+          if ($name -and $name -notmatch 'Generic PnP Monitor' -and $name -notmatch 'GenǸrico') {
+            $res += @{ Name = $name; Serial = $serial }
+          }
+        } catch {}
+      }
+      $res | ConvertTo-Json -Compress
+    `;
+    const output = execSync(`powershell -NoProfile -Command "${psScript.replace(/\\n/g, ' ')}"`).toString();
+    if (!output.trim()) return [];
+    const parsed = JSON.parse(output);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch (e) {
+    return [];
+  }
+}
+
+function getPrinterStatuses() {
+  try {
+    const psScript = `
+      $printers = Get-WmiObject Win32_Printer
+      $res = @()
+      foreach ($p in $printers) {
+        $res += @{ Name = $p.Name; Offline = $p.WorkOffline }
+      }
+      $res | ConvertTo-Json -Compress
+    `;
+    const output = execSync(`powershell -NoProfile -Command "${psScript.replace(/\\n/g, ' ')}"`).toString();
+    if (!output.trim()) return [];
+    const parsed = JSON.parse(output);
+    return Array.isArray(parsed) ? parsed : [parsed];
   } catch (e) {
     return [];
   }
@@ -149,18 +185,28 @@ async function collectAndSendHealth() {
 
       // 1. Monitores
       if (graphics && graphics.displays) {
-        const monitorSerials = getMonitorSerials();
+        const monitorDetails = getMonitorDetails();
         graphics.displays.forEach((disp, idx) => {
-          if (!disp.model || disp.model.includes('Genérico') || disp.model.includes('Default') || disp.model.includes('padrão')) return;
-          const name = disp.model || `Monitor ${idx+1}`;
-          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
+          let name = disp.model || `Monitor ${idx+1}`;
+          let serial = 'N/A';
+
+          if (monitorDetails[idx]) {
+            name = monitorDetails[idx].Name || name;
+            serial = monitorDetails[idx].Serial || serial;
+          }
+
+          if (!name || name.includes('GenǸrico') || name.includes('Default') || name.includes('padrǜo') || name === 'Generic PnP Monitor' || name === 'Monitor Genérico PnP') {
+             if (serial === 'N/A') return; 
+          }
+
+          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 15);
           newAssets.push({
             id: `MON-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}-${idx}`,
             patrimonio: `AUTO-MON-${idx}`,
-            name: `${disp.vendor || 'Monitor'} ${name}`,
+            name: `${disp.vendor && disp.vendor.length > 2 && !disp.vendor.includes('padr') ? disp.vendor + ' ' : ''}${name}`.trim(),
             category: 'Monitores',
             model: name,
-            serialNumber: monitorSerials[idx] || 'N/A',
+            serialNumber: serial,
             unit: hostUnit,
             location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
             currentFloor: 'office',
@@ -180,11 +226,14 @@ async function collectAndSendHealth() {
 
       // 3. Impressoras
       if (printers) {
+        const pStatuses = getPrinterStatuses();
         printers.forEach((prn, idx) => {
           if (!prn.name || prn.name.includes('PDF') || prn.name.includes('OneNote') || prn.name.includes('XPS') || prn.name.toLowerCase().includes('fax')) return;
           
-          // Manter apenas impressoras online (Idle, Printing, etc.)
           if (prn.status === 'Offline' || prn.status === 'Unknown' || prn.status === 'Error' || prn.status === 'Stopped Printing') return;
+          
+          const pStat = pStatuses.find(p => p.Name === prn.name);
+          if (pStat && pStat.Offline) return;
           
           const name = prn.name;
           const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
