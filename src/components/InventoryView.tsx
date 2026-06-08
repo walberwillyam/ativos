@@ -1406,11 +1406,11 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize, filtre e gerencie o ciclo de vida completo de seus ativos de TI e mobiliário corporativos.</p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 flex-nowrap hide-scrollbar">
           <button 
             id="btn-import-assets"
             onClick={() => document.getElementById('csv-file-import-input')?.click()}
-            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm cursor-pointer shrink-0"
           >
             <Upload size={14} />
             Importar CSV
@@ -1419,7 +1419,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           <button 
             id="btn-export-all-assets"
             onClick={handleExportCSV}
-            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm cursor-pointer shrink-0"
           >
             <Download size={14} />
             Exportar XLS
@@ -1428,7 +1428,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           <button 
             id="btn-board-report"
             onClick={handleGenerateBoardReport}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-650 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer active:scale-95"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer active:scale-95 shrink-0"
           >
             <FileText size={14} />
             Apresentação Diretoria
@@ -1437,7 +1437,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           <button 
             id="btn-add-asset-trigger"
             onClick={() => setIsNewAssetOpen(true)}
-            className="bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow transition-transform active:scale-95"
+            className="bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow transition-transform active:scale-95 shrink-0"
           >
             <Plus size={16} />
             Novo Ativo

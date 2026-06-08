@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Bell, 
   MapPin, 
@@ -55,6 +55,9 @@ export default function App() {
   // Auth State
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Track notified offline devices to avoid duplicate alerts
+  const notifiedOffline = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -136,9 +139,46 @@ export default function App() {
       })
       .subscribe();
 
+    // Check for offline computers every minute
+    const checkOfflineDevices = async () => {
+      const { data } = await supabase.from('devices_health').select('asset_id, last_ping');
+      if (data) {
+        const now = new Date();
+        data.forEach(device => {
+          const pingDate = new Date(device.last_ping);
+          const diffMinutes = (now.getTime() - pingDate.getTime()) / 60000;
+          
+          if (diffMinutes > 4) { // Agent pings every 3 min; >4 min means it's late/offline
+            if (!notifiedOffline.current.has(device.asset_id)) {
+              notifiedOffline.current.add(device.asset_id);
+              setNotifications(prev => {
+                const newNotif = {
+                  id: `offline-${device.asset_id}-${Date.now()}`,
+                  title: "Computador Offline",
+                  description: `O dispositivo ${device.asset_id} parou de enviar telemetria e parece estar offline.`,
+                  time: "Agora mesmo",
+                  read: false
+                };
+                return [newNotif, ...prev];
+              });
+            }
+          } else {
+            // Remove from the set if it's back online so we can alert again if it goes offline later
+            if (notifiedOffline.current.has(device.asset_id)) {
+              notifiedOffline.current.delete(device.asset_id);
+            }
+          }
+        });
+      }
+    };
+
+    const offlineIntervalId = setInterval(checkOfflineDevices, 60000);
+    checkOfflineDevices();
+
     return () => {
       subscription.unsubscribe();
       supabase.removeChannel(assetsSubscription);
+      clearInterval(offlineIntervalId);
     };
   }, []);
 
