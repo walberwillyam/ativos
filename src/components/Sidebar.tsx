@@ -36,11 +36,30 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
     { id: 'categories', label: 'Categorias', icon: Tags },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
     { id: 'monitoring', label: 'Monitoramento', icon: Activity },
-    ...(userProfile?.role === 'admin' ? [
+    ...(userProfile?.role?.toLowerCase().includes('admin') ? [
       { id: 'settings', label: 'Configurações', icon: Settings },
       { id: 'users', label: 'Gestão de Usuários', icon: UserCheck }
     ] : [])
   ];
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && userProfile?.id) {
+      const file = e.target.files[0];
+      try {
+        const fileName = `avatars/${userProfile.id}_${Date.now()}`;
+        const { error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file);
+        if (error) throw error;
+        
+        const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(fileName);
+        
+        await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', userProfile.id);
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao enviar foto. Tente novamente mais tarde.");
+      }
+    }
+  };
 
   return (
     <>
@@ -62,21 +81,16 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
         {/* User Card */}
         <div className={`mb-6 transition-all ${isCollapsed ? 'px-2' : 'px-6'}`}>
           <div className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-3'} bg-white border border-slate-200 rounded-xl shadow-sm`}>
-            <div className="relative">
+            <label className="relative cursor-pointer group">
               <img 
                 src={userProfile?.avatar_url || "https://lh3.googleusercontent.com/aida/AP1WRLsBYYnnV-luFdNkqjmViVKgBL_wnBHD1mm0U_1MBJNBc0Nq2Ta13pem3-6e70vJuGD9K7KMYM-NjXowD6knnAkEbc7KveeBYKI-AIJxM1shD7XyOPQ9sOMz-qiauEObw7rtu7DybOldDRMRMion_3zk4LjzGAUsr2nUQ-p1vG-QG6yrwNBDvVhZlmmcy-bWfQ6-Sd24IOrs_-tDGvp39-kSVYDMJEf0jfDLv33a_N3xFAf3wwaZMFW3IA"} 
                 alt="Foto de Perfil Administrativo" 
-                onClick={() => {
-                  const url = prompt('Cole aqui a URL da sua nova foto de perfil:');
-                  if (url && userProfile?.id) {
-                    supabase.from('profiles').update({ avatar_url: url }).eq('id', userProfile.id).then(() => window.location.reload());
-                  }
-                }}
-                className="w-10 h-10 rounded-xl object-cover border-2 border-indigo-600 shadow cursor-pointer hover:border-indigo-400 transition-all"
+                className="w-10 h-10 rounded-xl object-cover border-2 border-indigo-600 shadow group-hover:border-indigo-400 transition-all"
                 title="Alterar Foto de Perfil"
               />
               <span className="absolute -bottom-1 -right-1 bg-emerald-500 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800" />
-            </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+            </label>
             {!isCollapsed && (
               <div className="min-w-0">
                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-0.5 truncate">{userProfile?.full_name || 'Usuário do Sistema'}</h3>

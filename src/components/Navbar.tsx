@@ -47,6 +47,25 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
     }
   }, [isDarkMode]);
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && userProfile?.id) {
+      const file = e.target.files[0];
+      try {
+        const fileName = `avatars/${userProfile.id}_${Date.now()}`;
+        const { error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file);
+        if (error) throw error;
+        
+        const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(fileName);
+        
+        await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', userProfile.id);
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao enviar foto. Tente novamente mais tarde.");
+      }
+    }
+  };
+
   return (
     <header className="h-16 border-b border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-40 select-none flex items-center justify-between px-6 shadow-xs leading-none transition-colors duration-200">
       
@@ -168,18 +187,15 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
 
         {/* User profile capsule */}
         <div className="flex items-center gap-2.5">
-          <img 
-            src={userProfile?.avatar_url || "https://lh3.googleusercontent.com/aida/AP1WRLsBYYnnV-luFdNkqjmViVKgBL_wnBHD1mm0U_1MBJNBc0Nq2Ta13pem3-6e70vJuGD9K7KMYM-NjXowD6knnAkEbc7KveeBYKI-AIJxM1shD7XyOPQ9sOMz-qiauEObw7rtu7DybOldDRMRMion_3zk4LjzGAUsr2nUQ-p1vG-QG6yrwNBDvVhZlmmcy-bWfQ6-Sd24IOrs_-tDGvp39-kSVYDMJEf0jfDLv33a_N3xFAf3wwaZMFW3IA"} 
-            alt="Avatar" 
-            onClick={() => {
-              const url = prompt('Cole aqui a URL da sua nova foto de perfil:');
-              if (url && userProfile?.id) {
-                supabase.from('profiles').update({ avatar_url: url }).eq('id', userProfile.id).then(() => window.location.reload());
-              }
-            }}
-            className="w-8 h-8 rounded-full border border-slate-200 shadow-xs cursor-pointer object-cover hover:ring-2 hover:ring-indigo-500 transition-all" 
-            title="Alterar Foto de Perfil"
-          />
+          <label className="cursor-pointer relative group">
+            <img 
+              src={userProfile?.avatar_url || "https://lh3.googleusercontent.com/aida/AP1WRLsBYYnnV-luFdNkqjmViVKgBL_wnBHD1mm0U_1MBJNBc0Nq2Ta13pem3-6e70vJuGD9K7KMYM-NjXowD6knnAkEbc7KveeBYKI-AIJxM1shD7XyOPQ9sOMz-qiauEObw7rtu7DybOldDRMRMion_3zk4LjzGAUsr2nUQ-p1vG-QG6yrwNBDvVhZlmmcy-bWfQ6-Sd24IOrs_-tDGvp39-kSVYDMJEf0jfDLv33a_N3xFAf3wwaZMFW3IA"} 
+              alt="Avatar" 
+              className="w-8 h-8 rounded-full border border-slate-200 shadow-xs object-cover group-hover:ring-2 group-hover:ring-indigo-500 transition-all" 
+              title="Alterar Foto de Perfil"
+            />
+            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          </label>
           <div className="hidden lg:block">
             <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">{userProfile?.full_name || 'Usuário do Sistema'}</p>
             <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5">{userEmail || 'admin@ativosapoio.com.br'}</p>
