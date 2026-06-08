@@ -218,7 +218,11 @@ async function collectAndSendHealth() {
       // 3. Impressoras
       if (printers) {
         printers.forEach((prn, idx) => {
-          if (!prn.name || prn.name.includes('PDF') || prn.name.includes('OneNote') || prn.name.includes('XPS')) return;
+          if (!prn.name || prn.name.includes('PDF') || prn.name.includes('OneNote') || prn.name.includes('XPS') || prn.name.toLowerCase().includes('fax')) return;
+          
+          // Manter apenas impressoras online (Idle, Printing, etc.)
+          if (prn.status === 'Offline' || prn.status === 'Unknown' || prn.status === 'Error' || prn.status === 'Stopped Printing') return;
+          
           const name = prn.name;
           const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
           newAssets.push({
@@ -227,7 +231,7 @@ async function collectAndSendHealth() {
             name: name,
             category: 'Impressoras',
             model: prn.model || name,
-            serialNumber: 'N/A',
+            serialNumber: prn.serial || prn.serialNumber || 'N/A',
             unit: hostUnit,
             location: prn.local ? 'Local - ' + ASSET_ID : 'Rede',
             currentFloor: 'office',

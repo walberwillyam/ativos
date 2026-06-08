@@ -176,11 +176,11 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       <tr class="border-b border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
         <td class="px-4 py-3 text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400">${a.id}</td>
         <td class="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200">${a.name}</td>
-        <td class="px-4 py-3 text-xs text-slate-655 dark:text-slate-400">${a.patrimonio}</td>
-        <td class="px-4 py-3 text-xs text-slate-655 dark:text-slate-450 font-medium">${a.category}</td>
-        <td class="px-4 py-3 text-xs text-slate-655 dark:text-slate-405">${a.model}</td>
-        <td class="px-4 py-3 text-xs text-slate-655 dark:text-slate-405">${a.unit}</td>
-        <td class="px-4 py-3 text-xs text-slate-655 dark:text-slate-405">${a.responsible?.name || '-'}</td>
+        <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">${a.patrimonio}</td>
+        <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-400 font-medium">${a.category}</td>
+        <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">${a.model}</td>
+        <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">${a.unit}</td>
+        <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">${a.responsible?.name || '-'}</td>
         <td class="px-4 py-3 text-xs">
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-xs ${
             a.status === 'Em Uso' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' :
@@ -198,13 +198,13 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     const categoriesCardsHTML = categoriesList.map(c => `
       <div class="bg-white/50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800/80 p-4 rounded-xl shadow-sm hover:shadow-md transition-all">
         <div class="flex justify-between items-start mb-2">
-          <span class="text-sm font-bold text-slate-850 dark:text-slate-200">${c.name}</span>
+          <span class="text-sm font-bold text-slate-800 dark:text-slate-200">${c.name}</span>
           <span class="text-xs px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold rounded">${c.count} u.</span>
         </div>
         <div class="space-y-1">
           <div class="flex justify-between text-xs text-slate-500">
             <span>Valor Total</span>
-            <span class="font-semibold text-slate-750 dark:text-slate-300">${formatBRL(c.value)}</span>
+            <span class="font-semibold text-slate-700 dark:text-slate-300">${formatBRL(c.value)}</span>
           </div>
           <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
             <div class="bg-indigo-600 h-full" style="width: ${c.percentage}%"></div>
@@ -298,7 +298,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     }
   </style>
 </head>
-<body class="bg-slate-955 text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
   
   <!-- TOP CONTROL BAR (NON-PRINTABLE) -->
   <div class="no-print bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-sm transition-colors">
@@ -360,7 +360,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
             <span class="font-medium text-slate-300">${totalAssets} ativos selecionados</span>
           </div>
           <div>
-            <span class="block uppercase tracking-wider font-semibold text-[10px] text-slate-605">Autor</span>
+            <span class="block uppercase tracking-wider font-semibold text-[10px] text-slate-600">Autor</span>
             <span class="font-medium text-slate-300">Administrador de TI</span>
           </div>
         </div>
