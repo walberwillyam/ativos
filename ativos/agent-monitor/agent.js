@@ -52,7 +52,29 @@ if (fs.existsSync(idFilePath)) {
   fs.writeFileSync(idFilePath, JSON.stringify({ asset_id: ASSET_ID }));
 }
 
-const UNIT_ID = process.env.UNIT_ID || 'UNKNOWN_UNIT';
+const UNIT_ID_RAW = process.env.UNIT_ID || 'UNKNOWN_UNIT';
+let UNIT_ID = UNIT_ID_RAW; // será resolvido para o nome real da unidade
+
+// Resolve o nome real da unidade a partir do ID
+async function resolveUnitName() {
+  try {
+    const { data, error } = await supabase
+      .from('units')
+      .select('id, name')
+      .eq('id', UNIT_ID_RAW)
+      .single();
+
+    if (data && data.name) {
+      UNIT_ID = data.name;
+      console.log(`[Unidade] Resolvido: "${UNIT_ID_RAW}" -> "${UNIT_ID}"`);
+    } else {
+      // Talvez o usuário já tenha colocado o nome direto
+      console.log(`[Unidade] Usando valor direto: "${UNIT_ID}"`);
+    }
+  } catch (e) {
+    console.log(`[Unidade] Não foi possível resolver o nome, usando: "${UNIT_ID}"`);
+  }
+}
 
 const PING_INTERVAL_MS = 180000; // 3 minutos (180.000 ms)
 
@@ -367,15 +389,10 @@ async function collectAndSendHealth() {
   }
 }
 
-console.log(`=== Agente de Monitoramento Iniciado ===`);
-console.log(`Máquina: ${ASSET_ID} | Unidade: ${UNIT_ID}`);
-console.log(`Aguardando... Enviando dados a cada ${PING_INTERVAL_MS / 1000} segundos.\n`);
-
-// --- LÓGICA DE AUTO ATUALIZAÇÃO ---
 // --- LÓGICA DE AUTO ATUALIZAÇÃO ---
 const axios = require('axios');
 
-const CURRENT_VERSION = "1.1.0";
+const CURRENT_VERSION = "1.2.0";
 const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 24; // 24h
 
 async function checkAndUpdate() {
@@ -409,10 +426,23 @@ async function checkAndUpdate() {
   }
 }
 
-// Executa na hora que liga e depois a cada 10s
-collectAndSendHealth();
-setInterval(collectAndSendHealth, PING_INTERVAL_MS);
+// === INICIALIZAÇÃO ===
+async function init() {
+  // Primeiro resolve o nome da unidade
+  await resolveUnitName();
 
-// Executa update a cada 24h
-setInterval(checkAndUpdate, UPDATE_CHECK_INTERVAL);
-checkAndUpdate();
+  console.log(`=== Agente de Monitoramento Iniciado ===`);
+  console.log(`Máquina: ${ASSET_ID} | Unidade: ${UNIT_ID}`);
+  console.log(`Aguardando... Enviando dados a cada ${PING_INTERVAL_MS / 1000} segundos.\n`);
+
+  // Executa coleta imediata e depois a cada intervalo
+  collectAndSendHealth();
+  setInterval(collectAndSendHealth, PING_INTERVAL_MS);
+
+  // Executa update a cada 24h
+  setInterval(checkAndUpdate, UPDATE_CHECK_INTERVAL);
+  checkAndUpdate();
+}
+
+init();
+
