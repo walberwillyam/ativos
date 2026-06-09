@@ -294,11 +294,11 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
             <button className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">Ver Detalhamento</button>
           </div>
 
-          <div className="flex-1 flex items-end justify-between gap-4 h-64 pt-4 select-none">
+          <div className="flex-1 flex items-end justify-between gap-2 sm:gap-4 h-64 pt-4 select-none overflow-x-auto">
             {Object.entries(categoryCounts).map(([cat, val]) => {
               const heightPercent = maxVal > 0 ? (val / maxVal) * 90 : 10;
               return (
-                <div key={cat} className="flex flex-col items-center flex-1 group">
+                <div key={cat} className="flex flex-col items-center flex-1 min-w-[48px] group">
                   <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-t-xl relative h-48 flex items-end overflow-hidden">
                     <div 
                       className="w-full bg-indigo-600/80 group-hover:bg-indigo-600 rounded-t-xl transition-all duration-700 ease-out relative cursor-pointer"
@@ -309,7 +309,7 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                       </span>
                     </div>
                   </div>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-2 text-center truncate w-full group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-2 text-center truncate w-full group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                     {cat}
                   </span>
                 </div>
@@ -323,8 +323,8 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
           <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Atividade Recente</h4>
           <div className="space-y-5">
             {activities.slice(0, 3).map((act, index) => (
-              <div key={act.id || index} className="flex gap-4">
-                <div className="relative flex flex-col items-center">
+              <div key={act.id || index} className="flex gap-3 sm:gap-4">
+                <div className="relative flex flex-col items-center shrink-0">
                   <div className={`w-8 h-8 rounded-full ${act.badgeColor} flex items-center justify-center text-white shrink-0 shadow-sm`}>
                     {act.icon === 'sync_alt' && <RefreshCw size={14} className="animate-spin" style={{ animationDuration: '6s' }} />}
                     {act.icon === 'build' && <Wrench size={14} />}
@@ -332,9 +332,9 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
                   </div>
                   {index < 2 && <div className="w-0.5 bg-slate-100 dark:bg-slate-800 flex-1 my-1" />}
                 </div>
-                <div className="pb-2">
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">{act.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">{act.details}</p>
+                <div className="pb-2 min-w-0">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight truncate">{act.title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-3">{act.details}</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium">{act.time} • Por {act.by}</p>
                 </div>
               </div>

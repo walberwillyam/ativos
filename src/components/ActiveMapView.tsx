@@ -803,7 +803,7 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                   </div>
                 ) : (
                   partitionsFormList.map((part, index) => (
-                    <div key={part.id} className="flex flex-wrap md:flex-nowrap items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-2xl">
+                    <div key={part.id} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-2xl">
                       <input
                         type="text"
                         className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
@@ -815,19 +815,6 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
                         placeholder="Nome do Setor"
                         required
                       />
-                      <select
-                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 font-semibold focus:outline-none cursor-pointer"
-                        value={part.layout}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setPartitionsFormList(prev => prev.map((p, idx) => idx === index ? { ...p, layout: val } : p));
-                        }}
-                      >
-                        <option value="office">Layout: Escritório</option>
-                        <option value="cpd">Layout: CPD / Rede</option>
-                        <option value="pista">Layout: Pista Operacional</option>
-                        <option value="loja">Layout: Estoque</option>
-                      </select>
                       <button
                         type="button"
                         onClick={() => handleDeletePartitionLocal(part.id)}
@@ -844,30 +831,15 @@ export default function ActiveMapView({ assets, onSelectAsset, units, onAddUnit,
               {/* Add New Partition Section */}
               <form onSubmit={handleAddPartitionLocal} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 text-left space-y-3 shadow-xs">
                 <h4 className="text-[10px] font-black uppercase text-indigo-700 tracking-wider">Adicionar Novo Setor</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">Nome do Setor / Partição *</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Mezanino, Doca C"
-                      value={newPartitionName}
-                      onChange={(e) => setNewPartitionName(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-600 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">Fundo Visual Técnico *</label>
-                    <select
-                      value={newPartitionLayout}
-                      onChange={(e) => setNewPartitionLayout(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer"
-                    >
-                      <option value="office">Escritório Corporativo</option>
-                      <option value="cpd">CPD / Computador de rede</option>
-                      <option value="pista">Pista Operacional / Logística</option>
-                      <option value="loja">Loja / Armazém de Estoque</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">Nome do Setor / Partição *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Mezanino, Doca C"
+                    value={newPartitionName}
+                    onChange={(e) => setNewPartitionName(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-600 outline-none"
+                  />
                 </div>
                 <button
                   type="submit"

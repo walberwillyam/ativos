@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Bell, 
   MapPin, 
@@ -56,8 +56,7 @@ export default function App() {
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  // Track notified offline devices to avoid duplicate alerts
-  const notifiedOffline = useRef<Set<string>>(new Set());
+  // (offline tracking is handled by notification upsert pattern below)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -139,36 +138,54 @@ export default function App() {
       })
       .subscribe();
 
-    // Check for offline computers every minute
+    // Check for offline computers every minute — upserts a single notification per asset
     const checkOfflineDevices = async () => {
       const { data } = await supabase.from('devices_health').select('asset_id, last_ping');
       if (data) {
         const now = new Date();
+        const currentOfflineIds = new Set<string>();
+
         data.forEach(device => {
           const pingDate = new Date(device.last_ping);
-          const diffMinutes = (now.getTime() - pingDate.getTime()) / 60000;
-          
-          if (diffMinutes > 4) { // Agent pings every 3 min; >4 min means it's late/offline
-            if (!notifiedOffline.current.has(device.asset_id)) {
-              notifiedOffline.current.add(device.asset_id);
-              setNotifications(prev => {
-                const newNotif = {
-                  id: `offline-${device.asset_id}-${Date.now()}`,
-                  title: "Computador Offline",
-                  description: `O dispositivo ${device.asset_id} parou de enviar telemetria e parece estar offline.`,
-                  time: "Agora mesmo",
-                  read: false
-                };
-                return [newNotif, ...prev];
-              });
-            }
-          } else {
-            // Remove from the set if it's back online so we can alert again if it goes offline later
-            if (notifiedOffline.current.has(device.asset_id)) {
-              notifiedOffline.current.delete(device.asset_id);
-            }
+          const diffMinutes = Math.round((now.getTime() - pingDate.getTime()) / 60000);
+          const notifId = `offline-${device.asset_id}`;
+
+          if (diffMinutes > 4) {
+            currentOfflineIds.add(device.asset_id);
+            const timeLabel = diffMinutes < 60
+              ? `${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`
+              : `${Math.floor(diffMinutes / 60)}h${diffMinutes % 60 > 0 ? ` ${diffMinutes % 60}min` : ''}`;
+
+            setNotifications(prev => {
+              const existingIndex = prev.findIndex(n => n.id === notifId);
+              const updatedNotif = {
+                id: notifId,
+                title: "Computador Offline",
+                description: `O dispositivo ${device.asset_id} está offline há ${timeLabel}.`,
+                time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                read: false
+              };
+
+              if (existingIndex >= 0) {
+                // Update existing notification in-place
+                const updated = [...prev];
+                updated[existingIndex] = updatedNotif;
+                return updated;
+              }
+              // First time offline — add to top
+              return [updatedNotif, ...prev];
+            });
           }
         });
+
+        // Remove notifications for devices that came back online
+        setNotifications(prev => prev.filter(n => {
+          if (n.id.startsWith('offline-')) {
+            const assetId = n.id.replace('offline-', '');
+            return currentOfflineIds.has(assetId);
+          }
+          return true;
+        }));
       }
     };
 
