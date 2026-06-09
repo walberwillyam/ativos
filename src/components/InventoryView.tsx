@@ -1920,7 +1920,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 outline-none cursor-pointer text-slate-700"
                 >
                   <option value="">-- Selecione o Computador Pai --</option>
-                  {assets.filter(a => (a.category === 'Notebooks' || a.category === 'Desktops' || a.model.toLowerCase().includes('pc')) && (!newAssetForm.unit || a.unit === newAssetForm.unit)).map(a => (
+                  {assets.filter(a => (a.category?.toLowerCase().startsWith('notebook') || a.category?.toLowerCase().startsWith('desktop') || (a.model && a.model.toLowerCase().includes('pc'))) && (!newAssetForm.unit || a.unit === newAssetForm.unit)).map(a => (
                     <option key={a.id} value={a.id}>{a.name} ({a.id})</option>
                   ))}
                 </select>
