@@ -1065,14 +1065,14 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   const uploadAssetImage = async (file: File, assetId: string): Promise<string> => {
     const ext = file.name.split('.').pop() || 'jpg';
     const filePath = `assets/${assetId}.${ext}`;
-    const { error } = await supabase.storage.from('asset-images').upload(filePath, file, { upsert: true });
+    const { error } = await supabase.storage.from('ativos_arquivos').upload(filePath, file, { upsert: true });
     if (error) {
       console.error('Upload error:', error);
-      // Fallback: return a data URL
-      return assetImagePreview;
+      alert(`Erro ao enviar foto: ${error.message}`);
+      return '';
     }
-    const { data: urlData } = supabase.storage.from('asset-images').getPublicUrl(filePath);
-    return urlData?.publicUrl || assetImagePreview;
+    const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(filePath);
+    return urlData?.publicUrl || '';
   };
 
   // Apply filters in client side memory
@@ -1274,13 +1274,19 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       setIsUploadingImage(false);
     }
 
+    // Save to DB first — only update local state and close modal if successful
+    const { error: insertError } = await supabase.from('assets').insert([newAsset]);
+    if (insertError) {
+      setIsUploadingImage(false);
+      alert(`Erro ao salvar ativo no banco de dados:\n${insertError.message}\n\nVerifique se todas as colunas existem na tabela.`);
+      return;
+    }
+
+    // Only add to local state after confirmed save
     setAssets(prev => [newAsset, ...prev]);
     setIsNewAssetOpen(false);
 
-    // Save to DB
-    supabase.from('assets').insert([newAsset]).then();
-
-    // Add logging check to Dashboard activities
+    // Add logging to Dashboard activities
     onAddActivity({
       type: "creation",
       title: "Ativo Cadastrado",
@@ -1297,13 +1303,14 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       category: 'Notebooks',
       model: '',
       serialNumber: '',
-      unit: 'Matriz - São Paulo',
+      unit: units[0]?.name || '',
       location: 'Escritório Sala A',
+      currentFloor: 'office',
       status: 'Em Uso',
       value: '',
-      acquisitionDate: '2026-06-01',
-      warrantyExpiry: '2028-06-01',
-      responsibleName: 'Ricardo Mendes',
+      acquisitionDate: new Date().toISOString().split('T')[0],
+      warrantyExpiry: new Date(Date.now() + 2*365*24*60*60*1000).toISOString().split('T')[0],
+      responsibleName: '',
       processor: '',
       ram: '',
       storage: '',
