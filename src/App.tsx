@@ -40,6 +40,7 @@ import CategoriesView from './components/CategoriesView';
 import AuthScreen from './components/AuthScreen';
 import UserManagementView from './components/UserManagementView';
 import NocView from './components/NocView';
+import AuditView from './components/AuditView';
 import { supabase } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
@@ -1340,6 +1341,14 @@ export default function App() {
               onCreateCategory={handleCreateCategory}
               onUpdateCategory={handleUpdateCategory}
               onDeleteCategory={handleDeleteCategory}
+            />
+          )}
+          {activeScreen === 'audit' && (
+            <AuditView 
+              assets={assets}
+              units={units}
+              onUpdateAsset={handleUpdateAsset}
+              onAddActivity={handleAddLiveActivity}
             />
           )}
           {activeScreen === 'reports' && renderReportsScreen()}

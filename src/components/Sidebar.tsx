@@ -14,7 +14,8 @@ import {
   LogOut,
   QrCode,
   UserCheck,
-  Activity
+  Activity,
+  ClipboardCheck
 } from 'lucide-react';
 import { ActiveScreen } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -32,6 +33,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
   const menuItems = [
     { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
     { id: 'inventory', label: 'Inventário', icon: Boxes },
+    { id: 'audit', label: 'Conferência', icon: ClipboardCheck },
     { id: 'units', label: 'Unidades', icon: MapPin },
     { id: 'categories', label: 'Categorias', icon: Tags },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
