@@ -5,6 +5,27 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+// ===== VALIDAÇÃO DE INICIALIZAÇÃO =====
+if (!supabaseUrl || !supabaseKey) {
+  console.error('==========================================================');
+  console.error('  ERRO FATAL: Variáveis de ambiente não configuradas!');
+  console.error('==========================================================');
+  console.error('');
+  if (!supabaseUrl) console.error('  ❌ SUPABASE_URL não definido');
+  if (!supabaseKey) console.error('  ❌ SUPABASE_ANON_KEY não definido');
+  console.error('');
+  console.error('  Certifique-se de que o arquivo .env existe na pasta do agente');
+  console.error('  ou que as variáveis foram passadas via serviço do Windows.');
+  console.error('');
+  console.error('  Caminho esperado do .env:', require('path').join(__dirname, '.env'));
+  console.error('==========================================================');
+  // Mantém o processo vivo por 30s para que o log seja visível
+  setTimeout(() => process.exit(1), 30000);
+  // Não continua a execução
+  return;
+}
+
 const ws = require('ws');
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false },
@@ -35,10 +56,46 @@ const UNIT_ID = process.env.UNIT_ID || 'UNKNOWN_UNIT';
 
 const PING_INTERVAL_MS = 180000; // 3 minutos (180.000 ms)
 
-function getMonitorSerials() {
+function getMonitorDetails() {
   try {
-    const output = execSync('powershell "Get-WmiObject WmiMonitorID -Namespace root\\\\wmi | ForEach-Object { [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID) }"').toString();
-    return output.split('\\n').map(s => s.replace(/\\0/g, '').trim()).filter(s => s.length > 0);
+    const psScript = `
+      [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+      $monitors = Get-WmiObject WmiMonitorID -Namespace root\\wmi
+      $res = @()
+      foreach ($m in $monitors) {
+        try {
+          $name = [System.Text.Encoding]::ASCII.GetString($m.UserFriendlyName).Replace([char]0, '').Trim()
+          $serial = [System.Text.Encoding]::ASCII.GetString($m.SerialNumberID).Replace([char]0, '').Trim()
+          if ($name -and $name -notmatch 'Generic PnP Monitor' -and $name -notmatch 'GenǸrico') {
+            $res += @{ Name = $name; Serial = $serial }
+          }
+        } catch {}
+      }
+      $res | ConvertTo-Json -Compress
+    `;
+    const output = execSync(`powershell -NoProfile -Command "${psScript.replace(/\\n/g, ' ')}"`).toString();
+    if (!output.trim()) return [];
+    const parsed = JSON.parse(output);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch (e) {
+    return [];
+  }
+}
+
+function getPrinterStatuses() {
+  try {
+    const psScript = `
+      $printers = Get-WmiObject Win32_Printer
+      $res = @()
+      foreach ($p in $printers) {
+        $res += @{ Name = $p.Name; Offline = $p.WorkOffline }
+      }
+      $res | ConvertTo-Json -Compress
+    `;
+    const output = execSync(`powershell -NoProfile -Command "${psScript.replace(/\\n/g, ' ')}"`).toString();
+    if (!output.trim()) return [];
+    const parsed = JSON.parse(output);
+    return Array.isArray(parsed) ? parsed : [parsed];
   } catch (e) {
     return [];
   }
@@ -149,18 +206,28 @@ async function collectAndSendHealth() {
 
       // 1. Monitores
       if (graphics && graphics.displays) {
-        const monitorSerials = getMonitorSerials();
+        const monitorDetails = getMonitorDetails();
         graphics.displays.forEach((disp, idx) => {
-          if (!disp.model || disp.model.includes('Genérico') || disp.model.includes('Default') || disp.model.includes('padrão')) return;
-          const name = disp.model || `Monitor ${idx+1}`;
-          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
+          let name = disp.model || `Monitor ${idx+1}`;
+          let serial = 'N/A';
+
+          if (monitorDetails[idx]) {
+            name = monitorDetails[idx].Name || name;
+            serial = monitorDetails[idx].Serial || serial;
+          }
+
+          if (!name || name.includes('GenǸrico') || name.includes('Default') || name.includes('padrǜo') || name === 'Generic PnP Monitor' || name === 'Monitor Genérico PnP') {
+             if (serial === 'N/A') return; 
+          }
+
+          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 15);
           newAssets.push({
             id: `MON-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}-${idx}`,
             patrimonio: `AUTO-MON-${idx}`,
-            name: `${disp.vendor || 'Monitor'} ${name}`,
+            name: `${disp.vendor && disp.vendor.length > 2 && !disp.vendor.includes('padr') ? disp.vendor + ' ' : ''}${name}`.trim(),
             category: 'Monitores',
             model: name,
-            serialNumber: monitorSerials[idx] || 'N/A',
+            serialNumber: serial,
             unit: hostUnit,
             location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
             currentFloor: 'office',
@@ -176,52 +243,18 @@ async function collectAndSendHealth() {
         });
       }
 
-      // 2. USB (Mouses, Teclados, Webcams)
-      if (usbs) {
-        usbs.forEach((usb, idx) => {
-          const name = usb.name || usb.type || 'Dispositivo USB';
-          // Ignorar hubs, root hubs e dispositivos não identificáveis/genéricos
-          if (!name || name.toLowerCase().includes('hub') || name.toLowerCase().includes('host controller') || name.toLowerCase().includes('composite') || name.length < 3) return;
-          
-          // Filtrar apenas o que parece ser periférico de interesse (mouse, teclado, câmera, audio)
-          const isPeripheral = name.toLowerCase().includes('mouse') || 
-                               name.toLowerCase().includes('keyboard') || 
-                               name.toLowerCase().includes('teclado') ||
-                               name.toLowerCase().includes('cam') ||
-                               name.toLowerCase().includes('audio') ||
-                               name.toLowerCase().includes('headset');
-                               
-          if (!isPeripheral) return;
+      // 2. USB (Mouses, Teclados, Webcams) - Removido a pedido
 
-          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 15);
-          newAssets.push({
-            id: `USB-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}-${idx}`,
-            patrimonio: `AUTO-USB-${idx}`,
-            name: `${usb.vendor || 'USB'} ${name}`,
-            category: 'Periféricos (Mouse/Teclado)',
-            model: name,
-            serialNumber: usb.serialNumber || 'N/A',
-            unit: hostUnit,
-            location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
-            currentFloor: 'office',
-            mapCoordinates: { x: 50, y: 50 },
-            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
-            status: 'Em Uso',
-            value: 0,
-            acquisitionDate: nowString,
-            warrantyExpiry: nowString,
-            specifications: { "Fabricante": usb.vendor || 'Desconhecido', "Host": ASSET_ID },
-            history: []
-          });
-        });
-      }
       // 3. Impressoras
       if (printers) {
+        const pStatuses = getPrinterStatuses();
         printers.forEach((prn, idx) => {
           if (!prn.name || prn.name.includes('PDF') || prn.name.includes('OneNote') || prn.name.includes('XPS') || prn.name.toLowerCase().includes('fax')) return;
           
-          // Manter apenas impressoras online (Idle, Printing, etc.)
           if (prn.status === 'Offline' || prn.status === 'Unknown' || prn.status === 'Error' || prn.status === 'Stopped Printing') return;
+          
+          const pStat = pStatuses.find(p => p.Name === prn.name);
+          if (pStat && pStat.Offline) return;
           
           const name = prn.name;
           const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
@@ -342,7 +375,7 @@ console.log(`Aguardando... Enviando dados a cada ${PING_INTERVAL_MS / 1000} segu
 // --- LÓGICA DE AUTO ATUALIZAÇÃO ---
 const axios = require('axios');
 
-const CURRENT_VERSION = "1.1.1";
+const CURRENT_VERSION = "1.1.0";
 const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 24; // 24h
 
 async function checkAndUpdate() {

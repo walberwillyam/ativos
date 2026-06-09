@@ -5,6 +5,27 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+// ===== VALIDAÇÃO DE INICIALIZAÇÃO =====
+if (!supabaseUrl || !supabaseKey) {
+  console.error('==========================================================');
+  console.error('  ERRO FATAL: Variáveis de ambiente não configuradas!');
+  console.error('==========================================================');
+  console.error('');
+  if (!supabaseUrl) console.error('  ❌ SUPABASE_URL não definido');
+  if (!supabaseKey) console.error('  ❌ SUPABASE_ANON_KEY não definido');
+  console.error('');
+  console.error('  Certifique-se de que o arquivo .env existe na pasta do agente');
+  console.error('  ou que as variáveis foram passadas via serviço do Windows.');
+  console.error('');
+  console.error('  Caminho esperado do .env:', require('path').join(__dirname, '.env'));
+  console.error('==========================================================');
+  // Mantém o processo vivo por 30s para que o log seja visível
+  setTimeout(() => process.exit(1), 30000);
+  // Não continua a execução
+  return;
+}
+
 const ws = require('ws');
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false },

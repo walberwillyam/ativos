@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul 2>&1
 title Desinstalacao do Agente Ativos Apoio
 color 0C
 
@@ -8,7 +9,7 @@ if %errorLevel% == 0 (
     goto :admin
 ) else (
     echo Solicitando privilegios de Administrador...
-    powershell -Command "Start-Process '%~dpnx0' -Verb RunAs"
+    powershell -Command "Start-Process cmd -ArgumentList '/c \"\"%~dpnx0\"\"' -Verb RunAs"
     exit /b
 )
 
@@ -19,13 +20,24 @@ echo ===================================================
 echo     Desinstalacao do Robo - Ativos Apoio
 echo ===================================================
 echo.
-echo Parando o servico...
-net stop AtivosApoio_AgenteTI.exe >nul 2>&1
-net stop AtivosApoio_AgenteTI >nul 2>&1
+echo Parando servicos...
 
-echo.
-echo Removendo o servico do Windows...
-sc delete AtivosApoio_AgenteTI >nul 2>&1
+:: Para e remove todos os nomes de servico possiveis
+net stop "ativosapoio_agente_oficial.exe" >nul 2>&1
+net stop "AtivosApoio_Agente_Oficial" >nul 2>&1
+net stop "AtivosApoio_AgenteTI.exe" >nul 2>&1
+net stop "AtivosApoio_AgenteTI" >nul 2>&1
+
+echo Removendo servicos do Windows...
+sc delete "ativosapoio_agente_oficial.exe" >nul 2>&1
+sc delete "AtivosApoio_Agente_Oficial" >nul 2>&1
+sc delete "AtivosApoio_AgenteTI" >nul 2>&1
+
+:: Remove a pasta daemon
+if exist "daemon" (
+    rmdir /s /q "daemon" >nul 2>&1
+    echo Pasta daemon removida.
+)
 
 echo.
 echo ===================================================
