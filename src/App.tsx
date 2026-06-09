@@ -84,17 +84,26 @@ export default function App() {
 
     // Fetch all real data
     const fetchAllData = async () => {
-      const [{ data: assetsData }, { data: unitsData }, { data: activitiesData }, { data: categoriesData }] = await Promise.all([
-        supabase.from('assets').select('*'),
-        supabase.from('units').select('*'),
-        supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(20),
-        supabase.from('categories').select('*').order('name', { ascending: true })
-      ]);
+      try {
+        const [assetsResponse, unitsResponse, activitiesResponse, categoriesResponse] = await Promise.all([
+          supabase.from('assets').select('*'),
+          supabase.from('units').select('*'),
+          supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(20),
+          supabase.from('categories').select('*').order('name', { ascending: true })
+        ]);
 
-      if (unitsData) setUnits(unitsData);
-      if (categoriesData) setCategories(categoriesData);
-      if (assetsData) setAssets(assetsData);
-      if (activitiesData) setActivities(activitiesData);
+        if (assetsResponse.error) console.error("Error fetching assets:", assetsResponse.error);
+        if (unitsResponse.error) console.error("Error fetching units:", unitsResponse.error);
+        if (activitiesResponse.error) console.error("Error fetching activities:", activitiesResponse.error);
+        if (categoriesResponse.error) console.error("Error fetching categories:", categoriesResponse.error);
+
+        if (unitsResponse.data) setUnits(unitsResponse.data);
+        if (categoriesResponse.data) setCategories(categoriesResponse.data);
+        if (assetsResponse.data) setAssets(assetsResponse.data);
+        if (activitiesResponse.data) setActivities(activitiesResponse.data);
+      } catch (err) {
+        console.error("Unexpected error during fetchAllData:", err);
+      }
     };
 
     fetchAllData();
