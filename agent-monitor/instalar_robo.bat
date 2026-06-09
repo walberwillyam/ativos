@@ -11,7 +11,7 @@ if %errorLevel% == 0 (
     goto :admin
 ) else (
     echo Solicitando privilegios de Administrador...
-    powershell -Command "Start-Process cmd.exe -ArgumentList '/k cd /d \"%~dp0\" && \"%~dpnx0\"' -Verb RunAs"
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
@@ -163,12 +163,10 @@ echo.
 echo Verifique em services.msc se o servico
 echo "AtivosApoio_Agente_Oficial" esta rodando.
 echo.
-echo Se nao estiver, tente executar novamente
-echo como Administrador.
+echo Pode fechar esta janela.
 echo ===================================================
 echo.
-echo Pressione qualquer tecla para fechar...
-pause >nul
+pause
 exit /b
 
 :falhou
@@ -177,6 +175,5 @@ echo ===================================================
 echo    INSTALACAO ABORTADA - Corrija os erros acima.
 echo ===================================================
 echo.
-echo Pressione qualquer tecla para fechar...
-pause >nul
+pause
 exit /b
