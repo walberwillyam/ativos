@@ -53,7 +53,7 @@ export default function AuditView({ assets, units, onUpdateAsset, onAddActivity 
         });
         await html5QrCode.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 100 } },
+          { fps: 10 },
           (decodedText) => {
             if (!isComponentMounted) return;
             // Use ref to access latest state
@@ -116,9 +116,9 @@ export default function AuditView({ assets, units, onUpdateAsset, onAddActivity 
 
     // Find asset in the whole DB to see if it's from another unit
     const foundAsset = assets.find(a => 
-      a.patrimonio.toLowerCase() === code || 
-      a.serialNumber.toLowerCase() === code ||
-      a.id.toLowerCase() === code
+      a.patrimonio?.toLowerCase() === code || 
+      a.serialNumber?.toLowerCase() === code ||
+      a.id?.toLowerCase() === code
     );
 
     if (!foundAsset) {
