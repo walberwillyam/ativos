@@ -1331,7 +1331,7 @@ export default function App() {
           )}
 
           {/* Monitoring Dashboard View */}
-          {activeScreen === 'monitoring' && <MonitoringView units={units} />}
+          {activeScreen === 'monitoring' && <MonitoringView units={units} assets={assets} />}
 
           {/* Dynamic Mock views resolved safely */}
           {activeScreen === 'categories' && (

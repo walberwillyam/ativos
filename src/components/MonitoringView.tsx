@@ -31,9 +31,10 @@ const formatUptime = (seconds?: number) => {
 
 interface MonitoringViewProps {
   units?: any[];
+  assets?: any[];
 }
 
-export default function MonitoringView({ units = [] }: MonitoringViewProps) {
+export default function MonitoringView({ units = [], assets = [] }: MonitoringViewProps) {
   const [devices, setDevices] = useState<DeviceHealth[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
@@ -144,10 +145,21 @@ export default function MonitoringView({ units = [] }: MonitoringViewProps) {
       }
 
       if (Object.keys(assetUpdates).length > 0) {
-        await supabase
-          .from('assets')
-          .update(assetUpdates)
-          .eq('id', editingDevice.asset_id);
+        // Encontrar o ID real do ativo (o asset_id na telemetria geralmente é o hostname)
+        const targetAsset = assets.find(a => a.id === editingDevice.asset_id || a.name === editingDevice.asset_id || a.serialNumber === editingDevice.asset_id);
+        
+        if (targetAsset) {
+          await supabase
+            .from('assets')
+            .update(assetUpdates)
+            .eq('id', targetAsset.id);
+        } else {
+          // Fallback se não encontrar na lista local
+          await supabase
+            .from('assets')
+            .update(assetUpdates)
+            .eq('id', editingDevice.asset_id);
+        }
       }
       
       // Update local state optimisticly (Realtime might also catch it)
