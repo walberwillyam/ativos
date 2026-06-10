@@ -1218,6 +1218,22 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       return;
     }
 
+    if (newAssetForm.patrimonio) {
+      const patExists = assets.find(a => a.patrimonio?.toLowerCase() === newAssetForm.patrimonio.toLowerCase());
+      if (patExists) {
+        alert(`Já existe um ativo cadastrado com o patrimônio ${newAssetForm.patrimonio} (${patExists.name}).`);
+        return;
+      }
+    }
+
+    if (newAssetForm.serialNumber) {
+      const serialExists = assets.find(a => a.serialNumber?.toLowerCase() === newAssetForm.serialNumber.toLowerCase());
+      if (serialExists) {
+        alert(`Já existe um ativo cadastrado com o número de série ${newAssetForm.serialNumber} (${serialExists.name}).`);
+        return;
+      }
+    }
+
     const randomIDNum = Math.floor(1000 + Math.random() * 9000);
     const newID = `KINETIC-${randomIDNum}`;
     const cleanPatrimonio = newAssetForm.patrimonio || `#PAT-${randomIDNum}`;

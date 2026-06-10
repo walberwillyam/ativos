@@ -454,7 +454,7 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
                         status === 'critical' ? 'bg-amber-500 animate-pulse' :
                         'bg-emerald-500 animate-pulse'
                       }`} />
-                      {status}
+                      {status === 'offline' ? 'OFFLINE' : status === 'critical' ? 'CRÍTICO' : 'ONLINE'}
                     </span>
                   </div>
 
@@ -508,7 +508,7 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
 
                     {/* Uptime info */}
                     <div className="flex justify-between text-xs border-t border-slate-900 pt-3 text-slate-500">
-                      <span className="flex items-center gap-1"><Clock size={12}/> Uptime</span>
+                      <span className="flex items-center gap-1"><Clock size={12}/> Tempo Ativo</span>
                       <span className="font-bold text-slate-400">{isOffline ? 'N/A' : formatUptime(device.uptime_seconds)}</span>
                     </div>
                   </div>
@@ -516,7 +516,7 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
                   {/* Card Footer details */}
                   <div className="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between text-[9px] font-semibold text-slate-600">
                     <span className="truncate max-w-[130px]">{device.os_info}</span>
-                    <span className="font-mono">Ping: {new Date(device.last_ping).toLocaleTimeString()}</span>
+                    <span className="font-mono">Comunicação: {new Date(device.last_ping).toLocaleTimeString()}</span>
                   </div>
                 </div>
               );
