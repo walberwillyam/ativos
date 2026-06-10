@@ -56,9 +56,10 @@ export default function AuditView({ assets, units, onUpdateAsset, onAddActivity 
           { fps: 10, qrbox: { width: 250, height: 100 } },
           (decodedText) => {
             if (!isComponentMounted) return;
-            handleCodeSubmit(decodedText);
-            // Optionally stop after one scan or keep running
-            // We keep it running for fast auditing
+            // Use ref to access latest state
+            if (handleCodeSubmitRef.current) {
+               handleCodeSubmitRef.current(decodedText);
+            }
           },
           () => {} // ignore errors
         );
@@ -144,6 +145,11 @@ export default function AuditView({ assets, units, onUpdateAsset, onAddActivity 
     setLastScanResult({ success: true, message: `OK! ${foundAsset.name} conferido.` });
     setScannedCode('');
   };
+
+  const handleCodeSubmitRef = React.useRef(handleCodeSubmit);
+  useEffect(() => {
+    handleCodeSubmitRef.current = handleCodeSubmit;
+  }, [handleCodeSubmit]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
