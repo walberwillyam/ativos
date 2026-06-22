@@ -53,7 +53,8 @@ if (fs.existsSync(idFilePath)) {
 }
 
 const UNIT_ID_RAW = process.env.UNIT_ID || 'UNKNOWN_UNIT';
-let UNIT_ID = UNIT_ID_RAW; // será resolvido para o nome real da unidade
+let UNIT_ID = UNIT_ID_RAW; // uuid para o devices_health
+let UNIT_NAME = UNIT_ID_RAW; // nome para tabela assets
 
 // Resolve o nome real da unidade a partir do ID
 async function resolveUnitName() {
@@ -65,14 +66,15 @@ async function resolveUnitName() {
       .single();
 
     if (data && data.name) {
-      UNIT_ID = data.name;
-      console.log(`[Unidade] Resolvido: "${UNIT_ID_RAW}" -> "${UNIT_ID}"`);
+      UNIT_ID = data.id;
+      UNIT_NAME = data.name;
+      console.log(`[Unidade] Resolvido: "${UNIT_ID_RAW}" -> "${UNIT_NAME}"`);
     } else {
       // Talvez o usuário já tenha colocado o nome direto
-      console.log(`[Unidade] Usando valor direto: "${UNIT_ID}"`);
+      console.log(`[Unidade] Usando valor direto: "${UNIT_NAME}"`);
     }
   } catch (e) {
-    console.log(`[Unidade] Não foi possível resolver o nome, usando: "${UNIT_ID}"`);
+    console.log(`[Unidade] Não foi possível resolver o nome, usando: "${UNIT_NAME}"`);
   }
 }
 
@@ -155,7 +157,7 @@ async function collectAndSendHealth() {
       .eq('id', ASSET_ID)
       .single();
 
-    const hostUnit = assetData?.unit || UNIT_ID;
+    const hostUnit = assetData?.unit || UNIT_NAME;
     const currentSpecs = assetData?.specifications || {};
     currentSpecs["Sistema Operacional"] = osString;
 
@@ -357,14 +359,15 @@ async function collectAndSendHealth() {
     console.log(`[${new Date().toLocaleTimeString()}] Enviando dados de saúde para ${ASSET_ID}... (CPU: ${healthData.cpu_usage}%, Uptime: ${Math.floor(healthData.uptime_seconds/3600)}h)`);
 
     // 2. Tenta atualizar se já existe, senão insere (Upsert por lógica simples)
-    // Como a chave primária é gerada aleatoriamente, vamos checar se o asset já existe
-    const { data: existingAsset } = await supabase
+    // Usamos limit(1) ao invés de single() para não quebrar caso haja duplicados
+    const { data: existingAssets, error: selectErr } = await supabase
       .from('devices_health')
       .select('id')
       .eq('asset_id', ASSET_ID)
-      .single();
+      .limit(1);
 
-    if (existingAsset) {
+    if (existingAssets && existingAssets.length > 0) {
+      const existingAsset = existingAssets[0];
       // Remove o unit_id para não sobrescrever a unidade definida manualmente pelo admin no painel
       const { unit_id, ...updateData } = healthData;
 
@@ -392,7 +395,7 @@ async function collectAndSendHealth() {
 // --- LÓGICA DE AUTO ATUALIZAÇÃO ---
 const axios = require('axios');
 
-const CURRENT_VERSION = "1.2.0";
+const CURRENT_VERSION = "1.2.1";
 const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 24; // 24h
 
 async function checkAndUpdate() {
@@ -432,7 +435,7 @@ async function init() {
   await resolveUnitName();
 
   console.log(`=== Agente de Monitoramento Iniciado ===`);
-  console.log(`Máquina: ${ASSET_ID} | Unidade: ${UNIT_ID}`);
+  console.log(`Máquina: ${ASSET_ID} | Unidade: ${UNIT_NAME}`);
   console.log(`Aguardando... Enviando dados a cada ${PING_INTERVAL_MS / 1000} segundos.\n`);
 
   // Executa coleta imediata e depois a cada intervalo
