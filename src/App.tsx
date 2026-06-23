@@ -1273,6 +1273,7 @@ export default function App() {
               assets={assets} 
               onSelectAsset={handleSelectAsset} 
               activities={activities}
+              setActiveScreen={setActiveScreen}
             />
           )}
 

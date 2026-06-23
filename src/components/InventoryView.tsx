@@ -930,7 +930,10 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     ram: '',
     storage: '',
     connectedTo: '',
-    imageUrl: ''
+    imageUrl: '',
+    imei: '',
+    numero: '',
+    tipoChip: 'SIM'
   });
 
   // Bulk edits helpers
@@ -1262,6 +1265,9 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         ...(newAssetForm.ram ? { "Memória RAM": newAssetForm.ram } : {}),
         ...(newAssetForm.storage ? { "Armazenamento": newAssetForm.storage } : {}),
         ...(newAssetForm.connectedTo ? { "Host": newAssetForm.connectedTo } : {}),
+        ...(newAssetForm.category === 'Celular' && newAssetForm.imei ? { "IMEI": newAssetForm.imei } : {}),
+        ...(newAssetForm.category === 'Celular' && newAssetForm.numero ? { "Número": newAssetForm.numero } : {}),
+        ...(newAssetForm.category === 'Celular' && newAssetForm.tipoChip ? { "Tipo de Chip": newAssetForm.tipoChip } : {}),
         "Sistema Operacional": "Homologado Corporativo"
       },
       history: [
@@ -2145,6 +2151,46 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
                   </div>
                 </div>
               </div>
+
+              {newAssetForm.category === 'Celular' && (
+                <div className="bg-indigo-50 dark:bg-slate-800 p-4 rounded-xl border border-indigo-100 dark:border-slate-700">
+                  <span className="text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-widest block mb-3">Especificações de Telefonia (Celular)</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-1">IMEI</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: 351234567890123" 
+                        value={newAssetForm.imei}
+                        onChange={(e) => setNewAssetForm(prev => ({ ...prev, imei: e.target.value }))}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-1">Número (Telefone)</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: (11) 99999-9999" 
+                        value={newAssetForm.numero}
+                        onChange={(e) => setNewAssetForm(prev => ({ ...prev, numero: e.target.value }))}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-1">Tipo de Chip</label>
+                      <select
+                        value={newAssetForm.tipoChip}
+                        onChange={(e) => setNewAssetForm(prev => ({ ...prev, tipoChip: e.target.value }))}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600 cursor-pointer"
+                      >
+                        <option value="SIM">SIM (Físico)</option>
+                        <option value="e-SIM">e-SIM (Virtual)</option>
+                        <option value="Dual SIM">Dual SIM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Foto do Ativo */}
               <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">

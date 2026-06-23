@@ -26,9 +26,10 @@ interface DashboardViewProps {
   assets: Asset[];
   onSelectAsset: (asset: Asset) => void;
   activities: typeof INITIAL_ACTIVITIES;
+  setActiveScreen?: (screen: any) => void;
 }
 
-export default function DashboardView({ assets, onSelectAsset, activities }: DashboardViewProps) {
+export default function DashboardView({ assets, onSelectAsset, activities, setActiveScreen }: DashboardViewProps) {
   const [filterPeriod, setFilterPeriod] = useState('Últimos 30 dias');
 
   // Compute live responsive metrics to demonstrate deep data flow
@@ -122,37 +123,42 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
 
     const headers = [
       "ID Interno",
-      "Nome",
-      "Patrimônio",
-      "Categoria",
+      "Nome do Aparelho",
       "Modelo",
       "Nº de Série",
+      "Número (Celular)",
+      "IMEI",
+      "Responsável Atual",
+      "Patrimônio",
+      "Categoria",
       "Filial / Unidade",
       "Localização Específica",
-      "Responsável Atual",
       "Status Geral",
       "Valor (R$)",
-      "Data de Aquisição",
-      "Vencimento de Garantia"
+      "Data de Aquisição"
     ];
 
     const csvRows = [headers.join(";")];
 
     assets.forEach(asset => {
+      const numeroCelular = asset.specifications && asset.specifications["Número"] ? asset.specifications["Número"] : "";
+      const imeiCelular = asset.specifications && asset.specifications["IMEI"] ? asset.specifications["IMEI"] : "";
+
       const values = [
         asset.id,
         asset.name,
-        asset.patrimonio,
-        asset.category,
         asset.model,
         asset.serialNumber,
+        numeroCelular,
+        imeiCelular,
+        asset.responsible?.name || "",
+        asset.patrimonio,
+        asset.category,
         asset.unit,
         asset.location,
-        asset.responsible?.name || "",
         asset.status,
         asset.value !== undefined ? asset.value.toFixed(2) : "",
-        asset.acquisitionDate,
-        asset.warrantyExpiry || ""
+        asset.acquisitionDate
       ].map(val => {
         const clean = (val || "").toString().replace(/"/g, '""');
         return clean.includes(";") || clean.includes("\n") || clean.includes('"') ? `"${clean}"` : clean;
@@ -291,7 +297,12 @@ export default function DashboardView({ assets, onSelectAsset, activities }: Das
         <div className="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-black text-slate-900 dark:text-white select-none">Volume por Categoria (TI & Telecom)</h3>
-            <button className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">Ver Detalhamento</button>
+            <button 
+              onClick={() => setActiveScreen && setActiveScreen('categories')}
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition"
+            >
+              Ver Detalhamento
+            </button>
           </div>
 
           <div className="flex-1 flex items-end justify-between gap-2 sm:gap-4 h-64 pt-4 select-none overflow-x-auto">
