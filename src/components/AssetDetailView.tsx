@@ -126,6 +126,7 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
 };
 
 const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, onUpdateAsset: (a: Asset) => void, onAddActivity: any }) => {
+  const [termType, setTermType] = useState<'entrega' | 'devolucao'>('entrega');
   const [techName, setTechName] = useState('Suporte Técnico TI');
   const [recipName, setRecipName] = useState('');
   const [techSig, setTechSig] = useState('');
@@ -151,27 +152,37 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
       recipientSignature: recipSig,
       signedAt: new Date().toISOString(),
       specifications: asset.specifications,
-      status: 'signed'
+      status: termType === 'entrega' ? 'signed' : 'returned',
+      type: termType,
+      returnedAt: termType === 'devolucao' ? new Date().toISOString() : undefined
     };
 
     const deliveryStep: TimelineStep = {
       id: `step-term-delivery-${Date.now()}`,
-      title: "Termo de Responsabilidade Assinado",
+      title: termType === 'entrega' ? "Termo de Responsabilidade Assinado" : "Termo de Devolução Assinado",
       responsible: techName,
       date: new Date().toISOString().split('T')[0],
       time: new Date().toTimeString().slice(0, 5),
       type: "transfer",
-      description: `Equipamento alocado e entregue para o colaborador ${recipName}. Termo de responsabilidade digital ativo.`
+      description: termType === 'entrega' 
+        ? `Equipamento alocado e entregue para o colaborador ${recipName}. Termo digital ativo.`
+        : `Equipamento devolvido pelo colaborador ${recipName}.`
     };
+
+    const currentPastTerms = asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : [];
+    currentPastTerms.push(newTerm);
 
     const updatedAsset: Asset = {
       ...asset,
-      status: 'Em Uso',
-      responsible: {
+      status: termType === 'entrega' ? 'Em Uso' : 'Armazenado',
+      responsible: termType === 'entrega' ? {
         name: recipName,
         initials: recipName.split(' ').map(n=>n[0]).join('').slice(0, 2).toUpperCase()
+      } : { name: '', initials: '' },
+      specifications: {
+        ...asset.specifications,
+        past_terms: JSON.stringify(currentPastTerms)
       },
-      handover_term: newTerm,
       history: [deliveryStep, ...asset.history]
     };
 
@@ -179,14 +190,16 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
 
     onAddActivity({
       type: "transfer",
-      title: "Ativo Entregue",
-      details: `${asset.name} entregue a ${recipName} sob termo.`,
+      title: termType === 'entrega' ? "Ativo Entregue" : "Ativo Devolvido",
+      details: termType === 'entrega' ? `${asset.name} entregue a ${recipName} sob termo.` : `${asset.name} devolvido por ${recipName}.`,
       by: techName,
-      icon: "assignment",
-      badgeColor: "bg-indigo-600"
+      icon: termType === 'entrega' ? "assignment" : "refresh-cw",
+      badgeColor: termType === 'entrega' ? "bg-indigo-600" : "bg-rose-600"
     });
 
-    alert("Termo de Responsabilidade assinado e gravado com sucesso! Ativo movido para Em Uso.");
+    handleClear();
+    setRecipName('');
+    alert(termType === 'entrega' ? "Termo de Entrega gravado com sucesso! O termo está na aba Documentos Anexados." : "Termo de Devolução gravado com sucesso! O ativo foi movido para Armazenado.");
   };
 
   const handleClear = () => {
@@ -195,12 +208,39 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
 
   return (
     <div className="space-y-5 text-left bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
-      <div>
-        <h4 className="font-extrabold text-slate-800 dark:text-white text-base">Emitir Termo de Responsabilidade</h4>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Colha as assinaturas físicas na tela para registrar a entrega do ativo patrimonial.</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h4 className="font-extrabold text-slate-800 dark:text-white text-base">Gerador de Termos</h4>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Colha as assinaturas físicas na tela para registrar a entrega ou devolução do ativo patrimonial.</p>
+        </div>
+        <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <button 
+            type="button"
+            onClick={() => setTermType('entrega')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${termType === 'entrega' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200'}`}
+          >
+            Termo de Entrega
+          </button>
+          <button 
+            type="button"
+            onClick={() => setTermType('devolucao')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${termType === 'devolucao' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200'}`}
+          >
+            Termo de Devolução
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 max-h-32 overflow-y-auto text-xs text-slate-600 dark:text-slate-400">
+          <p className="font-bold text-slate-800 dark:text-slate-200 mb-2">{termType === 'entrega' ? 'TERMO DE RESPONSABILIDADE E ENTREGA' : 'TERMO DE DEVOLUÇÃO'}</p>
+          <p className="leading-relaxed">
+            {termType === 'entrega' 
+              ? 'Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial em perfeito estado de conservação e funcionamento, assumindo a responsabilidade civil e criminal por sua guarda, zelo e conservação, obrigando-me a devolvê-lo nas mesmas condições quando solicitado ou no término do vínculo corporativo.' 
+              : 'Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial designado sob minha responsabilidade, cessando a partir desta data qualquer obrigação de guarda sobre o referido equipamento.'}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Técnico que está Entregando</label>
@@ -1119,39 +1159,117 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
             {activeTab === 'docs' && (() => {
               const docsList = asset.specifications.documents ? JSON.parse(asset.specifications.documents) : [];
+              const pastTermsList = asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : [];
               return (
-                <div className="space-y-4 select-none">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Arquivos Anexados</span>
-                    <label className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-indigo-100 transition">
-                      + Anexar Documento
-                      <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'docs')} />
-                    </label>
-                  </div>
-                  {docsList.length === 0 ? (
-                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs py-4">
-                      <span>Nenhum documento anexado a este ativo.</span>
+                <div className="space-y-6 select-none">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Arquivos Anexados</span>
+                      <label className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-indigo-100 transition">
+                        + Anexar Documento
+                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'docs')} />
+                      </label>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {docsList.map((doc: any, i: number) => (
-                        <a 
-                          key={i} 
-                          href={doc.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition block"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <FileText size={18} className="text-indigo-600" />
-                            <div>
-                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{doc.name}</p>
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{doc.size} • Data: {doc.date}</p>
+                    {docsList.length === 0 ? (
+                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs py-4">
+                        <span>Nenhum documento anexado a este ativo.</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {docsList.map((doc: any, i: number) => (
+                          <a 
+                            key={i} 
+                            href={doc.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition block"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <FileText size={18} className="text-indigo-600" />
+                              <div>
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{doc.name}</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{doc.size} • Data: {doc.date}</p>
+                              </div>
                             </div>
-                          </div>
-                          <ChevronRight size={14} className="text-slate-400 dark:text-slate-500" />
-                        </a>
-                      ))}
+                            <ChevronRight size={14} className="text-slate-400 dark:text-slate-500" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {pastTermsList.length > 0 && (
+                    <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Termos Assinados (Histórico)</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3">
+                        {pastTermsList.map((pt: any) => {
+                          const wppText = encodeURIComponent(`Olá ${pt.recipientName}! Segue o link de acesso para o seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} do equipamento ${asset.name} (${asset.patrimonio}). O documento foi assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.`);
+                          const emailSubject = encodeURIComponent(`Termo de Responsabilidade - ${asset.name}`);
+                          const emailBody = encodeURIComponent(`Olá ${pt.recipientName},\n\nSegue o acesso ao seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} referente ao equipamento ${asset.name} (${asset.patrimonio}), assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.\n\nAtenciosamente,\nEquipe de TI`);
+
+                          return (
+                            <div key={pt.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <FileCheck2 size={16} className={pt.type === 'entrega' ? 'text-indigo-600' : 'text-rose-600'} />
+                                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                    {pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} • {pt.id}
+                                  </p>
+                                </div>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">Assinado em {new Date(pt.signedAt).toLocaleDateString('pt-BR')} por {pt.recipientName}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                <a 
+                                  href={`https://api.whatsapp.com/send?text=${wppText}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center"
+                                >
+                                  WhatsApp
+                                </a>
+                                <a 
+                                  href={`mailto:?subject=${emailSubject}&body=${emailBody}`}
+                                  className="px-3 py-1.5 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 hover:bg-sky-100 dark:hover:bg-sky-900/50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center"
+                                >
+                                  E-mail
+                                </a>
+                                <button 
+                                  onClick={() => {
+                                    const w = window.open();
+                                    if (w) {
+                                      w.document.write(`
+                                        <html><head><title>${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolucao'} ${pt.id}</title><style>body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; } .h { border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }</style></head>
+                                        <body>
+                                          <h2 class="h">${pt.type === 'entrega' ? 'Termo de Responsabilidade e Entrega' : 'Termo de Devolução'} - ${pt.id}</h2>
+                                          <p><strong>Equipamento:</strong> ${asset.name}</p>
+                                          <p><strong>Patrimônio:</strong> ${asset.patrimonio} | <strong>Serial:</strong> ${asset.serialNumber}</p>
+                                          <p style="margin-top:20px;">
+                                            ${pt.type === 'entrega' 
+                                              ? 'Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito acima em perfeito estado de conservação e funcionamento.' 
+                                              : 'Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial designado sob minha responsabilidade.'}
+                                          </p>
+                                          <div style="display: flex; gap: 40px; margin-top: 40px;">
+                                            <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Técnico Emitente</p><img src="${pt.technicianSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.technicianName}</strong></p></div>
+                                            <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Usuário Recebedor</p><img src="${pt.recipientSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.recipientName}</strong></p></div>
+                                          </div>
+                                          <div style="margin-top: 40px; font-size: 11px; color: #777;">Documento assinado digitalmente em: ${pt.signedAt ? new Date(pt.signedAt).toLocaleString('pt-BR') : 'N/A'}</div>
+                                          <script>window.print();</script>
+                                        </body></html>
+                                      `);
+                                      w.document.close();
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white hover:bg-black dark:hover:bg-slate-600 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center cursor-pointer"
+                                >
+                                  <Printer size={14} /> PDF
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1192,160 +1310,13 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
               );
             })()}
 
-            {activeTab === 'handover' && (() => {
-              const term = asset.handover_term;
-              
-              if (term && term.status === 'signed') {
-                return (
-                  <div className="space-y-6 text-left border border-slate-200 dark:border-slate-800 rounded-3xl p-6 bg-slate-50/50 dark:bg-slate-900/50 relative overflow-hidden" id="print-handover-area">
-                    <style>{`
-                      @media print {
-                        body * {
-                          visibility: hidden;
-                        }
-                        #print-handover-area, #print-handover-area * {
-                          visibility: visible;
-                        }
-                        #print-handover-area {
-                          position: absolute;
-                          left: 0;
-                          top: 0;
-                          width: 100%;
-                          border: none !important;
-                          background: white !important;
-                          color: black !important;
-                        }
-                        .no-print {
-                          display: none !important;
-                        }
-                      }
-                    `}</style>
-                    {/* Header para Impressão */}
-                    <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-4">
-                      <div>
-                        <h4 className="text-xl font-extrabold text-indigo-700 dark:text-indigo-400">Termo de Responsabilidade e Outorga</h4>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Nº Termo: {term.id} • Assinado em: {term.signedAt ? new Date(term.signedAt).toLocaleString('pt-BR') : 'N/A'}</p>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => window.print()}
-                        className="px-4 py-2 bg-slate-900 dark:bg-slate-800 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 duration-150 active:scale-95 no-print cursor-pointer"
-                      >
-                        <Printer size={14} /> Imprimir Termo
-                      </button>
-                    </div>
 
-                    <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300">
-                      <p className="leading-relaxed">
-                        Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito abaixo em perfeito estado de conservação e funcionamento, assumindo a responsabilidade civil e criminal por sua guarda, zelo e conservação, obrigando-me a devolvê-lo nas mesmas condições quando solicitado ou no término do vínculo corporativo.
-                      </p>
+            {activeTab === 'handover' && (
+              <div className="space-y-6">
+                <HandoverForm asset={asset} onUpdateAsset={onUpdateAsset} onAddActivity={onAddActivity} />
+              </div>
+            )}
 
-                      {/* Dados do Ativo */}
-                      <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
-                        <p className="font-bold text-slate-800 dark:text-slate-100 text-xs">Especificações do Equipamento</p>
-                        <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                          <div><span className="text-slate-400 font-medium">Equipamento:</span> <span className="font-bold">{asset.name}</span></div>
-                          <div><span className="text-slate-400 font-medium">Patrimônio:</span> <span className="font-bold font-mono">{asset.patrimonio}</span></div>
-                          <div><span className="text-slate-400 font-medium">Modelo:</span> <span className="font-semibold">{asset.model}</span></div>
-                          <div><span className="text-slate-400 font-medium">Nº de Série:</span> <span className="font-semibold font-mono">{asset.serialNumber}</span></div>
-                        </div>
-                      </div>
-
-                      {/* Assinaturas */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                        <div className="flex flex-col items-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
-                          <p className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider mb-2">Técnico Emitente</p>
-                          {term.technicianSignature ? (
-                            <img src={term.technicianSignature} alt="Assinatura Técnico" className="h-16 object-contain bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 p-1" />
-                          ) : (
-                            <div className="h-16 flex items-center justify-center text-slate-400 italic">Sem assinatura</div>
-                          )}
-                          <p className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-xs">{term.technicianName}</p>
-                        </div>
-
-                        <div className="flex flex-col items-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
-                          <p className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider mb-2">Usuário Recebedor</p>
-                          {term.recipientSignature ? (
-                            <img src={term.recipientSignature} alt="Assinatura Recebedor" className="h-16 object-contain bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 p-1" />
-                          ) : (
-                            <div className="h-16 flex items-center justify-center text-slate-400 italic">Sem assinatura</div>
-                          )}
-                          <p className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-xs">{term.recipientName}</p>
-                        </div>
-                      </div>
-
-                      {/* Devolução Simulado */}
-                      <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-end no-print">
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            if (confirm("Deseja realmente devolver este ativo ao estoque? O termo assinado atual será finalizado e arquivado.")) {
-                              onUpdateAsset({
-                                ...asset,
-                                status: 'Armazenado'
-                              });
-                            }
-                          }}
-                          className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow cursor-pointer"
-                        >
-                          <RefreshCw size={14} /> Devolver ao Estoque
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Se não há termo, exibir formulário de entrega e canvas para assinar
-              const pastTermsList = asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : [];
-              return (
-                <div className="space-y-6">
-                  <HandoverForm asset={asset} onUpdateAsset={onUpdateAsset} onAddActivity={onAddActivity} />
-                  {pastTermsList.length > 0 && (
-                    <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
-                      <h4 className="font-extrabold text-slate-800 dark:text-white text-base mb-4">Termos Anteriores Arquivados</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {pastTermsList.map((pt: any) => (
-                          <div key={pt.id} className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col justify-between h-full">
-                            <div>
-                              <p className="text-xs font-bold text-slate-500 mb-1">Termo {pt.id}</p>
-                              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Técnico: {pt.technicianName}</p>
-                              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Recebedor: {pt.recipientName}</p>
-                              <p className="text-[10px] text-slate-400 mt-2">Finalizado em: {pt.returnedAt ? new Date(pt.returnedAt).toLocaleDateString('pt-BR') : 'N/A'}</p>
-                            </div>
-                            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
-                              <button onClick={() => {
-                                const w = window.open();
-                                if (w) {
-                                  w.document.write(`
-                                    <html><head><title>Termo Anterior ${pt.id}</title><style>body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; } .h { border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }</style></head>
-                                    <body>
-                                      <h2 class="h">Termo de Responsabilidade Arquivado - ${pt.id}</h2>
-                                      <p><strong>Equipamento:</strong> ${asset.name}</p>
-                                      <p><strong>Patrimônio:</strong> ${asset.patrimonio} | <strong>Serial:</strong> ${asset.serialNumber}</p>
-                                      <p style="margin-top:20px;">Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito acima em perfeito estado de conservação e funcionamento.</p>
-                                      <div style="display: flex; gap: 40px; margin-top: 40px;">
-                                        <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Técnico Emitente</p><img src="${pt.technicianSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.technicianName}</strong></p></div>
-                                        <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Usuário Recebedor</p><img src="${pt.recipientSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.recipientName}</strong></p></div>
-                                      </div>
-                                      <div style="margin-top: 40px; font-size: 11px; color: #777;">Documento assinado digitalmente em: ${pt.signedAt ? new Date(pt.signedAt).toLocaleString('pt-BR') : 'N/A'}<br/>Termo finalizado/arquivado em: ${pt.returnedAt ? new Date(pt.returnedAt).toLocaleString('pt-BR') : 'N/A'}</div>
-                                      <script>window.print();</script>
-                                    </body></html>
-                                  `);
-                                  w.document.close();
-                                }
-                              }} className="w-full px-3 py-2 text-xs font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center gap-2 cursor-pointer">
-                                <Printer size={14} /> Imprimir Termo Arquivado
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
           </div>
 
           {/* Footer Timeline indicator count */}

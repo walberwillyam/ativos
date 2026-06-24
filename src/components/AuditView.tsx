@@ -19,7 +19,7 @@ import { supabase } from '../lib/supabaseClient';
 interface AuditViewProps {
   assets: Asset[];
   units: { id: string; name: string }[];
-  onUpdateAsset: (id: string, updates: Partial<Asset>) => void;
+  onUpdateAsset: (updatedAsset: Asset) => void;
   onAddActivity: (activity: any) => void;
 }
 
@@ -184,7 +184,7 @@ export default function AuditView({ assets, units, onUpdateAsset, onAddActivity 
       const newHistory = [historyEntry, ...asset.history];
       
       // Update local
-      onUpdateAsset(id, { history: newHistory });
+      onUpdateAsset({ ...asset, history: newHistory });
 
       // Fire and forget update
       supabase.from('assets').update({ history: newHistory }).eq('id', id).then();

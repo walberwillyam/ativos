@@ -24,6 +24,7 @@ export interface HandoverTerm {
   specifications: Record<string, string>;
   status: 'pending' | 'signed' | 'returned';
   returnedAt?: string;
+  type?: 'entrega' | 'devolucao';
 }
 
 export interface TimelineStep {
