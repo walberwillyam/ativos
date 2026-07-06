@@ -166,7 +166,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
         <a 
           id="side-nav-btn-help"
           href="#help"
-          onClick={(e) => { e.preventDefault(); alert("Central de Suporte: Ligue para o ramal 4004 ou envie um e-mail para suporte@ativosapoio.com.br"); }}
+          onClick={(e) => { e.preventDefault(); alert("Central de Suporte: Ligue para o numero: 61 9674-9199"); }}
           title={isCollapsed ? "Suporte Técnico" : undefined}
           className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 w-full'} px-4 py-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all group`}
         >
