@@ -63,7 +63,16 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
         .order('last_ping', { ascending: false });
 
       if (error) throw error;
-      if (data) setDevices(data as DeviceHealth[]);
+      if (data) {
+        // Remove duplicatas caso existam no banco devido a um bug antigo do agente
+        const uniqueDevices = new Map<string, DeviceHealth>();
+        for (const device of data as DeviceHealth[]) {
+          if (!uniqueDevices.has(device.asset_id)) {
+            uniqueDevices.set(device.asset_id, device);
+          }
+        }
+        setDevices(Array.from(uniqueDevices.values()));
+      }
     } catch (err) {
       console.error("Erro ao carregar telemetria no NOC:", err);
     } finally {

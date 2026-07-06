@@ -358,13 +358,14 @@ async function collectAndSendHealth() {
 
     // 2. Tenta atualizar se já existe, senão insere (Upsert por lógica simples)
     // Como a chave primária é gerada aleatoriamente, vamos checar se o asset já existe
-    const { data: existingAsset } = await supabase
+    const { data: existingAssets } = await supabase
       .from('devices_health')
       .select('id')
       .eq('asset_id', ASSET_ID)
-      .single();
+      .limit(1);
 
-    if (existingAsset) {
+    if (existingAssets && existingAssets.length > 0) {
+      const existingAsset = existingAssets[0];
       // Remove o unit_id para não sobrescrever a unidade definida manualmente pelo admin no painel
       const { unit_id, ...updateData } = healthData;
 
