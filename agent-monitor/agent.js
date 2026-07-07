@@ -78,50 +78,6 @@ async function resolveUnitName() {
 
 const PING_INTERVAL_MS = 180000; // 3 minutos (180.000 ms)
 
-function getMonitorDetails() {
-  try {
-    const psScript = `
-      [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-      $monitors = Get-WmiObject WmiMonitorID -Namespace root\\wmi
-      $res = @()
-      foreach ($m in $monitors) {
-        try {
-          $name = [System.Text.Encoding]::ASCII.GetString($m.UserFriendlyName).Replace([char]0, '').Trim()
-          $serial = [System.Text.Encoding]::ASCII.GetString($m.SerialNumberID).Replace([char]0, '').Trim()
-          if ($name -and $name -notmatch 'Generic PnP Monitor' -and $name -notmatch 'GenǸrico') {
-            $res += @{ Name = $name; Serial = $serial }
-          }
-        } catch {}
-      }
-      $res | ConvertTo-Json -Compress
-    `;
-    const output = execSync(`powershell -NoProfile -Command "${psScript.replace(/\\n/g, ' ')}"`).toString();
-    if (!output.trim()) return [];
-    const parsed = JSON.parse(output);
-    return Array.isArray(parsed) ? parsed : [parsed];
-  } catch (e) {
-    return [];
-  }
-}
-
-function getPrinterStatuses() {
-  try {
-    const psScript = `
-      $printers = Get-WmiObject Win32_Printer
-      $res = @()
-      foreach ($p in $printers) {
-        $res += @{ Name = $p.Name; Offline = $p.WorkOffline }
-      }
-      $res | ConvertTo-Json -Compress
-    `;
-    const output = execSync(`powershell -NoProfile -Command "${psScript.replace(/\\n/g, ' ')}"`).toString();
-    if (!output.trim()) return [];
-    const parsed = JSON.parse(output);
-    return Array.isArray(parsed) ? parsed : [parsed];
-  } catch (e) {
-    return [];
-  }
-}
 
 async function collectAndSendHealth() {
   try {
@@ -217,111 +173,8 @@ async function collectAndSendHealth() {
     }
     // --- FIM RASTREAMENTO ---
 
-    // --- AUTODESCOBERTA DE PERIFÉRICOS ---
-    try {
-      const graphics = await si.graphics();
-      const usbs = await si.usb();
-      const printers = await si.printer();
-      
-      const newAssets = [];
-      const nowString = new Date().toISOString().split('T')[0];
-
-      // 1. Monitores
-      if (graphics && graphics.displays) {
-        const monitorDetails = getMonitorDetails();
-        graphics.displays.forEach((disp, idx) => {
-          let name = disp.model || `Monitor ${idx+1}`;
-          let serial = 'N/A';
-
-          if (monitorDetails[idx]) {
-            name = monitorDetails[idx].Name || name;
-            serial = monitorDetails[idx].Serial || serial;
-          }
-
-          if (!name || name.includes('GenǸrico') || name.includes('Default') || name.includes('padrǜo') || name === 'Generic PnP Monitor' || name === 'Monitor Genérico PnP') {
-             if (serial === 'N/A') return; 
-          }
-
-          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 15);
-          newAssets.push({
-            id: `MON-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}-${idx}`,
-            patrimonio: `AUTO-MON-${idx}`,
-            name: `${disp.vendor && disp.vendor.length > 2 && !disp.vendor.includes('padr') ? disp.vendor + ' ' : ''}${name}`.trim(),
-            category: 'Monitores',
-            model: name,
-            serialNumber: serial,
-            unit: hostUnit,
-            location: currentSpecs['location'] || 'Conectado a ' + ASSET_ID,
-            currentFloor: 'office',
-            mapCoordinates: { x: 50, y: 50 },
-            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
-            status: 'Em Uso',
-            value: 0,
-            acquisitionDate: nowString,
-            warrantyExpiry: nowString,
-            specifications: { "Resolução": `${disp.resolutionX}x${disp.resolutionY}`, "Host": ASSET_ID },
-            history: []
-          });
-        });
-      }
-
-      // 2. USB (Mouses, Teclados, Webcams) - Removido a pedido
-
-      // 3. Impressoras
-      if (printers) {
-        const pStatuses = getPrinterStatuses();
-        printers.forEach((prn, idx) => {
-          if (!prn.name || prn.name.includes('PDF') || prn.name.includes('OneNote') || prn.name.includes('XPS') || prn.name.toLowerCase().includes('fax')) return;
-          
-          if (prn.status === 'Offline' || prn.status === 'Unknown' || prn.status === 'Error' || prn.status === 'Stopped Printing') return;
-          
-          const pStat = pStatuses.find(p => p.Name === prn.name);
-          if (pStat && pStat.Offline) return;
-          
-          const name = prn.name;
-          const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 10);
-          newAssets.push({
-            id: `PRN-${hostUnit.substring(0,8).replace(/[^a-zA-Z0-9_-]/g, '')}-${safeName}`,
-            patrimonio: `AUTO-PRN-${safeName}`,
-            name: name,
-            category: 'Impressoras',
-            model: prn.model || name,
-            serialNumber: prn.serial || prn.serialNumber || 'N/A',
-            unit: hostUnit,
-            location: prn.local ? 'Local - ' + ASSET_ID : 'Rede',
-            currentFloor: 'office',
-            mapCoordinates: { x: 50, y: 50 },
-            responsible: { name: 'Sistema (Agente)', initials: 'SYS' },
-            status: 'Em Uso',
-            value: 0,
-            acquisitionDate: nowString,
-            warrantyExpiry: nowString,
-            specifications: { "Host/Rede": prn.local ? ASSET_ID : 'Rede', "Local": prn.local ? "Sim" : "Não" },
-            history: []
-          });
-        });
-      }
-
-      // Salva os ativos na tabela
-      for (const asset of newAssets) {
-        const { data: existingPeripheral } = await supabase
-          .from('assets')
-          .select('id')
-          .eq('id', asset.id)
-          .single();
-
-        if (!existingPeripheral) {
-          const { error: insErr } = await supabase.from('assets').insert([asset]);
-          if (insErr) {
-            console.error(`Erro ao inserir periférico ${asset.name}:`, insErr.message);
-          } else {
-            console.log(`[Autodescoberta] Periférico cadastrado como novo Ativo: ${asset.name}`);
-          }
-        }
-      }
-    } catch (discoveryErr) {
-      console.error("Erro na autodescoberta de periféricos:", discoveryErr);
-    }
+    // --- AUTODESCOBERTA DE PERIFÉRICOS (DESATIVADA A PEDIDO) ---
+    // A criação automática de monitores e impressoras foi removida.
     // --- FIM AUTODESCOBERTA ---
 
     const updatePayload = { specifications: currentSpecs };
@@ -393,7 +246,7 @@ async function collectAndSendHealth() {
 // --- LÓGICA DE AUTO ATUALIZAÇÃO ---
 const axios = require('axios');
 
-const CURRENT_VERSION = "1.2.0";
+const CURRENT_VERSION = "1.2.1";
 const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 24; // 24h
 
 async function checkAndUpdate() {
