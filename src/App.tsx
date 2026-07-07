@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Bell, 
   MapPin, 
@@ -56,6 +56,9 @@ export default function App() {
   // Auth State
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Armazena o último ping em memória local para não consumir o banco de dados a cada minuto
+  const devicePingsRef = useRef<Record<string, string>>({});
 
   // (offline tracking is handled by notification upsert pattern below)
 
@@ -148,68 +151,88 @@ export default function App() {
       })
       .subscribe();
 
-    // Check for offline computers every minute — upserts a single notification per asset
-    const checkOfflineDevices = async () => {
-      const { data } = await supabase.from('devices_health').select('asset_id, last_ping').order('last_ping', { ascending: false });
+    // Load initial pings and start local evaluation
+    const startOfflineTracking = async () => {
+      // 1. Fetch current pings once to populate memory
+      const { data } = await supabase.from('devices_health').select('asset_id, last_ping');
       if (data) {
-        const now = new Date();
-        const currentOfflineIds = new Set<string>();
-        const processedIds = new Set<string>();
-
-        data.forEach(device => {
-          // Ignora registros antigos (duplicatas) do mesmo ativo
-          if (processedIds.has(device.asset_id)) return;
-          processedIds.add(device.asset_id);
-
-          const pingDate = new Date(device.last_ping);
-          const diffMinutes = Math.round((now.getTime() - pingDate.getTime()) / 60000);
-          const notifId = `offline-${device.asset_id}`;
-
-          if (diffMinutes > 4) {
-            currentOfflineIds.add(device.asset_id);
-            const timeLabel = diffMinutes < 60
-              ? `${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`
-              : `${Math.floor(diffMinutes / 60)}h${diffMinutes % 60 > 0 ? ` ${diffMinutes % 60}min` : ''}`;
-
-            setNotifications(prev => {
-              const existingIndex = prev.findIndex(n => n.id === notifId);
-              const updatedNotif = {
-                id: notifId,
-                title: "Computador Offline",
-                description: `O dispositivo ${device.asset_id} está offline há ${timeLabel}.`,
-                time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                read: false
-              };
-
-              if (existingIndex >= 0) {
-                // Update existing notification in-place
-                const updated = [...prev];
-                updated[existingIndex] = updatedNotif;
-                return updated;
-              }
-              // First time offline — add to top
-              return [updatedNotif, ...prev];
-            });
+        const pings: Record<string, string> = {};
+        data.forEach(d => {
+          if (!pings[d.asset_id] || new Date(d.last_ping) > new Date(pings[d.asset_id])) {
+            pings[d.asset_id] = d.last_ping;
           }
         });
-
-        // Remove notifications for devices that came back online
-        setNotifications(prev => prev.filter(n => {
-          if (n.id.startsWith('offline-')) {
-            const assetId = n.id.replace('offline-', '');
-            return currentOfflineIds.has(assetId);
-          }
-          return true;
-        }));
+        devicePingsRef.current = pings;
+        evaluateOfflineStatus(); // Avalia imediatamente após baixar os dados iniciais
       }
     };
+    startOfflineTracking();
 
-    const offlineIntervalId = setInterval(checkOfflineDevices, 60000);
-    checkOfflineDevices();
+    // 2. Subscribe to ping updates
+    const pingSubscription = supabase
+      .channel('devices_health_pings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'devices_health' }, (payload) => {
+        const newDevice = payload.new as { asset_id?: string; last_ping?: string };
+        if (newDevice && newDevice.asset_id && newDevice.last_ping) {
+          devicePingsRef.current[newDevice.asset_id] = newDevice.last_ping;
+        }
+      })
+      .subscribe();
+
+    // 3. Evaluate offline status entirely from memory
+    const evaluateOfflineStatus = () => {
+      const now = new Date();
+      const currentOfflineIds = new Set<string>();
+
+      Object.entries(devicePingsRef.current).forEach(([asset_id, last_ping]) => {
+        const pingDate = new Date(last_ping);
+        const diffMinutes = Math.round((now.getTime() - pingDate.getTime()) / 60000);
+        const notifId = `offline-${asset_id}`;
+
+        if (diffMinutes > 4) {
+          currentOfflineIds.add(asset_id);
+          const timeLabel = diffMinutes < 60
+            ? `${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`
+            : `${Math.floor(diffMinutes / 60)}h${diffMinutes % 60 > 0 ? ` ${diffMinutes % 60}min` : ''}`;
+
+          setNotifications(prev => {
+            const existingIndex = prev.findIndex(n => n.id === notifId);
+            const updatedNotif = {
+              id: notifId,
+              title: "Computador Offline",
+              description: `O dispositivo ${asset_id} está offline há ${timeLabel}.`,
+              time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              read: false
+            };
+
+            if (existingIndex >= 0) {
+              // Update existing notification in-place
+              const updated = [...prev];
+              updated[existingIndex] = updatedNotif;
+              return updated;
+            }
+            // First time offline — add to top
+            return [updatedNotif, ...prev];
+          });
+        }
+      });
+
+      // Remove notifications for devices that came back online
+      setNotifications(prev => prev.filter(n => {
+        if (n.id.startsWith('offline-')) {
+          const assetId = n.id.replace('offline-', '');
+          return currentOfflineIds.has(assetId);
+        }
+        return true;
+      }));
+    };
+
+    const offlineIntervalId = setInterval(evaluateOfflineStatus, 60000);
 
     return () => {
       subscription.unsubscribe();
       supabase.removeChannel(assetsSubscription);
+      supabase.removeChannel(pingSubscription);
       clearInterval(offlineIntervalId);
     };
   }, []);
