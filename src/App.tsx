@@ -150,12 +150,17 @@ export default function App() {
 
     // Check for offline computers every minute — upserts a single notification per asset
     const checkOfflineDevices = async () => {
-      const { data } = await supabase.from('devices_health').select('asset_id, last_ping');
+      const { data } = await supabase.from('devices_health').select('asset_id, last_ping').order('last_ping', { ascending: false });
       if (data) {
         const now = new Date();
         const currentOfflineIds = new Set<string>();
+        const processedIds = new Set<string>();
 
         data.forEach(device => {
+          // Ignora registros antigos (duplicatas) do mesmo ativo
+          if (processedIds.has(device.asset_id)) return;
+          processedIds.add(device.asset_id);
+
           const pingDate = new Date(device.last_ping);
           const diffMinutes = Math.round((now.getTime() - pingDate.getTime()) / 60000);
           const notifId = `offline-${device.asset_id}`;
