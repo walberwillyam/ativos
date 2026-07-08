@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { Briefcase, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
-export default function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true);
+export default function AuthScreen({
+  initialMode = 'login',
+  onResetComplete
+}: {
+  initialMode?: 'login' | 'signup' | 'forgot' | 'reset';
+  onResetComplete?: () => void;
+}) {
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,13 +23,30 @@ export default function AuthScreen() {
     setSuccessMsg('');
 
     try {
-      if (isLogin) {
+      if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else {
+      } else if (authMode === 'signup') {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setSuccessMsg('Conta criada! Verifique seu e-mail para confirmar (caso esteja habilitado).');
+      } else if (authMode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        setSuccessMsg('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+      } else if (authMode === 'reset') {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setSuccessMsg('Senha alterada com sucesso! Redirecionando...');
+        setTimeout(() => {
+          if (onResetComplete) {
+            onResetComplete();
+          } else {
+            setAuthMode('login');
+          }
+        }, 2000);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro na autenticação');
@@ -48,20 +71,27 @@ export default function AuthScreen() {
         </div>
 
         <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
-          {isLogin ? 'Acesso ao Sistema' : 'Criar Nova Conta'}
+          {authMode === 'login' && 'Acesso ao Sistema'}
+          {authMode === 'signup' && 'Criar Nova Conta'}
+          {authMode === 'forgot' && 'Recuperar Senha'}
+          {authMode === 'reset' && 'Redefinir Senha'}
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          {isLogin ? 'Ou ' : 'Já possui conta? '}
-          <button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setErrorMsg('');
-              setSuccessMsg('');
-            }}
-            className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none"
-          >
-            {isLogin ? 'cadastre sua conta agora' : 'fazer login'}
-          </button>
+          {authMode === 'login' && (
+            <>
+              Ou <button onClick={() => setAuthMode('signup')} className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none">cadastre sua conta agora</button>
+            </>
+          )}
+          {authMode === 'signup' && (
+            <>
+              Já possui conta? <button onClick={() => setAuthMode('login')} className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none">fazer login</button>
+            </>
+          )}
+          {(authMode === 'forgot' || authMode === 'reset') && (
+            <>
+              Lembrou sua senha? <button onClick={() => setAuthMode('login')} className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none">voltar ao login</button>
+            </>
+          )}
         </p>
       </div>
 
@@ -72,7 +102,7 @@ export default function AuthScreen() {
           <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-indigo-50 rounded-full blur-2xl opacity-50 pointer-events-none" />
 
           <form className="space-y-6 relative z-10" onSubmit={handleAuth}>
-            
+
             {errorMsg && (
               <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold p-3 rounded-xl flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
@@ -87,51 +117,55 @@ export default function AuthScreen() {
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Endereço de E-mail
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Mail className="h-4 w-4 text-slate-400" />
+            {authMode !== 'reset' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Endereço de E-mail
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Mail className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="appearance-none block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-sm font-semibold transition-all"
+                    placeholder="admin@ativosapoio.com.br"
+                  />
                 </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-sm font-semibold transition-all"
-                  placeholder="admin@ativosapoio.com.br"
-                />
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Senha de Acesso
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-slate-400" />
+            {authMode !== 'forgot' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {authMode === 'reset' ? 'Nova Senha' : 'Senha de Acesso'}
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Lock className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="appearance-none block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-sm font-semibold transition-all"
+                    placeholder="••••••••"
+                  />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete={isLogin ? 'current-password' : 'new-password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-sm font-semibold transition-all"
-                  placeholder="••••••••"
-                />
               </div>
-            </div>
+            )}
 
-            {isLogin && (
+            {authMode === 'login' && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
@@ -146,9 +180,9 @@ export default function AuthScreen() {
                 </div>
 
                 <div className="text-xs">
-                  <a href="#" className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline">
+                  <button type="button" onClick={() => setAuthMode('forgot')} className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline outline-none">
                     Esqueceu a senha?
-                  </a>
+                  </button>
                 </div>
               </div>
             )}
@@ -165,7 +199,11 @@ export default function AuthScreen() {
                   </>
                 ) : (
                   <>
-                    {isLogin ? 'Acessar Plataforma' : 'Finalizar Cadastro'} <ArrowRight size={16} />
+                    {authMode === 'login' && 'Acessar Plataforma'}
+                    {authMode === 'signup' && 'Finalizar Cadastro'}
+                    {authMode === 'forgot' && 'Enviar Recuperação'}
+                    {authMode === 'reset' && 'Alterar Senha'}
+                    <ArrowRight size={16} />
                   </>
                 )}
               </button>
