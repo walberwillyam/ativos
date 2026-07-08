@@ -49,7 +49,18 @@ export default function AuthScreen({
         }, 2000);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Erro na autenticação');
+      let errorMessage = err.message || 'Erro na autenticação';
+
+      // Traduz erros comuns do Supabase
+      if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many requests')) {
+        errorMessage = 'Muitas tentativas. Por favor, aguarde alguns minutos e tente novamente.';
+      } else if (errorMessage.toLowerCase().includes('invalid login credentials')) {
+        errorMessage = 'E-mail ou senha incorretos.';
+      } else if (errorMessage.toLowerCase().includes('user already registered')) {
+        errorMessage = 'Este e-mail já está cadastrado.';
+      }
+
+      setErrorMsg(errorMessage);
     } finally {
       setLoading(false);
     }
