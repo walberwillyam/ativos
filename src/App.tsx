@@ -154,8 +154,9 @@ export default function App() {
 
     // Load initial pings and start local evaluation
     const startOfflineTracking = async () => {
-      // 1. Fetch current pings once to populate memory
-      const { data } = await supabase.from('devices_health').select('asset_id, last_ping');
+      // 1. Fetch current pings once to populate memory (Apenas últimas 24 horas para economizar tráfego)
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase.from('devices_health').select('asset_id, last_ping').gte('last_ping', yesterday);
       if (data) {
         const pings: Record<string, string> = {};
         data.forEach(d => {
@@ -190,7 +191,8 @@ export default function App() {
         const diffMinutes = Math.round((now.getTime() - pingDate.getTime()) / 60000);
         const notifId = `offline-${asset_id}`;
 
-        if (diffMinutes > 4) {
+        // Só gera notificação se estiver offline há mais de 4 minutos, mas há menos de 24 horas (1440 min)
+        if (diffMinutes > 4 && diffMinutes <= 1440) {
           currentOfflineIds.add(asset_id);
           const timeLabel = diffMinutes < 60
             ? `${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`
