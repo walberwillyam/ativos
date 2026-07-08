@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Briefcase, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -10,6 +10,11 @@ export default function AuthScreen({
   onResetComplete?: () => void;
 }) {
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(initialMode);
+
+  useEffect(() => {
+    setAuthMode(initialMode);
+  }, [initialMode]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
