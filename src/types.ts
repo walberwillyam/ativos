@@ -79,7 +79,7 @@ export interface QueryFilters {
   endDate: string;
 }
 
-export type UserRole = 'admin' | 'employee' | 'noc';
+export type UserRole = 'admin' | 'employee' | 'noc' | 'conferente';
 
 export interface Profile {
   id: string;
@@ -88,4 +88,24 @@ export interface Profile {
   role: UserRole;
   unit?: string;
   created_at?: string;
+}
+
+export interface AuditSchedule {
+  id: string;
+  unit_id: string;
+  scheduled_date: string;
+  status: 'agendado' | 'ativo' | 'concluido';
+  created_by?: string;
+  created_at?: string;
+  completed_at?: string;
+}
+
+export interface AuditProgress {
+  id: string;
+  audit_id: string;
+  asset_id: string;
+  scanned_at?: string;
+  scanned_by?: string;
+  status: 'conferido' | 'nao_localizado' | 'invasor';
+  notes?: string;
 }

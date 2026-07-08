@@ -40,7 +40,8 @@ import CategoriesView from './components/CategoriesView';
 import AuthScreen from './components/AuthScreen';
 import UserManagementView from './components/UserManagementView';
 import NocView from './components/NocView';
-import AuditView from './components/AuditView';
+import AuditsManagementView from './components/AuditsManagementView';
+import ConferenteView from './components/ConferenteView';
 import { supabase } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
@@ -1266,6 +1267,26 @@ export default function App() {
     return <NocView assets={assets} userProfile={userProfile} units={units} />;
   }
 
+  // If user is conferente, render isolated restricted view
+  if (userProfile?.role === 'conferente') {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden">
+        <Navbar 
+          setActiveScreen={() => {}} 
+          notifications={[]} 
+          handleNotificationsClear={() => {}} 
+          userEmail={session.user.email}
+          userProfile={userProfile}
+          isSidebarCollapsed={true}
+          setIsSidebarCollapsed={() => {}}
+        />
+        <div className="flex-1 overflow-y-auto bg-slate-50">
+          <ConferenteView userProfile={userProfile} assets={assets} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div id="app-root-container" className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col font-sans overflow-x-hidden">
       {/* Universal Top Header bar of the high fidelity application */}
@@ -1373,11 +1394,8 @@ export default function App() {
             />
           )}
           {activeScreen === 'audit' && (
-            <AuditView 
-              assets={assets}
+            <AuditsManagementView 
               units={units}
-              onUpdateAsset={handleUpdateAsset}
-              onAddActivity={handleAddLiveActivity}
             />
           )}
           {activeScreen === 'reports' && renderReportsScreen()}
