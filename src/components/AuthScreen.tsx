@@ -10,15 +10,30 @@ export default function AuthScreen({
   onResetComplete?: () => void;
 }) {
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(initialMode);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     setAuthMode(initialMode);
+
+    // Check if the URL has an error from Supabase redirection (e.g. expired link)
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const errDesc = params.get('error_description') || hashParams.get('error_description');
+
+    if (errDesc) {
+      if (errDesc.includes('expired') || errDesc.includes('invalid')) {
+        setErrorMsg('O link de recuperação é inválido ou expirou. Solicite um novo link.');
+      } else {
+        setErrorMsg(decodeURIComponent(errDesc).replace(/\+/g, ' '));
+      }
+      // Remove query params to clean up UI
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, [initialMode]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const handleAuth = async (e: React.FormEvent) => {

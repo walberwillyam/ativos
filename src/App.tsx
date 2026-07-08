@@ -87,7 +87,8 @@ export default function App() {
     });
 
     // Also check on load if URL has type=recovery implicitly
-    if (window.location.hash.includes('type=recovery')) {
+    const url = window.location.href;
+    if (url.includes('type=recovery') || url.includes('recovery')) {
       setIsRecoveryMode(true);
     }
 
