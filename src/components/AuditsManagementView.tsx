@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Calendar, CheckCircle2, ClipboardCheck, Clock, FileSpreadsheet, MapPin, Play, Plus } from 'lucide-react';
+import { Calendar, CheckCircle2, ClipboardCheck, Clock, FileSpreadsheet, MapPin, Play, Plus, Trash2 } from 'lucide-react';
 import { AuditSchedule } from '../types';
 
 interface AuditsManagementViewProps {
@@ -65,6 +65,13 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
     fetchSchedules();
   };
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este agendamento?")) {
+      await supabase.from('audit_schedules').delete().eq('id', id);
+      fetchSchedules();
+    }
+  };
+
   // Funções para ver o relatório poderiam ser implementadas aqui
   // Onde buscaria na tabela `audit_progress`
 
@@ -99,7 +106,7 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
                 required
               >
                 <option value="">Selecione a Unidade</option>
-                {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {units.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
               </select>
             </div>
             <div className="flex-1">
@@ -136,7 +143,7 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
               <tr><td colSpan={4} className="py-8 text-center text-slate-400">Nenhum agendamento encontrado.</td></tr>
             ) : schedules.map(s => (
               <tr key={s.id} className="hover:bg-slate-50/50">
-                <td className="py-4 px-6 font-medium text-slate-800">{units.find(u => u.id === s.unit_id)?.name || s.unit_id}</td>
+                <td className="py-4 px-6 font-medium text-slate-800">{s.unit_id}</td>
                 <td className="py-4 px-6 text-slate-600">{new Date(s.scheduled_date).toLocaleDateString('pt-BR')}</td>
                 <td className="py-4 px-6">
                   {s.status === 'agendado' && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"><Clock size={14}/> Agendado</span>}
@@ -150,6 +157,13 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
                   {s.status === 'ativo' && (
                     <button onClick={() => updateStatus(s.id, 'concluido')} className="px-3 py-1.5 text-sm font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg">Encerrar Manualmente</button>
                   )}
+                  <button 
+                    onClick={() => handleDelete(s.id)} 
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    title="Excluir Agendamento"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </td>
               </tr>
             ))}
