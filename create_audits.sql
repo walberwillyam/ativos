@@ -1,7 +1,7 @@
 -- Criação da tabela de agendamentos de auditoria
 CREATE TABLE IF NOT EXISTS public.audit_schedules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    unit_id UUID NOT NULL,
+    unit_id TEXT NOT NULL,
     scheduled_date DATE NOT NULL,
     status TEXT NOT NULL DEFAULT 'agendado', -- agendado, ativo, concluido
     created_by UUID REFERENCES auth.users(id),
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.audit_schedules (
 CREATE TABLE IF NOT EXISTS public.audit_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     audit_id UUID REFERENCES public.audit_schedules(id) ON DELETE CASCADE,
-    asset_id UUID NOT NULL, -- Referência ao ativo conferido
+    asset_id TEXT NOT NULL, -- Referência ao ativo conferido
     scanned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     scanned_by UUID REFERENCES auth.users(id),
     status TEXT NOT NULL DEFAULT 'conferido', -- conferido, nao_localizado, invasor
