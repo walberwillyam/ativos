@@ -94,7 +94,7 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
                 required
               >
                 <option value="">Selecione a Unidade</option>
-                {units.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
             <div className="flex-1">
@@ -131,7 +131,7 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
               <tr><td colSpan={4} className="py-8 text-center text-slate-400">Nenhum agendamento encontrado.</td></tr>
             ) : schedules.map(s => (
               <tr key={s.id} className="hover:bg-slate-50/50">
-                <td className="py-4 px-6 font-medium text-slate-800">{s.unit_id}</td>
+                <td className="py-4 px-6 font-medium text-slate-800">{units.find(u => u.id === s.unit_id)?.name || s.unit_id}</td>
                 <td className="py-4 px-6 text-slate-600">{new Date(s.scheduled_date).toLocaleDateString('pt-BR')}</td>
                 <td className="py-4 px-6">
                   {s.status === 'agendado' && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"><Clock size={14}/> Agendado</span>}
