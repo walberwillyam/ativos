@@ -123,6 +123,8 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
         return 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-900/50';
       case 'noc':
         return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50';
+      case 'conferente':
+        return 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-900/50';
       default:
         return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50';
     }
@@ -134,6 +136,8 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
         return 'Administrador';
       case 'noc':
         return 'Operador NOC';
+      case 'conferente':
+        return 'Conferente';
       default:
         return 'Colaborador';
     }
@@ -183,6 +187,7 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
             <option value="admin">Administrador</option>
             <option value="noc">Operador NOC</option>
             <option value="employee">Colaborador</option>
+            <option value="conferente">Conferente</option>
           </select>
 
           <select 
@@ -319,6 +324,7 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-white"
                   >
                     <option value="employee">Colaborador (Visualização e Inventário)</option>
+                    <option value="conferente">Conferente (Auditorias em Campo)</option>
                     <option value="noc">Operador NOC (Apenas Monitoramento do Painel NOC)</option>
                     <option value="admin">Administrador (Controle Total)</option>
                   </select>
