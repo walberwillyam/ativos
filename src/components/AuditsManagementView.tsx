@@ -23,8 +23,12 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
     setLoading(true);
     const { data, error } = await supabase
       .from('audit_schedules')
-      .select('*, profiles:created_by(email)')
+      .select('*')
       .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error("Erro ao buscar agendamentos:", error);
+    }
       
     if (data) {
       setSchedules(data);
