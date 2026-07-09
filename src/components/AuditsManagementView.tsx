@@ -46,7 +46,8 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
       setIsCreating(false);
       fetchSchedules();
     } else {
-      alert("Erro ao criar agendamento.");
+      console.error("Supabase error:", error);
+      alert("Erro ao criar agendamento: " + error.message);
     }
   };
 
