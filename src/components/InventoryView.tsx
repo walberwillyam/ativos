@@ -784,7 +784,19 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         return;
       }
 
-      const separator = lines[0].includes(';') ? ';' : ',';
+      const headerLine = lines[0];
+      const separators = [';', ',', '\t', '|'];
+      let separator = ';';
+      let maxCols = 0;
+      for (const sep of separators) {
+        // Simple count for detection
+        const cols = headerLine.split(sep).length;
+        if (cols > maxCols) {
+          maxCols = cols;
+          separator = sep;
+        }
+      }
+
       const importedAssets: Asset[] = [];
 
       for (let i = 1; i < lines.length; i++) {
@@ -808,7 +820,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         }
         values.push(current.trim());
 
-        if (values.length < 5) continue;
+        if (values.filter(v => v !== '').length === 0) continue;
 
         const randomIDNum = Math.floor(1000 + Math.random() * 9000);
         const name = values[1] || `Ativo Importado ${randomIDNum}`;
