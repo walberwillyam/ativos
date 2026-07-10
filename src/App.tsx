@@ -219,8 +219,9 @@ export default function App() {
             };
 
             if (existingIndex >= 0) {
-              // Update existing notification in-place
+              // Update existing notification in-place but preserve the read status
               const updated = [...prev];
+              updatedNotif.read = updated[existingIndex].read;
               updated[existingIndex] = updatedNotif;
               return updated;
             }
