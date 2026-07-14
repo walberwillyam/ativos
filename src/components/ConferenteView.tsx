@@ -274,6 +274,42 @@ export default function ConferenteView({ userProfile, assets }: ConferenteViewPr
           </div>
         </div>
 
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <ClipboardCheck size={18} className="text-indigo-600" /> 
+              Lista de Ativos da Unidade
+            </h3>
+          </div>
+          <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+            {targetAssets.map(asset => {
+              const isVerified = auditedIds.includes(asset.id);
+              return (
+                <div key={asset.id} className={`p-4 flex items-center justify-between transition-colors ${isVerified ? 'bg-emerald-50' : ''}`}>
+                  <div>
+                    <p className={`font-semibold text-sm ${isVerified ? 'text-emerald-800' : 'text-slate-800'}`}>{asset.name}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Patrimônio: {asset.patrimonio || 'N/A'} {asset.serialNumber ? `| N/S: ${asset.serialNumber}` : ''}
+                    </p>
+                  </div>
+                  {isVerified ? (
+                    <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-md shrink-0">
+                      <CheckCircle2 size={14} /> Conferido
+                    </div>
+                  ) : (
+                    <div className="text-xs font-medium text-slate-400 shrink-0">Pendente</div>
+                  )}
+                </div>
+              );
+            })}
+            {targetAssets.length === 0 && (
+              <div className="p-6 text-center text-slate-500 text-sm">
+                Nenhum ativo encontrado para esta unidade.
+              </div>
+            )}
+          </div>
+        </div>
+
         <button 
           onClick={handleFinalizeAudit}
           className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 text-lg transition-all"

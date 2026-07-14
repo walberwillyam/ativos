@@ -219,13 +219,11 @@ export default function App() {
             };
 
             if (existingIndex >= 0) {
-              // Update existing notification in-place but preserve the read status
-              const updated = [...prev];
-              updatedNotif.read = updated[existingIndex].read;
-              updated[existingIndex] = updatedNotif;
-              return updated;
+              // A notificação já existe. Não atualizamos a cada minuto para não causar recarregamento na UI
+              // e dar a falsa impressão de que estamos consultando o banco de dados.
+              return prev;
             }
-            // First time offline — add to top
+            // Primeira vez que detecta offline — adiciona ao topo
             return [updatedNotif, ...prev];
           });
         }
