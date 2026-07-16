@@ -128,6 +128,7 @@ export default function DashboardView({ assets, onSelectAsset, activities, setAc
       "Nº de Série",
       "Número (Celular)",
       "IMEI",
+      "Tipo de Chip",
       "Responsável Atual",
       "Patrimônio",
       "Categoria",
@@ -143,6 +144,7 @@ export default function DashboardView({ assets, onSelectAsset, activities, setAc
     assets.forEach(asset => {
       const numeroCelular = asset.specifications && asset.specifications["Número"] ? asset.specifications["Número"] : "";
       const imeiCelular = asset.specifications && asset.specifications["IMEI"] ? asset.specifications["IMEI"] : "";
+      const tipoChip = asset.specifications && asset.specifications["Tipo de Chip"] ? asset.specifications["Tipo de Chip"] : "";
 
       const values = [
         asset.id,
@@ -151,6 +153,7 @@ export default function DashboardView({ assets, onSelectAsset, activities, setAc
         asset.serialNumber,
         numeroCelular,
         imeiCelular,
+        tipoChip,
         asset.responsible?.name || "",
         asset.patrimonio,
         asset.category,

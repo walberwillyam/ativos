@@ -75,6 +75,9 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       "Categoria",
       "Modelo",
       "Nº de Série",
+      "IMEI",
+      "Número (Telefone)",
+      "Tipo de Chip",
       "Filial / Unidade",
       "Localização Específica",
       "Responsável Atual",
@@ -87,6 +90,10 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     const csvRows = [headers.join(";")];
 
     assets.forEach(asset => {
+      const imei = asset.specifications && asset.specifications["IMEI"] ? asset.specifications["IMEI"] : "";
+      const numero = asset.specifications && asset.specifications["Número"] ? asset.specifications["Número"] : "";
+      const tipoChip = asset.specifications && asset.specifications["Tipo de Chip"] ? asset.specifications["Tipo de Chip"] : "";
+
       const values = [
         asset.id,
         asset.name,
@@ -94,6 +101,9 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         asset.category,
         asset.model,
         asset.serialNumber,
+        imei,
+        numero,
+        tipoChip,
         asset.unit,
         asset.location,
         asset.responsible?.name || "",
