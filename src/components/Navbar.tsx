@@ -50,6 +50,20 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && userProfile?.id) {
       const file = e.target.files[0];
+
+      // Validação de Segurança Global: Tamanho e Extensão
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+      if (file.size > MAX_SIZE) {
+        alert("Erro: A foto excede o tamanho máximo permitido de 5MB.");
+        return;
+      }
+      const allowedExts = ['.png', '.jpg', '.jpeg'];
+      const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      if (!allowedExts.includes(fileExt) || !file.type.startsWith('image/')) {
+        alert("Erro: Formato de arquivo não permitido para perfil.");
+        return;
+      }
+
       try {
         const safeName = file.name.replace(/\s+/g, '_');
         const fileName = `avatars/${userProfile.id}_${Date.now()}_${safeName}`;
@@ -62,7 +76,7 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
         window.location.reload();
       } catch (err: any) {
         console.error("Upload Error:", err);
-        alert(`Erro ao enviar foto: ${err.message || "Tente novamente mais tarde."}`);
+        alert("Erro interno ao enviar foto de perfil.");
       }
     }
   };

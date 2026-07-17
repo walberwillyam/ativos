@@ -783,6 +783,18 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validação de Segurança Global: Tamanho e Extensão
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      alert("Erro: O arquivo excede o tamanho máximo permitido de 10MB.");
+      return;
+    }
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (fileExt !== '.csv') {
+      alert("Erro: Apenas arquivos .csv são permitidos para importação.");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       const text = event.target?.result as string;
@@ -918,7 +930,8 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
       const { error } = await supabase.from('assets').insert(importedAssets);
       if (error) {
-        alert("Erro ao salvar ativos importados no banco: " + error.message);
+        console.error("Database Insert Error:", error);
+        alert("Erro interno ao salvar os ativos importados no banco.");
         return;
       }
 
@@ -1113,12 +1126,25 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
 
   // Upload image to Supabase Storage and return public URL
   const uploadAssetImage = async (file: File, assetId: string): Promise<string> => {
+    // Validação de Segurança Global: Tamanho e Extensão
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      alert("Erro: O arquivo excede o tamanho máximo permitido de 10MB.");
+      return '';
+    }
+    const allowedExts = ['.png', '.jpg', '.jpeg'];
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!allowedExts.includes(fileExt) || !file.type.startsWith('image/')) {
+      alert("Erro: Formato de arquivo não permitido para foto.");
+      return '';
+    }
+
     const ext = file.name.split('.').pop() || 'jpg';
     const filePath = `assets/${assetId}.${ext}`;
     const { error } = await supabase.storage.from('ativos_arquivos').upload(filePath, file, { upsert: true });
     if (error) {
       console.error('Upload error:', error);
-      alert(`Erro ao enviar foto: ${error.message}`);
+      alert("Erro interno ao enviar foto.");
       return '';
     }
     const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(filePath);

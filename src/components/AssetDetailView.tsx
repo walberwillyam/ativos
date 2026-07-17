@@ -668,13 +668,32 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'docs' | 'photos') => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_SIZE) {
+        alert("Erro: O arquivo excede o tamanho máximo permitido de 10MB.");
+        return;
+      }
+      
+      const allowedExts = ['.png', '.jpg', '.jpeg', '.pdf', '.csv', '.docx'];
+      const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      if (!allowedExts.includes(fileExt)) {
+        alert("Erro: Formato de arquivo não permitido.");
+        return;
+      }
+      
+      if (type === 'photos' && !file.type.startsWith('image/')) {
+        alert("Erro: Apenas imagens são permitidas para fotos.");
+        return;
+      }
+
       try {
         const fileName = `${asset.id}/${type}/${Date.now()}_${file.name.replace(/\\s+/g, '_')}`;
         // Using a generic bucket name 'ativos_arquivos', make sure to create it in Supabase
         const { data, error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file);
         if (error) {
           console.error("Supabase Error:", error);
-          alert("Erro ao enviar. Verifique se o bucket 'ativos_arquivos' está criado e público no Supabase Storage.");
+          alert("Erro interno ao realizar upload do arquivo.");
           return;
         }
         
@@ -720,7 +739,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         alert(`${type === 'docs' ? 'Documento' : 'Foto'} enviado com sucesso!`);
       } catch (err) {
         console.error(err);
-        alert("Ocorreu um erro ao processar o arquivo.");
+        alert("Ocorreu um erro interno ao processar o arquivo.");
       }
     }
   };
@@ -728,12 +747,26 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_SIZE) {
+        alert("Erro: O arquivo excede o tamanho máximo permitido de 10MB.");
+        return;
+      }
+      
+      const allowedExts = ['.png', '.jpg', '.jpeg'];
+      const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      if (!allowedExts.includes(fileExt) || !file.type.startsWith('image/')) {
+        alert("Erro: Formato de arquivo não permitido para foto.");
+        return;
+      }
+
       try {
         const fileName = `${asset.id}/cover/${Date.now()}_${file.name.replace(/\\s+/g, '_')}`;
         const { data, error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file);
         if (error) {
           console.error("Supabase Error:", error);
-          alert("Erro ao enviar. Verifique se o bucket 'ativos_arquivos' está criado e público.");
+          alert("Erro interno ao enviar a foto de capa.");
           return;
         }
         const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(fileName);
@@ -745,7 +778,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         alert("Foto de capa atualizada!");
       } catch (err) {
         console.error(err);
-        alert("Ocorreu um erro ao processar a imagem.");
+        alert("Ocorreu um erro interno ao processar a imagem.");
       }
     }
   };
