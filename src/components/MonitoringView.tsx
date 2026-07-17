@@ -194,6 +194,13 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
   };
 
   const filteredDevices = devices.filter(device => {
+    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
+    
+    // Oculta ativos que não devem aparecer no monitoramento
+    if (targetAsset && ['Armazenado', 'Extraviado', 'Obsoleto', 'Manutenção'].includes(targetAsset.status)) {
+      return false;
+    }
+
     const matchesSearch = searchQuery === '' || 
       device.asset_id.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (device.custom_name && device.custom_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
