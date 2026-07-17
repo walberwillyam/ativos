@@ -474,7 +474,10 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
     ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
     storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''),
-    os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || ''
+    os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || '',
+    imei: asset.specifications["IMEI"] || '',
+    numero: asset.specifications["Número"] || '',
+    tipoChip: asset.specifications["Tipo de Chip"] || 'SIM'
   });
 
   useEffect(() => {
@@ -496,7 +499,10 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         processor: asset.specifications["Processador"] || asset.specifications["cpu"] || '',
         ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
         storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''),
-        os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || ''
+        os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || '',
+        imei: asset.specifications["IMEI"] || '',
+        numero: asset.specifications["Número"] || '',
+        tipoChip: asset.specifications["Tipo de Chip"] || 'SIM'
       });
     }
   }, [isEditOpen, asset]);
@@ -637,7 +643,10 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         ...(editForm.processor ? { "Processador": editForm.processor } : {}),
         ...(editForm.ram ? { "Memória RAM": editForm.ram } : {}),
         ...(editForm.storage ? { "Armazenamento": editForm.storage } : {}),
-        ...(editForm.os ? { "Sistema Operacional": editForm.os } : {})
+        ...(editForm.os ? { "Sistema Operacional": editForm.os } : {}),
+        ...(editForm.category === 'Celular' && editForm.imei ? { "IMEI": editForm.imei } : {}),
+        ...(editForm.category === 'Celular' && editForm.numero ? { "Número": editForm.numero } : {}),
+        ...(editForm.category === 'Celular' && editForm.tipoChip ? { "Tipo de Chip": editForm.tipoChip } : {})
       }
     };
 
@@ -1723,6 +1732,48 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                   </div>
                 </div>
               </div>
+              
+              {editForm.category === 'Celular' && (
+                <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50 space-y-3 mt-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">Especificações de Telefonia (Celular)</span>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-1">IMEI</label>
+                      <input 
+                        type="text" 
+                        value={editForm.imei}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, imei: e.target.value }))}
+                        placeholder="Ex: 35123456789012"
+                        className="w-full bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-800/50 rounded-lg px-2.5 py-1 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-1">Número (Telefone)</label>
+                      <input 
+                        type="text" 
+                        value={editForm.numero}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, numero: e.target.value }))}
+                        placeholder="Ex: (11) 99999-9999"
+                        className="w-full bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-800/50 rounded-lg px-2.5 py-1 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-1">Tipo de Chip</label>
+                      <select 
+                        value={editForm.tipoChip}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, tipoChip: e.target.value }))}
+                        className="w-full bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-800/50 rounded-lg px-2.5 py-1 text-xs"
+                      >
+                        <option>SIM</option>
+                        <option>Micro-SIM</option>
+                        <option>Nano-SIM</option>
+                        <option>eSIM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2.5 pt-4 border-t border-slate-100 mt-4">
