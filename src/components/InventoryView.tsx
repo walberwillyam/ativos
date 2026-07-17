@@ -807,6 +807,15 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         }
       }
 
+      const headerCols = headerLine.split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
+      const getVal = (vals: string[], possibleHeaders: string[]) => {
+        for (const ph of possibleHeaders) {
+          const idx = headerCols.findIndex(h => h.toLowerCase() === ph.toLowerCase());
+          if (idx !== -1 && vals[idx]) return vals[idx].replace(/^"|"$/g, '').trim();
+        }
+        return '';
+      };
+
       const importedAssets: Asset[] = [];
 
       for (let i = 1; i < lines.length; i++) {
@@ -833,21 +842,39 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         if (values.filter(v => v !== '').length === 0) continue;
 
         const randomIDNum = Math.floor(1000 + Math.random() * 9000);
-        const name = values[1] || `Ativo Importado ${randomIDNum}`;
-        const patrimonio = values[2] || `#PAT-${randomIDNum}`;
-        const category = values[3] || 'Notebooks';
-        const model = values[4] || 'Modelo Genérico';
-        const serialNumber = values[5] || `SN-${randomIDNum}-X`;
-        const unit = values[6] || 'Matriz - São Paulo';
-        const location = values[7] || 'Escritório Geral';
-        const responsibleName = values[8] || 'Administrador';
-        const status = (values[9] || 'Em Uso') as AssetStatus;
-        const value = parseFloat(values[10]) || 1500.00;
-        const acquisitionDate = values[11] || new Date().toISOString().split('T')[0];
-        const warrantyExpiry = values[12] || new Date(Date.now() + 365*2*24*60*60*1000).toISOString().split('T')[0];
+        
+        const id = getVal(values, ['id interno', 'id']) || `KINETIC-${randomIDNum}`;
+        const name = getVal(values, ['nome', 'name']) || `Ativo Importado ${randomIDNum}`;
+        const patrimonio = getVal(values, ['patrimônio', 'patrimonio']) || `#PAT-${randomIDNum}`;
+        const category = getVal(values, ['categoria', 'category']) || 'Notebooks';
+        const model = getVal(values, ['modelo', 'model']) || 'Modelo Genérico';
+        const serialNumber = getVal(values, ['nº de série', 'serial number', 'n de serie', 'numero de serie']) || `SN-${randomIDNum}-X`;
+        
+        const imei = getVal(values, ['imei']);
+        const numero = getVal(values, ['número (telefone)', 'numero (telefone)', 'número', 'numero', 'telefone']);
+        const tipoChip = getVal(values, ['tipo de chip', 'chip']);
+
+        const unit = getVal(values, ['filial / unidade', 'unidade', 'filial']) || 'Matriz - São Paulo';
+        const location = getVal(values, ['localização específica', 'localização', 'localizacao específica', 'localizacao']) || 'Escritório Geral';
+        const responsibleName = getVal(values, ['responsável atual', 'responsável', 'responsavel atual', 'responsavel']) || 'Administrador';
+        const status = (getVal(values, ['status geral', 'status']) || 'Em Uso') as AssetStatus;
+        const valueStr = getVal(values, ['valor (r$)', 'valor']);
+        const value = valueStr ? parseFloat(valueStr.replace(',', '.')) : 1500.00;
+        const acquisitionDate = getVal(values, ['data de aquisição', 'data de aquisicao', 'aquisicao']) || new Date().toISOString().split('T')[0];
+        const warrantyExpiry = getVal(values, ['vencimento de garantia', 'garantia']) || new Date(Date.now() + 365*2*24*60*60*1000).toISOString().split('T')[0];
+
+        const specifications: Record<string, string> = {
+          "Sistema Operacional": "Homologado Corporativo"
+        };
+
+        if (category.toLowerCase() === 'celular' || category.toLowerCase() === 'smartphone') {
+          if (imei) specifications["IMEI"] = imei;
+          if (numero) specifications["Número"] = numero;
+          if (tipoChip) specifications["Tipo de Chip"] = tipoChip;
+        }
 
         const newAsset: Asset = {
-          id: values[0] || `KINETIC-${randomIDNum}`,
+          id,
           patrimonio,
           name,
           category,
@@ -865,9 +892,7 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
           value,
           acquisitionDate,
           warrantyExpiry,
-          specifications: {
-            "Sistema Operacional": "Homologado Corporativo"
-          },
+          specifications,
           history: [
             {
               id: `hist-import-${Date.now()}-${i}`,
