@@ -4,8 +4,8 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 // ===== VALIDAÇÃO DE INICIALIZAÇÃO =====
 if (!supabaseUrl || !supabaseKey) {
