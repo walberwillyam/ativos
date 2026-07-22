@@ -36,7 +36,6 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 // Persiste o ASSET_ID original para não perder o vínculo se o usuário mudar o nome do computador
 const idFilePath = path.join(__dirname, 'agent-id.json');
