@@ -96,6 +96,17 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
     }
   };
 
+  const handleUpdateAssetId = async (id: string, newAssetId: string | null) => {
+    try {
+      const { error } = await supabase.from('os_licenses').update({ asset_id: newAssetId }).eq('id', id);
+      if (error) throw error;
+      await fetchLicenses();
+    } catch (err: any) {
+      console.error('Error updating linked asset:', err);
+      alert('Erro ao vincular máquina.');
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -174,18 +185,18 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {isAvailable ? (
-                          <span className="text-slate-400">-</span>
-                        ) : (
-                          <div className="flex flex-col">
-                            <span className="font-medium text-slate-800">
-                              {linkedAsset ? linkedAsset.name : 'Ativo Desconhecido'}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {linkedAsset ? linkedAsset.patrimonio : license.asset_id}
-                            </span>
-                          </div>
-                        )}
+                        <select
+                          value={license.asset_id || ''}
+                          onChange={(e) => handleUpdateAssetId(license.id, e.target.value || null)}
+                          className="w-full text-sm border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 p-1.5"
+                        >
+                          <option value="">- Nenhuma (Disponível) -</option>
+                          {assets.map(a => (
+                            <option key={a.id} value={a.id}>
+                              {a.name} ({a.patrimonio})
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button

@@ -28,7 +28,8 @@ import {
   HardDrive,
   Clock,
   Scan,
-  CheckCircle
+  CheckCircle,
+  Key
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Asset, AssetStatus, Category, TimelineStep, HandoverTerm } from '../types';
@@ -475,6 +476,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
     ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
     storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''),
     os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || '',
+    os_product_key: asset.specifications["os_product_key"] || '',
     imei: asset.specifications["IMEI"] || '',
     numero: asset.specifications["Número"] || '',
     tipoChip: asset.specifications["Tipo de Chip"] || 'SIM'
@@ -500,6 +502,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         ram: (typeof asset.specifications["ram"] === 'string' && asset.specifications["ram"].length > 10) ? formatBytes(parseInt(asset.specifications["ram"])) : (asset.specifications["Memória RAM"] || asset.specifications["ram"] || ''),
         storage: (typeof asset.specifications["disk"] === 'string' && asset.specifications["disk"].length > 10) ? formatBytes(parseInt(asset.specifications["disk"])) : (asset.specifications["Armazenamento"] || asset.specifications["disk"] || ''),
         os: asset.specifications["Sistema Operacional"] || asset.specifications["os"] || '',
+        os_product_key: asset.specifications["os_product_key"] || '',
         imei: asset.specifications["IMEI"] || '',
         numero: asset.specifications["Número"] || '',
         tipoChip: asset.specifications["Tipo de Chip"] || 'SIM'
@@ -644,6 +647,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
         ...(editForm.ram ? { "Memória RAM": editForm.ram } : {}),
         ...(editForm.storage ? { "Armazenamento": editForm.storage } : {}),
         ...(editForm.os ? { "Sistema Operacional": editForm.os } : {}),
+        ...(editForm.os_product_key ? { "os_product_key": editForm.os_product_key } : {}),
         ...(editForm.category === 'Celular' && editForm.imei ? { "IMEI": editForm.imei } : {}),
         ...(editForm.category === 'Celular' && editForm.numero ? { "Número": editForm.numero } : {}),
         ...(editForm.category === 'Celular' && editForm.tipoChip ? { "Tipo de Chip": editForm.tipoChip } : {})
@@ -991,6 +995,14 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                         </span>
                       </div>
                     ))}
+                  </div>
+                )}
+                {asset.specifications["os_product_key"] && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex justify-between text-xs mb-1 font-bold">
+                      <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1"><Key size={12}/> Licença Windows</span>
+                      <span className="text-slate-800 dark:text-slate-100 font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">{asset.specifications["os_product_key"]}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1608,6 +1620,15 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                     value={editForm.os}
                     onChange={(e) => setEditForm(prev => ({ ...prev, os: e.target.value }))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Licença do SO (Windows Key)</label>
+                  <input 
+                    type="text" 
+                    value={editForm.os_product_key || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, os_product_key: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-900 dark:text-slate-100 outline-none font-mono"
                   />
                 </div>
                 <div>
