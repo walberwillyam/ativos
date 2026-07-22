@@ -16,7 +16,8 @@ import {
   QrCode,
   UserCheck,
   Activity,
-  ClipboardCheck
+  ClipboardCheck,
+  Key
 } from 'lucide-react';
 import { ActiveScreen } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -39,6 +40,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
     { id: 'categories', label: 'Categorias', icon: Tags },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
     { id: 'monitoring', label: 'Monitoramento', icon: Activity },
+    { id: 'licenses', label: 'Licenças OS', icon: Key },
     ...(userProfile?.role?.toLowerCase().includes('admin') ? [
       { id: 'settings', label: 'Configurações', icon: Settings },
       { id: 'users', label: 'Gestão de Usuários', icon: UserCheck }

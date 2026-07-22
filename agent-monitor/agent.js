@@ -1,6 +1,7 @@
 require('dotenv').config();
 const si = require('systeminformation');
 const os = require('os');
+const { execSync } = require('child_process');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -105,6 +106,22 @@ async function collectAndSendHealth() {
     const hardwareModel = `${systemData.manufacturer && systemData.manufacturer !== 'Default string' ? systemData.manufacturer : ''} ${systemData.model && systemData.model !== 'Default string' ? systemData.model : ''}`.trim();
     const osString = `${osInfo.distro} ${osInfo.release}`;
 
+    // Extrair Product Key do Windows
+    let productKey = null;
+    try {
+      // Tenta via WMI (chaves de fábrica na BIOS)
+      const output = execSync(`powershell -NoProfile -Command "(Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey"`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      productKey = output.trim();
+    } catch (e) { /* ignore */ }
+    
+    if (!productKey) {
+      try {
+        // Tenta via Registro (chaves instaladas posteriormente)
+        const output2 = execSync(`powershell -NoProfile -Command "(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SoftwareProtectionPlatform' -Name BackupProductKeyDefault).BackupProductKeyDefault"`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        productKey = output2.trim();
+      } catch (e) { /* ignore */ }
+    }
+
     const { data: assetData } = await supabase
       .from('assets')
       .select('specifications, history, unit')
@@ -114,6 +131,28 @@ async function collectAndSendHealth() {
     const hostUnit = assetData?.unit || UNIT_ID;
     const currentSpecs = assetData?.specifications || {};
     currentSpecs["Sistema Operacional"] = osString;
+    
+    // Vinculação de Licença de SO
+    if (productKey) {
+      currentSpecs["os_product_key"] = productKey;
+      try {
+        const { data: license } = await supabase
+          .from('os_licenses')
+          .select('id, asset_id')
+          .eq('product_key', productKey)
+          .single();
+        
+        if (license && license.asset_id !== ASSET_ID) {
+          await supabase
+            .from('os_licenses')
+            .update({ asset_id: ASSET_ID })
+            .eq('id', license.id);
+          console.log(`[Licença] Chave do Windows vinculada com sucesso a esta máquina.`);
+        }
+      } catch (err) {
+        // Se a chave não estiver no BD ou ocorrer erro, ignoramos silenciosamente
+      }
+    }
 
     let currentHistory = assetData?.history || [];
     let historyChanged = false;

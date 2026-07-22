@@ -42,6 +42,7 @@ import UserManagementView from './components/UserManagementView';
 import NocView from './components/NocView';
 import AuditsManagementView from './components/AuditsManagementView';
 import ConferenteView from './components/ConferenteView';
+import OsLicensesView from './components/OsLicensesView';
 import { supabase } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
@@ -1427,6 +1428,7 @@ export default function App() {
               units={units}
             />
           )}
+          {activeScreen === 'licenses' && <OsLicensesView assets={assets} />}
           {activeScreen === 'reports' && renderReportsScreen()}
           {activeScreen === 'settings' && userProfile?.role === 'admin' && renderSettingsView()}
           {activeScreen === 'users' && userProfile?.role === 'admin' && <UserManagementView units={units} />}

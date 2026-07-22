@@ -69,7 +69,8 @@ export interface Asset {
   past_terms?: HandoverTerm[];
 }
 
-export type ActiveScreen = 'dashboard' | 'inventory' | 'units' | 'scanner' | 'detail' | 'monitoring' | 'categories' | 'reports' | 'settings' | 'users' | 'noc' | 'audit';
+export type ActiveScreen = 'dashboard' | 'inventory' | 'units' | 'scanner' | 'detail' | 'monitoring' | 'categories' 
+| 'reports' | 'settings' | 'users' | 'noc' | 'audit' | 'licenses';
 
 export interface QueryFilters {
   unit: string;
