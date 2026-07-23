@@ -139,17 +139,24 @@ async function collectAndSendHealth() {
           .from('os_licenses')
           .select('id, asset_id')
           .eq('product_key', productKey)
-          .single();
+          .maybeSingle();
         
-        if (license && license.asset_id !== ASSET_ID) {
+        if (license) {
+          if (license.asset_id !== ASSET_ID) {
+            await supabase
+              .from('os_licenses')
+              .update({ asset_id: ASSET_ID })
+              .eq('id', license.id);
+            console.log(`[Licença] Chave do Windows vinculada com sucesso a esta máquina.`);
+          }
+        } else {
           await supabase
             .from('os_licenses')
-            .update({ asset_id: ASSET_ID })
-            .eq('id', license.id);
-          console.log(`[Licença] Chave do Windows vinculada com sucesso a esta máquina.`);
+            .insert([{ product_key: productKey, asset_id: ASSET_ID }]);
+          console.log(`[Licença] Nova chave do Windows registrada e vinculada com sucesso.`);
         }
       } catch (err) {
-        // Se a chave não estiver no BD ou ocorrer erro, ignoramos silenciosamente
+        console.error(`[Licença] Erro ao registrar chave do Windows:`, err.message);
       }
     }
 

@@ -1602,7 +1602,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">Marca / Modelo *</label>
                   <input 
