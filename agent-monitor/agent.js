@@ -150,13 +150,17 @@ async function collectAndSendHealth() {
             console.log(`[Licença] Chave do Windows vinculada com sucesso a esta máquina.`);
           }
         } else {
-          await supabase
+          const { error: insertErr } = await supabase
             .from('os_licenses')
             .insert([{ product_key: productKey, asset_id: ASSET_ID }]);
-          console.log(`[Licença] Nova chave do Windows registrada e vinculada com sucesso.`);
+          if (insertErr) {
+            console.error(`[Licença] Erro ao inserir nova chave:`, insertErr.message);
+          } else {
+            console.log(`[Licença] Nova chave do Windows registrada e vinculada com sucesso.`);
+          }
         }
       } catch (err) {
-        console.error(`[Licença] Erro ao registrar chave do Windows:`, err.message);
+        console.error(`[Licença] Erro ao buscar/atualizar chave do Windows:`, err.message);
       }
     }
 
