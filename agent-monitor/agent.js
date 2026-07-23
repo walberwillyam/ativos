@@ -234,10 +234,16 @@ async function collectAndSendHealth() {
       console.log(`[!] Mudança de hostname detectada: ${ASSET_ID} -> ${currentHostname}. Atualizando nome no inventário.`);
     }
 
-    await supabase
+    const { error: updateAssetErr } = await supabase
       .from('assets')
       .update(updatePayload)
       .eq('id', ASSET_ID);
+      
+    if (updateAssetErr) {
+      console.error(`[Erro] Falha ao atualizar o ativo ${ASSET_ID}:`, updateAssetErr.message);
+    } else {
+      console.log(`[Ativo] Especificações atualizadas (incluindo chave do SO).`);
+    }
 
     const healthData = {
       asset_id: ASSET_ID,
