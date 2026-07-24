@@ -3,7 +3,11 @@ const path = require('path');
 
 // Valida que o dotenv esta configurado antes de registrar o servico
 require('dotenv').config();
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+
+const supaUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supaKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supaUrl || !supaKey) {
   console.error('❌ ERRO: Arquivo .env não contém SUPABASE_URL ou SUPABASE_ANON_KEY.');
   console.error('   Crie o arquivo .env na mesma pasta com as credenciais do Supabase.');
   process.exit(1);
@@ -15,8 +19,8 @@ const svc = new Service({
   script: path.join(__dirname, 'agent.js'),
   nodeOptions: [],
   env: [
-    { name: 'SUPABASE_URL', value: process.env.SUPABASE_URL },
-    { name: 'SUPABASE_ANON_KEY', value: process.env.SUPABASE_ANON_KEY },
+    { name: 'SUPABASE_URL', value: supaUrl },
+    { name: 'SUPABASE_ANON_KEY', value: supaKey },
     { name: 'UNIT_ID', value: process.env.UNIT_ID || '' },
     { name: 'ASSET_ID', value: process.env.ASSET_ID || '' }
   ],
