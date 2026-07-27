@@ -129,7 +129,19 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
 const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, onUpdateAsset: (a: Asset) => void, onAddActivity: any }) => {
   const [termType, setTermType] = useState<'entrega' | 'devolucao'>('entrega');
   const [techName, setTechName] = useState('Suporte Técnico TI');
-  const [recipName, setRecipName] = useState('');
+  
+  const [recipName, setRecipName] = useState(() => {
+    const rName = asset?.responsible?.name;
+    return rName && rName !== 'Não atribuído' ? rName : '';
+  });
+
+  useEffect(() => {
+    const rName = asset?.responsible?.name;
+    if (rName && rName !== 'Não atribuído' && !recipName) {
+      setRecipName(rName);
+    }
+  }, [asset?.responsible?.name]);
+
   const [techSig, setTechSig] = useState('');
   const [recipSig, setRecipSig] = useState('');
   const [clearTrigger, setClearTrigger] = useState(false);
