@@ -182,7 +182,7 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
         : `Equipamento devolvido pelo colaborador ${recipName}.`
     };
 
-    const currentPastTerms = asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : [];
+    const currentPastTerms = asset.past_terms ? [...asset.past_terms] : (asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : []);
     currentPastTerms.push(newTerm);
 
     const updatedAsset: Asset = {
@@ -192,6 +192,7 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
         name: recipName,
         initials: recipName.split(' ').map(n=>n[0]).join('').slice(0, 2).toUpperCase()
       } : { name: '', initials: '' },
+      past_terms: currentPastTerms,
       specifications: {
         ...asset.specifications,
         past_terms: JSON.stringify(currentPastTerms)
@@ -1224,8 +1225,28 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
             })()}
 
             {activeTab === 'docs' && (() => {
-              const docsList = asset.specifications.documents ? JSON.parse(asset.specifications.documents) : [];
-              const pastTermsList = asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : [];
+              let docsList = [];
+              try {
+                const parsed = typeof asset.specifications?.documents === 'string' ? JSON.parse(asset.specifications.documents) : asset.specifications?.documents;
+                docsList = Array.isArray(parsed) ? parsed : [];
+              } catch(e) {}
+
+              let pastTermsList = [];
+              try {
+                if (asset.past_terms && Array.isArray(asset.past_terms)) {
+                  pastTermsList = [...asset.past_terms];
+                } else if (asset.specifications?.past_terms) {
+                  const parsed = typeof asset.specifications.past_terms === 'string' ? JSON.parse(asset.specifications.past_terms) : asset.specifications.past_terms;
+                  if (Array.isArray(parsed)) pastTermsList = [...parsed];
+                }
+              } catch(e) {}
+
+              if (asset.handover_term && asset.handover_term.status === 'signed') {
+                if (!pastTermsList.find((t: any) => t.id === asset.handover_term?.id)) {
+                  pastTermsList = [asset.handover_term, ...pastTermsList];
+                }
+              }
+
               return (
                 <div className="space-y-6 select-none">
                   <div className="space-y-4">
