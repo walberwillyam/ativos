@@ -250,8 +250,8 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
           <p className="font-bold text-slate-800 dark:text-slate-200 mb-2">{termType === 'entrega' ? 'TERMO DE RESPONSABILIDADE E ENTREGA' : 'TERMO DE DEVOLUÇÃO'}</p>
           <p className="leading-relaxed">
             {termType === 'entrega' 
-              ? 'Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial em perfeito estado de conservação e funcionamento, assumindo a responsabilidade civil e criminal por sua guarda, zelo e conservação, obrigando-me a devolvê-lo nas mesmas condições quando solicitado ou no término do vínculo corporativo.' 
-              : 'Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial designado sob minha responsabilidade, cessando a partir desta data qualquer obrigação de guarda sobre o referido equipamento.'}
+              ? `Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial (${asset.category} - ${asset.name}) em perfeito estado de conservação e funcionamento, assumindo a responsabilidade civil e criminal por sua guarda, zelo e conservação, obrigando-me a devolvê-lo nas mesmas condições quando solicitado ou no término do vínculo corporativo.` 
+              : `Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial (${asset.category} - ${asset.name}) designado sob minha responsabilidade, cessando a partir desta data qualquer obrigação de guarda sobre o referido equipamento.`}
           </p>
         </div>
 
@@ -1292,9 +1292,9 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                       </div>
                       <div className="grid grid-cols-1 gap-3">
                         {pastTermsList.map((pt: any) => {
-                          const wppText = encodeURIComponent(`Olá ${pt.recipientName}! Segue o link de acesso para o seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} do equipamento ${asset.name} (${asset.patrimonio}). O documento foi assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.`);
+                          const wppText = encodeURIComponent(`Olá ${pt.recipientName}! Segue em anexo o seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} do equipamento ${asset.name} (${asset.patrimonio}). O documento foi assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.`);
                           const emailSubject = encodeURIComponent(`Termo de Responsabilidade - ${asset.name}`);
-                          const emailBody = encodeURIComponent(`Olá ${pt.recipientName},\n\nSegue o acesso ao seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} referente ao equipamento ${asset.name} (${asset.patrimonio}), assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.\n\nAtenciosamente,\nEquipe de TI`);
+                          const emailBody = encodeURIComponent(`Olá ${pt.recipientName},\n\nSegue em anexo o seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} referente ao equipamento ${asset.name} (${asset.patrimonio}), assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.\n\nAtenciosamente,\nEquipe de TI`);
 
                           return (
                             <div key={pt.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1331,7 +1331,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                                         <body>
                                           <h2 class="h">${pt.type === 'entrega' ? 'Termo de Responsabilidade e Entrega' : 'Termo de Devolução'} - ${pt.id}</h2>
                                           <p><strong>Equipamento:</strong> ${asset.name}</p>
-                                          <p><strong>Patrimônio:</strong> ${asset.patrimonio} | <strong>Serial:</strong> ${asset.serialNumber}</p>
+                                          <p><strong>Categoria:</strong> ${asset.category} | <strong>Patrimônio:</strong> ${asset.patrimonio} | <strong>Serial:</strong> ${asset.serialNumber}</p>
                                           <p style="margin-top:20px;">
                                             ${pt.type === 'entrega' 
                                               ? 'Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito acima em perfeito estado de conservação e funcionamento.' 
