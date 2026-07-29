@@ -425,8 +425,13 @@ export default function App() {
     setAssets(prev => prev.map(a => a.id === finalAsset.id ? finalAsset : a));
     setSelectedAsset(finalAsset);
 
+    // Remove custom UI properties that are not in the DB schema
+    const { handover_term, past_terms, ...dbAsset } = finalAsset;
+
     // Save to DB
-    supabase.from('assets').update(finalAsset).eq('id', finalAsset.id).then();
+    supabase.from('assets').update(dbAsset).eq('id', finalAsset.id).then(({ error }) => {
+      if (error) console.error("Error updating asset in DB:", error);
+    });
   };
 
   // Category Handlers
