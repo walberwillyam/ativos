@@ -25,6 +25,7 @@ export interface HandoverTerm {
   status: 'pending' | 'signed' | 'returned';
   returnedAt?: string;
   type?: 'entrega' | 'devolucao';
+  observation?: string;
 }
 
 export interface TimelineStep {

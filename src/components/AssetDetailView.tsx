@@ -29,7 +29,8 @@ import {
   Clock,
   Scan,
   CheckCircle,
-  Key
+  Key,
+  Maximize2
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Asset, AssetStatus, Category, TimelineStep, HandoverTerm } from '../types';
@@ -37,6 +38,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useRef } from 'react';
 
 const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (dataUrl: string) => void, clearTrigger: boolean }) => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
 
@@ -45,6 +47,8 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    const existingDataUrl = canvas.toDataURL();
 
     // Ajustar para alta resolução de telas modernas
     canvas.width = canvas.offsetWidth * 2;
@@ -55,6 +59,14 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    if (existingDataUrl && existingDataUrl.length > 10) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      };
+      img.src = existingDataUrl;
+    }
 
     const getPos = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -67,7 +79,7 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
     };
 
     const startDrawing = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       isDrawing.current = true;
       const pos = getPos(e);
       ctx.beginPath();
@@ -76,7 +88,7 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
 
     const draw = (e: MouseEvent | TouchEvent) => {
       if (!isDrawing.current) return;
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       const pos = getPos(e);
       ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
@@ -107,7 +119,7 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
       canvas.removeEventListener('touchmove', draw);
       canvas.removeEventListener('touchend', stopDrawing);
     };
-  }, []);
+  }, [isFullscreen]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -118,12 +130,50 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
     onSave('');
   }, [clearTrigger]);
 
-  return (
-    <canvas 
-      ref={canvasRef} 
-      className="w-full h-32 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-crosshair touch-none" 
-    />
+  const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
+
+  const canvasElement = (
+    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-[9999] bg-white dark:bg-slate-900 flex flex-col p-6' : 'w-full'}`}>
+      {isFullscreen && (
+        <div className="flex justify-between items-center mb-6">
+          <span className="font-bold text-slate-800 dark:text-white text-lg">Assinatura ({id === 'tech' ? 'Técnico' : 'Recebedor'})</span>
+          <button 
+            type="button" 
+            onClick={toggleFullscreen}
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg"
+          >
+            Concluir
+          </button>
+        </div>
+      )}
+      <canvas 
+        ref={canvasRef} 
+        className={`${isFullscreen ? 'flex-1 w-full h-full' : 'w-full h-32'} bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-crosshair touch-none`} 
+      />
+      {!isFullscreen && (
+        <button 
+          type="button" 
+          onClick={toggleFullscreen}
+          className="absolute bottom-2 right-2 px-3 py-1.5 bg-white/90 dark:bg-slate-700/90 rounded-lg text-[10px] font-bold shadow backdrop-blur border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center gap-1"
+        >
+          <Maximize2 size={12} /> Expandir
+        </button>
+      )}
+    </div>
   );
+
+  if (isFullscreen) {
+    return (
+      <>
+        <div className="w-full h-32 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs font-bold bg-slate-50 dark:bg-slate-800/50">
+          Preenchendo em tela cheia...
+        </div>
+        {canvasElement}
+      </>
+    );
+  }
+
+  return canvasElement;
 };
 
 const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, onUpdateAsset: (a: Asset) => void, onAddActivity: any }) => {
@@ -144,6 +194,7 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
 
   const [techSig, setTechSig] = useState('');
   const [recipSig, setRecipSig] = useState('');
+  const [observation, setObservation] = useState('');
   const [clearTrigger, setClearTrigger] = useState(false);
 
   const handleCreateTerm = () => {
@@ -167,7 +218,8 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
       specifications: asset.specifications,
       status: termType === 'entrega' ? 'signed' : 'returned',
       type: termType,
-      returnedAt: termType === 'devolucao' ? new Date().toISOString() : undefined
+      returnedAt: termType === 'devolucao' ? new Date().toISOString() : undefined,
+      observation: observation
     };
 
     const deliveryStep: TimelineStep = {
@@ -213,6 +265,7 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
 
     handleClear();
     setRecipName('');
+    setObservation('');
     alert(termType === 'entrega' ? "Termo de Entrega gravado com sucesso! O termo está na aba Documentos Anexados." : "Termo de Devolução gravado com sucesso! O ativo foi movido para Armazenado.");
   };
 
@@ -275,6 +328,17 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-800 dark:text-white"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5 pt-2">
+          <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Observações (Avarias, Condições, etc.)</label>
+          <textarea 
+            rows={2}
+            placeholder="Ex: Aparelho com leve arranhão na tela, entregue sem carregador..."
+            value={observation}
+            onChange={e => setObservation(e.target.value)}
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-800 dark:text-white resize-none"
+          />
         </div>
 
         {/* Canvas de Assinaturas */}
@@ -1337,6 +1401,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                                               ? 'Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito acima em perfeito estado de conservação e funcionamento.' 
                                               : 'Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial designado sob minha responsabilidade.'}
                                           </p>
+                                          ${pt.observation ? `<p style="margin-top:15px; padding: 15px; background: #f9f9f9; border-left: 4px solid #ccc; font-size: 13px;"><strong>Observações:</strong><br/>${pt.observation}</p>` : ''}
                                           <div style="display: flex; gap: 40px; margin-top: 40px;">
                                             <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Técnico Emitente</p><img src="${pt.technicianSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.technicianName}</strong></p></div>
                                             <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Usuário Recebedor</p><img src="${pt.recipientSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.recipientName}</strong></p></div>
