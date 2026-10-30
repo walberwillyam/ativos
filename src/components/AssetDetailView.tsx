@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, 
   Edit, 
@@ -30,55 +30,280 @@ import {
   Scan,
   CheckCircle,
   Key,
-  Maximize2
+  Maximize2,
+  RotateCcw,
+  Check,
+  Download,
+  Loader2
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Asset, AssetStatus, Category, TimelineStep, HandoverTerm } from '../types';
 import { supabase } from '../lib/supabaseClient';
-import { useRef } from 'react';
+import { 
+  getAssetBrandModel, 
+  openTermPdfPreview, 
+  downloadTermPdf, 
+  shareTermViaWhatsApp 
+} from '../utils/termPdfGenerator';
 
-const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (dataUrl: string) => void, clearTrigger: boolean }) => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
+/**
+ * Modal em Tela Cheia para coleta de assinatura via Touch / Mouse.
+ * Renderizado no document.body via Portal para ocupar 100vw e 100dvh sem restrições de container pai.
+ */
+const SignatureFullscreenModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  initialDataUrl
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (dataUrl: string) => void;
+  title: string;
+  initialDataUrl?: string;
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
+  const hasDrawn = useRef(false);
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const container = containerRef.current;
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!container || !canvas) return;
 
-    const existingDataUrl = canvas.toDataURL();
+    const setupCanvas = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const dpr = window.devicePixelRatio || 2;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
 
-    // Ajustar para alta resolução de telas modernas
-    canvas.width = canvas.offsetWidth * 2;
-    canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2, 2);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.scale(dpr, dpr);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
 
-    ctx.strokeStyle = '#1e293b'; // slate-800
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+      if (initialDataUrl && initialDataUrl.startsWith('data:image')) {
+        const img = new Image();
+        img.onload = () => {
+          const hRatio = rect.height / img.height;
+          const wRatio = rect.width / img.width;
+          const ratio = Math.min(hRatio, wRatio, 1);
+          const w = img.width * ratio;
+          const h = img.height * ratio;
+          const x = (rect.width - w) / 2;
+          const y = (rect.height - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          hasDrawn.current = true;
+        };
+        img.src = initialDataUrl;
+      }
+    };
 
-    if (existingDataUrl && existingDataUrl.length > 10) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
-      };
-      img.src = existingDataUrl;
-    }
+    setupCanvas();
+
+    const handleResize = () => {
+      setupCanvas();
+    };
+    window.addEventListener('resize', handleResize);
 
     const getPos = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect();
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
       return {
         x: clientX - rect.left,
         y: clientY - rect.top
       };
     };
 
-    const startDrawing = (e: MouseEvent | TouchEvent) => {
+    const start = (e: MouseEvent | TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      isDrawing.current = true;
+      hasDrawn.current = true;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    };
+
+    const move = (e: MouseEvent | TouchEvent) => {
+      if (!isDrawing.current) return;
+      if (e.cancelable) e.preventDefault();
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+
+    const end = () => {
+      isDrawing.current = false;
+    };
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
+
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
+    canvas.addEventListener('touchcancel', end);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('mousedown', start);
+      canvas.removeEventListener('mousemove', move);
+      canvas.removeEventListener('mouseup', end);
+      canvas.removeEventListener('mouseleave', end);
+      canvas.removeEventListener('touchstart', start);
+      canvas.removeEventListener('touchmove', move);
+      canvas.removeEventListener('touchend', end);
+      canvas.removeEventListener('touchcancel', end);
+    };
+  }, [isOpen, initialDataUrl]);
+
+  if (!isOpen) return null;
+
+  const handleClear = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn.current = false;
+  };
+
+  const handleConfirm = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasDrawn.current) {
+      alert("Por favor, faça a assinatura na tela antes de confirmar.");
+      return;
+    }
+    const dataUrl = canvas.toDataURL('image/png');
+    onConfirm(dataUrl);
+    onClose();
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[999999] w-screen h-[100dvh] bg-slate-950 flex flex-col p-3 sm:p-5 select-none touch-none overflow-hidden">
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-white shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+            <Edit size={16} />
+          </div>
+          <div>
+            <span className="font-bold text-sm sm:text-base block">{title}</span>
+            <span className="text-[10px] text-slate-400 hidden sm:block">Assine com o dedo ou caneta na tela cheia</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleClear}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer border border-slate-700"
+          >
+            <RotateCcw size={13} /> Limpar
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-400 hover:text-white rounded-xl transition cursor-pointer border border-slate-700"
+            title="Cancelar"
+          >
+            <X size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Check size={16} /> Confirmar
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile rotation tip */}
+      <div className="py-1 text-center text-[10px] sm:text-xs text-indigo-400 font-medium">
+        💡 Dica: No celular, gire o aparelho na horizontal para assinar com mais espaço!
+      </div>
+
+      {/* Canvas container taking 100% available area */}
+      <div ref={containerRef} className="flex-1 w-full min-h-0 relative bg-white rounded-2xl overflow-hidden shadow-2xl border-2 border-indigo-500/40 my-1">
+        <div className="absolute bottom-10 left-8 right-8 border-b border-dashed border-slate-300 pointer-events-none flex justify-center">
+          <span className="text-[10px] text-slate-400 bg-white px-2 -mb-2">Espaço para assinatura</span>
+        </div>
+        <canvas ref={canvasRef} className="w-full h-full block cursor-crosshair touch-none" />
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+/**
+ * Campo de Assinatura com suporte a desenho em tela e modal Fullscreen (100dvh).
+ */
+const SignatureField = ({
+  id,
+  label,
+  value,
+  onChange,
+  onClear
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  onClear: () => void;
+}) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDrawing = useRef(false);
+
+  useEffect(() => {
+    if (value) return;
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const dpr = window.devicePixelRatio || 2;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const getPos = (e: MouseEvent | TouchEvent) => {
+      const cRect = canvas.getBoundingClientRect();
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      return { x: clientX - cRect.left, y: clientY - cRect.top };
+    };
+
+    const start = (e: MouseEvent | TouchEvent) => {
       if (e.cancelable) e.preventDefault();
       isDrawing.current = true;
       const pos = getPos(e);
@@ -86,7 +311,7 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
       ctx.moveTo(pos.x, pos.y);
     };
 
-    const draw = (e: MouseEvent | TouchEvent) => {
+    const move = (e: MouseEvent | TouchEvent) => {
       if (!isDrawing.current) return;
       if (e.cancelable) e.preventDefault();
       const pos = getPos(e);
@@ -94,86 +319,100 @@ const SignatureCanvas = ({ id, onSave, clearTrigger }: { id: string, onSave: (da
       ctx.stroke();
     };
 
-    const stopDrawing = () => {
+    const end = () => {
       if (isDrawing.current) {
         isDrawing.current = false;
-        onSave(canvas.toDataURL());
+        onChange(canvas.toDataURL('image/png'));
       }
     };
 
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseleave', stopDrawing);
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
 
-    canvas.addEventListener('touchstart', startDrawing, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
+    canvas.addEventListener('touchcancel', end);
 
     return () => {
-      canvas.removeEventListener('mousedown', startDrawing);
-      canvas.removeEventListener('mousemove', draw);
-      canvas.removeEventListener('mouseup', stopDrawing);
-      canvas.removeEventListener('mouseleave', stopDrawing);
-      canvas.removeEventListener('touchstart', startDrawing);
-      canvas.removeEventListener('touchmove', draw);
-      canvas.removeEventListener('touchend', stopDrawing);
+      canvas.removeEventListener('mousedown', start);
+      canvas.removeEventListener('mousemove', move);
+      canvas.removeEventListener('mouseup', end);
+      canvas.removeEventListener('mouseleave', end);
+      canvas.removeEventListener('touchstart', start);
+      canvas.removeEventListener('touchmove', move);
+      canvas.removeEventListener('touchend', end);
+      canvas.removeEventListener('touchcancel', end);
     };
-  }, [isFullscreen]);
+  }, [value, onChange]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    onSave('');
-  }, [clearTrigger]);
+  return (
+    <div className="space-y-2 text-left">
+      <div className="flex justify-between items-center">
+        <label className="block text-[10px] uppercase font-extrabold text-slate-500 dark:text-slate-400 tracking-wider">
+          {label}
+        </label>
+        {value ? (
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1">
+            <Check size={12} /> Assinatura Coletada
+          </span>
+        ) : (
+          <span className="text-[10px] text-amber-500 font-semibold">Pendente</span>
+        )}
+      </div>
 
-  const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
+      <div
+        ref={containerRef}
+        className="relative w-full h-36 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden flex flex-col justify-center items-center"
+      >
+        {value ? (
+          <div className="w-full h-full p-2 flex flex-col items-center justify-center bg-white dark:bg-slate-800">
+            <img src={value} alt="Assinatura" className="max-h-24 max-w-full object-contain pointer-events-none" />
+            <div className="absolute bottom-2 right-2 flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-bold rounded-lg shadow-xs border border-slate-200 dark:border-slate-600 flex items-center gap-1 transition cursor-pointer"
+              >
+                <Maximize2 size={11} /> Refazer em Tela Cheia
+              </button>
+              <button
+                type="button"
+                onClick={onClear}
+                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-[10px] font-bold rounded-lg shadow-xs border border-rose-200 dark:border-rose-900/50 flex items-center gap-1 transition cursor-pointer"
+              >
+                <X size={11} /> Limpar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <canvas ref={canvasRef} className="w-full h-full block cursor-crosshair touch-none" />
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="absolute bottom-2 right-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-[11px] font-bold shadow-md flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Maximize2 size={13} /> Expandir Tela Cheia
+            </button>
+            <div className="absolute top-2 left-3 pointer-events-none text-[10px] text-slate-400">
+              Assine aqui ou expanda para tela inteira
+            </div>
+          </>
+        )}
+      </div>
 
-  const canvasElement = (
-    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-[9999] bg-white dark:bg-slate-900 flex flex-col p-6' : 'w-full'}`}>
-      {isFullscreen && (
-        <div className="flex justify-between items-center mb-6">
-          <span className="font-bold text-slate-800 dark:text-white text-lg">Assinatura ({id === 'tech' ? 'Técnico' : 'Recebedor'})</span>
-          <button 
-            type="button" 
-            onClick={toggleFullscreen}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg"
-          >
-            Concluir
-          </button>
-        </div>
-      )}
-      <canvas 
-        ref={canvasRef} 
-        className={`${isFullscreen ? 'flex-1 w-full h-full' : 'w-full h-32'} bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-crosshair touch-none`} 
+      <SignatureFullscreenModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={onChange}
+        title={label}
+        initialDataUrl={value}
       />
-      {!isFullscreen && (
-        <button 
-          type="button" 
-          onClick={toggleFullscreen}
-          className="absolute bottom-2 right-2 px-3 py-1.5 bg-white/90 dark:bg-slate-700/90 rounded-lg text-[10px] font-bold shadow backdrop-blur border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center gap-1"
-        >
-          <Maximize2 size={12} /> Expandir
-        </button>
-      )}
     </div>
   );
-
-  if (isFullscreen) {
-    return (
-      <>
-        <div className="w-full h-32 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs font-bold bg-slate-50 dark:bg-slate-800/50">
-          Preenchendo em tela cheia...
-        </div>
-        {canvasElement}
-      </>
-    );
-  }
-
-  return canvasElement;
 };
 
 const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, onUpdateAsset: (a: Asset) => void, onAddActivity: any }) => {
@@ -195,7 +434,8 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
   const [techSig, setTechSig] = useState('');
   const [recipSig, setRecipSig] = useState('');
   const [observation, setObservation] = useState('');
-  const [clearTrigger, setClearTrigger] = useState(false);
+
+  const { marca, modelo } = getAssetBrandModel(asset);
 
   const handleCreateTerm = () => {
     if (!recipName.trim()) {
@@ -203,7 +443,7 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
       return;
     }
     if (!techSig || !recipSig) {
-      alert("Por favor, colha ambas as assinaturas desenhando no painel.");
+      alert("Por favor, colha ambas as assinaturas (Técnico e Recebedor) antes de salvar.");
       return;
     }
 
@@ -230,12 +470,23 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
       time: new Date().toTimeString().slice(0, 5),
       type: "transfer",
       description: termType === 'entrega' 
-        ? `Equipamento alocado e entregue para o colaborador ${recipName}. Termo digital ativo.`
-        : `Equipamento devolvido pelo colaborador ${recipName}.`
+        ? `Equipamento alocado e entregue para o colaborador ${recipName} sob termo. Marca: ${marca}, Modelo: ${modelo}.`
+        : `Equipamento devolvido pelo colaborador ${recipName}. Marca: ${marca}, Modelo: ${modelo}.`
     };
 
-    const currentPastTerms = asset.past_terms ? [...asset.past_terms] : (asset.specifications?.past_terms ? JSON.parse(asset.specifications.past_terms) : []);
-    currentPastTerms.push(newTerm);
+    let currentPastTerms: HandoverTerm[] = [];
+    try {
+      if (asset.past_terms && Array.isArray(asset.past_terms)) {
+        currentPastTerms = [...asset.past_terms];
+      } else if (asset.specifications?.past_terms) {
+        const parsed = typeof asset.specifications.past_terms === 'string' ? JSON.parse(asset.specifications.past_terms) : asset.specifications.past_terms;
+        if (Array.isArray(parsed)) currentPastTerms = [...parsed];
+      }
+    } catch (e) {
+      console.error("Error reading current past_terms:", e);
+    }
+
+    const updatedPastTerms = [newTerm, ...currentPastTerms];
 
     const updatedAsset: Asset = {
       ...asset,
@@ -244,10 +495,10 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
         name: recipName,
         initials: recipName.split(' ').map(n=>n[0]).join('').slice(0, 2).toUpperCase()
       } : { name: '', initials: '' },
-      past_terms: currentPastTerms,
+      past_terms: updatedPastTerms,
       specifications: {
         ...asset.specifications,
-        past_terms: JSON.stringify(currentPastTerms)
+        past_terms: JSON.stringify(updatedPastTerms)
       },
       history: [deliveryStep, ...asset.history]
     };
@@ -257,30 +508,34 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
     onAddActivity({
       type: "transfer",
       title: termType === 'entrega' ? "Ativo Entregue" : "Ativo Devolvido",
-      details: termType === 'entrega' ? `${asset.name} entregue a ${recipName} sob termo.` : `${asset.name} devolvido por ${recipName}.`,
+      details: termType === 'entrega' 
+        ? `${asset.name} entregue a ${recipName} sob termo (Marca: ${marca}, Modelo: ${modelo}).` 
+        : `${asset.name} devolvido por ${recipName}.`,
       by: techName,
       icon: termType === 'entrega' ? "assignment" : "refresh-cw",
       badgeColor: termType === 'entrega' ? "bg-indigo-600" : "bg-rose-600"
     });
 
-    handleClear();
+    setTechSig('');
+    setRecipSig('');
     setRecipName('');
     setObservation('');
-    alert(termType === 'entrega' ? "Termo de Entrega gravado com sucesso! O termo está na aba Documentos Anexados." : "Termo de Devolução gravado com sucesso! O ativo foi movido para Armazenado.");
+    alert(termType === 'entrega' ? "Termo de Entrega gravado com sucesso! O termo assinado em PDF está disponível na aba Documentos Anexados." : "Termo de Devolução gravado com sucesso! O ativo foi movido para Armazenado.");
   };
 
   const handleClear = () => {
-    setClearTrigger(prev => !prev);
+    setTechSig('');
+    setRecipSig('');
   };
 
   return (
     <div className="space-y-5 text-left bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h4 className="font-extrabold text-slate-800 dark:text-white text-base">Gerador de Termos</h4>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Colha as assinaturas físicas na tela para registrar a entrega ou devolução do ativo patrimonial.</p>
         </div>
-        <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+        <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
           <button 
             type="button"
             onClick={() => setTermType('entrega')}
@@ -298,13 +553,40 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
         </div>
       </div>
 
+      {/* Asset Brand and Model Info Badge */}
+      <div className="flex flex-wrap items-center gap-2 text-xs bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 rounded-xl">
+        <div className="font-bold text-indigo-900 dark:text-indigo-200">
+          <span className="text-indigo-500 font-semibold">Ativo:</span> {asset.name}
+        </div>
+        <div className="text-slate-300 dark:text-slate-700">|</div>
+        <div className="text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-slate-500">Categoria:</span> {asset.category}
+        </div>
+        <div className="text-slate-300 dark:text-slate-700">|</div>
+        <div className="text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-slate-500">Marca:</span> <span className="font-bold text-slate-900 dark:text-white">{marca}</span>
+        </div>
+        <div className="text-slate-300 dark:text-slate-700">|</div>
+        <div className="text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-slate-500">Modelo:</span> <span className="font-bold text-slate-900 dark:text-white">{modelo}</span>
+        </div>
+        <div className="text-slate-300 dark:text-slate-700">|</div>
+        <div className="text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-slate-500">Patrimônio:</span> {asset.patrimonio}
+        </div>
+        <div className="text-slate-300 dark:text-slate-700">|</div>
+        <div className="text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-slate-500">Serial:</span> {asset.serialNumber || 'N/A'}
+        </div>
+      </div>
+
       <div className="space-y-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 max-h-32 overflow-y-auto text-xs text-slate-600 dark:text-slate-400">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 max-h-36 overflow-y-auto text-xs text-slate-600 dark:text-slate-400">
           <p className="font-bold text-slate-800 dark:text-slate-200 mb-2">{termType === 'entrega' ? 'TERMO DE RESPONSABILIDADE E ENTREGA' : 'TERMO DE DEVOLUÇÃO'}</p>
           <p className="leading-relaxed">
             {termType === 'entrega' 
-              ? `Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial (${asset.category} - ${asset.name}) em perfeito estado de conservação e funcionamento, assumindo a responsabilidade civil e criminal por sua guarda, zelo e conservação, obrigando-me a devolvê-lo nas mesmas condições quando solicitado ou no término do vínculo corporativo.` 
-              : `Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial (${asset.category} - ${asset.name}) designado sob minha responsabilidade, cessando a partir desta data qualquer obrigação de guarda sobre o referido equipamento.`}
+              ? `Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial (${asset.category} - ${asset.name} • Marca: ${marca} • Modelo: ${modelo} • Patrimônio: ${asset.patrimonio}) em perfeito estado de conservação e funcionamento, assumindo a responsabilidade civil e criminal por sua guarda, zelo e conservação, obrigando-me a devolvê-lo nas mesmas condições quando solicitado ou no término do vínculo corporativo.` 
+              : `Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial (${asset.category} - ${asset.name} • Marca: ${marca} • Modelo: ${modelo} • Patrimônio: ${asset.patrimonio}) designado sob minha responsabilidade, cessando a partir desta data qualquer obrigação de guarda sobre o referido equipamento.`}
           </p>
         </div>
 
@@ -343,28 +625,27 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
 
         {/* Canvas de Assinaturas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="block text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">Assinatura do Técnico</label>
-              {techSig && <span className="text-[9px] text-emerald-600 font-extrabold flex items-center gap-0.5">✓ Assinado</span>}
-            </div>
-            <SignatureCanvas id="tech" onSave={setTechSig} clearTrigger={clearTrigger} />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="block text-[10px] uppercase font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">Assinatura do Recebedor</label>
-              {recipSig && <span className="text-[9px] text-emerald-600 font-extrabold flex items-center gap-0.5">✓ Assinado</span>}
-            </div>
-            <SignatureCanvas id="recip" onSave={setRecipSig} clearTrigger={clearTrigger} />
-          </div>
+          <SignatureField
+            id="tech"
+            label="Assinatura do Técnico"
+            value={techSig}
+            onChange={setTechSig}
+            onClear={() => setTechSig('')}
+          />
+          <SignatureField
+            id="recip"
+            label="Assinatura do Recebedor"
+            value={recipSig}
+            onChange={setRecipSig}
+            onClear={() => setRecipSig('')}
+          />
         </div>
 
         <div className="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-800">
           <button 
             type="button"
             onClick={handleClear}
-            className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 rounded-xl text-xs font-bold bg-white cursor-pointer"
+            className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-bold bg-white dark:bg-slate-900 cursor-pointer transition"
           >
             Limpar Assinaturas
           </button>
@@ -372,9 +653,9 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
           <button 
             type="button"
             onClick={handleCreateTerm}
-            className="px-6 py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold shadow transition-transform active:scale-95 cursor-pointer"
+            className="px-6 py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold shadow transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
           >
-            Salvar e Assinar Termo
+            <FileCheck2 size={15} /> Salvar e Assinar Termo
           </button>
         </div>
       </div>
@@ -409,6 +690,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPrintBadgeOpen, setIsPrintBadgeOpen] = useState(false);
   const [isScanningPatrimonio, setIsScanningPatrimonio] = useState(false);
+  const [sharingTermId, setSharingTermId] = useState<string | null>(null);
 
   // States for interactive inputs
   const [transferTargetUnit, setTransferTargetUnit] = useState(units && units.length > 0 ? units[0].name : 'CD Logístico');
@@ -1356,9 +1638,11 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                       </div>
                       <div className="grid grid-cols-1 gap-3">
                         {pastTermsList.map((pt: any) => {
-                          const wppText = encodeURIComponent(`Olá ${pt.recipientName}! Segue em anexo o seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} do equipamento ${asset.name} (${asset.patrimonio}). O documento foi assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.`);
+                          const { marca, modelo } = getAssetBrandModel(asset);
                           const emailSubject = encodeURIComponent(`Termo de Responsabilidade - ${asset.name}`);
-                          const emailBody = encodeURIComponent(`Olá ${pt.recipientName},\n\nSegue em anexo o seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} referente ao equipamento ${asset.name} (${asset.patrimonio}), assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.\n\nAtenciosamente,\nEquipe de TI`);
+                          const emailBody = encodeURIComponent(`Olá ${pt.recipientName},\n\nSegue em anexo o seu ${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} referente ao equipamento ${asset.name} (${asset.patrimonio}) - Marca: ${marca} - Modelo: ${modelo}, assinado em ${new Date(pt.signedAt).toLocaleDateString('pt-BR')}.\n\nAtenciosamente,\nEquipe de TI`);
+
+                          const isSharing = sharingTermId === pt.id;
 
                           return (
                             <div key={pt.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1369,17 +1653,42 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                                     {pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolução'} • {pt.id}
                                   </p>
                                 </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400">Assinado em {new Date(pt.signedAt).toLocaleDateString('pt-BR')} por {pt.recipientName}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  Assinado em {new Date(pt.signedAt).toLocaleDateString('pt-BR')} por <span className="font-semibold text-slate-700 dark:text-slate-300">{pt.recipientName}</span>
+                                </p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                  Marca: <span className="font-semibold text-slate-600 dark:text-slate-300">{marca}</span> • Modelo: <span className="font-semibold text-slate-600 dark:text-slate-300">{modelo}</span>
+                                </p>
                               </div>
                               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                <a 
-                                  href={`https://api.whatsapp.com/send?text=${wppText}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center"
+                                <button 
+                                  type="button"
+                                  disabled={isSharing}
+                                  onClick={async () => {
+                                    setSharingTermId(pt.id);
+                                    try {
+                                      await shareTermViaWhatsApp(asset, pt);
+                                    } catch (err) {
+                                      console.error("Erro ao compartilhar via WhatsApp:", err);
+                                      alert("Não foi possível abrir o WhatsApp automaticamente. Você pode baixar o PDF e enviar manualmente.");
+                                    } finally {
+                                      setSharingTermId(null);
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center cursor-pointer disabled:opacity-60"
                                 >
-                                  WhatsApp
-                                </a>
+                                  {isSharing ? (
+                                    <>
+                                      <Loader2 size={13} className="animate-spin" />
+                                      <span>Enviando...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Share2 size={13} />
+                                      <span>WhatsApp</span>
+                                    </>
+                                  )}
+                                </button>
                                 <a 
                                   href={`mailto:?subject=${emailSubject}&body=${emailBody}`}
                                   className="px-3 py-1.5 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 hover:bg-sky-100 dark:hover:bg-sky-900/50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center"
@@ -1387,35 +1696,20 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
                                   E-mail
                                 </a>
                                 <button 
-                                  onClick={() => {
-                                    const w = window.open();
-                                    if (w) {
-                                      w.document.write(`
-                                        <html><head><title>${pt.type === 'entrega' ? 'Termo de Entrega' : 'Termo de Devolucao'} ${pt.id}</title><style>body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; } .h { border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }</style></head>
-                                        <body>
-                                          <h2 class="h">${pt.type === 'entrega' ? 'Termo de Responsabilidade e Entrega' : 'Termo de Devolução'} - ${pt.id}</h2>
-                                          <p><strong>Equipamento:</strong> ${asset.name}</p>
-                                          <p><strong>Categoria:</strong> ${asset.category} | <strong>Patrimônio:</strong> ${asset.patrimonio} | <strong>Serial:</strong> ${asset.serialNumber}</p>
-                                          <p style="margin-top:20px;">
-                                            ${pt.type === 'entrega' 
-                                              ? 'Pelo presente instrumento, declaro ter recebido da empresa o ativo patrimonial descrito acima em perfeito estado de conservação e funcionamento.' 
-                                              : 'Pelo presente instrumento, declaro estar devolvendo à empresa o ativo patrimonial designado sob minha responsabilidade.'}
-                                          </p>
-                                          ${pt.observation ? `<p style="margin-top:15px; padding: 15px; background: #f9f9f9; border-left: 4px solid #ccc; font-size: 13px;"><strong>Observações:</strong><br/>${pt.observation}</p>` : ''}
-                                          <div style="display: flex; gap: 40px; margin-top: 40px;">
-                                            <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Técnico Emitente</p><img src="${pt.technicianSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.technicianName}</strong></p></div>
-                                            <div style="text-align: center;"><p style="font-size: 12px; color: #777; text-transform: uppercase;">Usuário Recebedor</p><img src="${pt.recipientSignature}" style="height: 80px; margin-top: 10px;" /><p><strong>${pt.recipientName}</strong></p></div>
-                                          </div>
-                                          <div style="margin-top: 40px; font-size: 11px; color: #777;">Documento assinado digitalmente em: ${pt.signedAt ? new Date(pt.signedAt).toLocaleString('pt-BR') : 'N/A'}</div>
-                                          <script>window.print();</script>
-                                        </body></html>
-                                      `);
-                                      w.document.close();
-                                    }
-                                  }}
-                                  className="px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white hover:bg-black dark:hover:bg-slate-600 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center cursor-pointer"
+                                  type="button"
+                                  onClick={() => openTermPdfPreview(asset, pt)}
+                                  className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center cursor-pointer"
+                                  title="Visualizar e Imprimir Termo em PDF"
                                 >
-                                  <Printer size={14} /> PDF
+                                  <Printer size={13} /> Visualizar PDF
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => downloadTermPdf(asset, pt)}
+                                  className="px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white hover:bg-black dark:hover:bg-slate-600 rounded-lg text-xs font-bold flex items-center gap-1.5 transition flex-1 sm:flex-none justify-center cursor-pointer"
+                                  title="Baixar arquivo PDF com assinaturas"
+                                >
+                                  <Download size={13} /> Baixar
                                 </button>
                               </div>
                             </div>
