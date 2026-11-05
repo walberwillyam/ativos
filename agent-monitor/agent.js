@@ -231,12 +231,9 @@ async function collectAndSendHealth() {
     if (serialNumber) updatePayload.serialNumber = serialNumber;
     if (hardwareModel && hardwareModel.length > 2) updatePayload.model = hardwareModel;
 
-    // Se o usuário mudou o nome da máquina no SO, atualizamos o nome do ativo no inventário
+    // Registra o hostname real nas especificações sem sobrescrever o nome customizado do inventário
     const currentHostname = os.hostname();
-    if (ASSET_ID !== currentHostname && !process.env.ASSET_ID) {
-      updatePayload.name = currentHostname;
-      console.log(`[!] Mudança de hostname detectada: ${ASSET_ID} -> ${currentHostname}. Atualizando nome no inventário.`);
-    }
+    currentSpecs.hostname = currentHostname;
 
     const { error: updateAssetErr } = await supabase
       .from('assets')
@@ -281,7 +278,7 @@ async function collectAndSendHealth() {
       const { error } = await supabase
         .from('devices_health')
         .update(updateData)
-        .eq('id', existingAsset.id);
+        .eq('asset_id', ASSET_ID);
       
       if (error) console.error("Erro no UPDATE:", error.message);
     } else {

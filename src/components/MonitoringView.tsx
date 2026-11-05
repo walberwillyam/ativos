@@ -69,6 +69,16 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
         for (const device of data as DeviceHealth[]) {
           if (!uniqueDevices.has(device.asset_id)) {
             uniqueDevices.set(device.asset_id, device);
+          } else {
+            const existing = uniqueDevices.get(device.asset_id)!;
+            if (!existing.custom_name && device.custom_name) {
+              uniqueDevices.set(device.asset_id, {
+                ...existing,
+                custom_name: device.custom_name,
+                sector: existing.sector || device.sector,
+                unit_id: existing.unit_id || device.unit_id
+              });
+            }
           }
         }
         setDevices(Array.from(uniqueDevices.values()));
@@ -89,12 +99,22 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
       .on('postgres_changes', { event: '*', schema: 'public', table: 'devices_health' }, (payload) => {
         // Atualiza a lista quando houver mudança
         setDevices((currentDevices) => {
+          if (payload.eventType === 'DELETE') {
+            return currentDevices.filter(d => d.id !== payload.old?.id && d.asset_id !== payload.old?.asset_id);
+          }
+
           const newDevice = payload.new as DeviceHealth;
           const index = currentDevices.findIndex(d => d.asset_id === newDevice.asset_id);
           
           if (index > -1) {
             const updated = [...currentDevices];
-            updated[index] = newDevice;
+            updated[index] = {
+              ...currentDevices[index],
+              ...newDevice,
+              custom_name: newDevice.custom_name || currentDevices[index].custom_name,
+              sector: newDevice.sector || currentDevices[index].sector,
+              unit_id: newDevice.unit_id || currentDevices[index].unit_id
+            };
             return updated;
           } else {
             return [newDevice, ...currentDevices];
@@ -126,6 +146,26 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+    const getDeviceDisplayName = (device: DeviceHealth) => {
+    if (device.custom_name && device.custom_name.trim()) {
+      return device.custom_name;
+    }
+    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
+    if (targetAsset && targetAsset.name && !targetAsset.name.startsWith('Computador - ')) {
+      return targetAsset.name;
+    }
+    return device.asset_id;
+  };
+
+  const getDeviceSector = (device: DeviceHealth) => {
+    if (device.sector && device.sector.trim()) return device.sector;
+    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
+    if (targetAsset && targetAsset.location && targetAsset.location !== 'Não definida') {
+      return targetAsset.location;
+    }
+    return '';
+  };
+
   const handleSaveEdit = async () => {
     if (!editingDevice) return;
     try {
@@ -136,7 +176,7 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
           sector: editFormData.sector,
           unit_id: editFormData.unit_id
         })
-        .eq('id', editingDevice.id);
+        .eq('asset_id', editingDevice.asset_id);
 
       if (error) throw error;
 
@@ -172,7 +212,7 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
       }
       
       // Update local state optimisticly (Realtime might also catch it)
-      setDevices(prev => prev.map(d => d.id === editingDevice.id ? { ...d, custom_name: editFormData.custom_name, sector: editFormData.sector, unit_id: editFormData.unit_id } : d));
+      setDevices(prev => prev.map(d => d.asset_id === editingDevice.asset_id ? { ...d, custom_name: editFormData.custom_name, sector: editFormData.sector, unit_id: editFormData.unit_id } : d));
       setEditingDevice(null);
     } catch (err) {
       console.error("Erro ao salvar:", err);
@@ -201,16 +241,19 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
       return false;
     }
 
+    const displayName = getDeviceDisplayName(device);
+    const sectorName = getDeviceSector(device);
+
     const matchesSearch = searchQuery === '' || 
       device.asset_id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (device.custom_name && device.custom_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (device.sector && device.sector.toLowerCase().includes(searchQuery.toLowerCase()));
+      displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sectorName.toLowerCase().includes(searchQuery.toLowerCase());
       
-    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit;
+    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit || (targetAsset && targetAsset.unit === filterUnit);
     
     const matchesServer = !filterIsServer || 
       (device.os_info && device.os_info.toLowerCase().includes('server')) || 
-      (device.custom_name && (device.custom_name.toLowerCase().includes('server') || device.custom_name.toLowerCase().includes('servidor'))) ||
+      (displayName.toLowerCase().includes('server') || displayName.toLowerCase().includes('servidor')) ||
       (device.asset_id && (device.asset_id.toLowerCase().includes('server') || device.asset_id.toLowerCase().includes('srv') || device.asset_id.toLowerCase().includes('servidor')));
 
     return matchesSearch && matchesUnit && matchesServer;
@@ -307,14 +350,14 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
                       <div className="flex items-center justify-between">
                         <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                           <Server size={16} className="text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500" />
-                          {device.custom_name || device.asset_id}
+                          {getDeviceDisplayName(device)}
                         </h3>
                         <button 
                           onClick={() => {
                             setEditingDevice(device);
                             setEditFormData({ 
-                              custom_name: device.custom_name || '', 
-                              sector: device.sector || '',
+                              custom_name: getDeviceDisplayName(device) === device.asset_id ? '' : getDeviceDisplayName(device),
+                              sector: getDeviceSector(device),
                               unit_id: device.unit_id || ''
                             });
                           }}
@@ -325,10 +368,10 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
                         </button>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
-                        Unidade: {units.find(u => u.id === device.unit_id)?.name || device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
+                        Unidade: {units.find(u => u.id === device.unit_id)?.name || device.unit_id} {getDeviceSector(device) ? `| Setor: ${getDeviceSector(device)}` : ''}
                       </p>
-                      {device.custom_name && (
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">Hostname: {device.asset_id}</p>
+                      {getDeviceDisplayName(device) !== device.asset_id && (
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Hostname: {device.asset_id}</p>
                       )}
                     </div>
                   </div>

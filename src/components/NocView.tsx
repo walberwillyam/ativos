@@ -69,6 +69,16 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
         for (const device of data as DeviceHealth[]) {
           if (!uniqueDevices.has(device.asset_id)) {
             uniqueDevices.set(device.asset_id, device);
+          } else {
+            const existing = uniqueDevices.get(device.asset_id)!;
+            if (!existing.custom_name && device.custom_name) {
+              uniqueDevices.set(device.asset_id, {
+                ...existing,
+                custom_name: device.custom_name,
+                sector: existing.sector || device.sector,
+                unit_id: existing.unit_id || device.unit_id
+              });
+            }
           }
         }
         setDevices(Array.from(uniqueDevices.values()));
@@ -97,7 +107,13 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
           
           if (index > -1) {
             const updated = [...currentDevices];
-            updated[index] = newDevice;
+            updated[index] = {
+              ...currentDevices[index],
+              ...newDevice,
+              custom_name: newDevice.custom_name || currentDevices[index].custom_name,
+              sector: newDevice.sector || currentDevices[index].sector,
+              unit_id: newDevice.unit_id || currentDevices[index].unit_id
+            };
             return updated;
           } else {
             return [newDevice, ...currentDevices];
@@ -170,19 +186,23 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
   });
 
   const filteredDevices = devices.filter(device => {
+    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
+    const displayName = device.custom_name || (targetAsset?.name && !targetAsset.name.startsWith('Computador - ') ? targetAsset.name : '') || device.asset_id;
+    const sectorName = device.sector || (targetAsset?.location && targetAsset.location !== 'Não definida' ? targetAsset.location : '');
+
     const matchesSearch = 
-      (device.custom_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (device.asset_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (device.sector || '').toLowerCase().includes(searchTerm.toLowerCase());
+      sectorName.toLowerCase().includes(searchTerm.toLowerCase());
 
     const status = getDeviceStatus(device);
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
 
-    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit;
+    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit || (targetAsset && targetAsset.unit === filterUnit);
     
     const matchesServer = !filterIsServer || 
       (device.os_info && device.os_info.toLowerCase().includes('server')) || 
-      (device.custom_name && (device.custom_name.toLowerCase().includes('server') || device.custom_name.toLowerCase().includes('servidor'))) ||
+      (displayName.toLowerCase().includes('server') || displayName.toLowerCase().includes('servidor')) ||
       (device.asset_id && (device.asset_id.toLowerCase().includes('server') || device.asset_id.toLowerCase().includes('srv') || device.asset_id.toLowerCase().includes('servidor')));
 
     return matchesSearch && matchesStatus && matchesUnit && matchesServer;
@@ -419,6 +439,7 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
           ) : (
             filteredDevices.map(device => {
               const status = getDeviceStatus(device);
+              const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
               const assetName = getAssetName(device.asset_id);
               const isOffline = status === 'offline';
               const ramPerc = (device.ram_used / device.ram_total) * 100;
@@ -442,7 +463,7 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
                     <div className="min-w-0 flex-1">
                       <h4 className="font-extrabold text-slate-100 flex items-center gap-1.5 truncate">
                         <Server size={14} className="text-slate-500 shrink-0" />
-                        {device.custom_name || assetName || device.asset_id}
+                        {device.custom_name || (targetAsset && !targetAsset.name.startsWith('Computador - ') ? targetAsset.name : '') || assetName || device.asset_id}
                       </h4>
                       <p className="text-[10px] text-slate-500 font-semibold truncate mt-0.5">
                         Polo: {units.find(u => u.id === device.unit_id)?.name || device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
