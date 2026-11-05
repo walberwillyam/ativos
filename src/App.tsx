@@ -43,6 +43,7 @@ import NocView from './components/NocView';
 import AuditsManagementView from './components/AuditsManagementView';
 import ConferenteView from './components/ConferenteView';
 import OsLicensesView from './components/OsLicensesView';
+import PublicSignView from './components/PublicSignView';
 import { supabase } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
@@ -1280,6 +1281,13 @@ export default function App() {
       </div>
     );
   };
+
+  // Intercepta rota de assinatura pública de termo via QR Code
+  const searchParams = new URLSearchParams(window.location.search);
+  const signSessionId = searchParams.get('assinar');
+  if (signSessionId) {
+    return <PublicSignView sessionId={signSessionId} />;
+  }
 
   if (isRecoveryMode) {
     return (

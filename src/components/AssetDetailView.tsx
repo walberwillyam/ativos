@@ -34,9 +34,14 @@ import {
   RotateCcw,
   Check,
   Download,
-  Loader2
+  Loader2,
+  QrCode,
+  Copy,
+  ExternalLink,
+  Smartphone
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import QRCode from 'qrcode';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Asset, AssetStatus, Category, TimelineStep, HandoverTerm } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -263,13 +268,15 @@ const SignatureField = ({
   label,
   value,
   onChange,
-  onClear
+  onClear,
+  extraAction
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (val: string) => void;
   onClear: () => void;
+  extraAction?: React.ReactNode;
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -354,13 +361,16 @@ const SignatureField = ({
         <label className="block text-[10px] uppercase font-extrabold text-slate-500 dark:text-slate-400 tracking-wider">
           {label}
         </label>
-        {value ? (
+        <div className="flex items-center gap-2">
+          {extraAction}
+          {value ? (
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1">
             <Check size={12} /> Assinatura Coletada
           </span>
         ) : (
           <span className="text-[10px] text-amber-500 font-semibold">Pendente</span>
         )}
+        </div>
       </div>
 
       <div
@@ -436,6 +446,74 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
   const [observation, setObservation] = useState('');
 
   const { marca, modelo } = getAssetBrandModel(asset);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [signUrl, setSignUrl] = useState<string>('');
+  const [signSessionId, setSignSessionId] = useState<string>('');
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleOpenQrModal = () => {
+    if (!recipName.trim()) {
+      alert("Por favor, preencha o Nome do Colaborador Recebedor antes de gerar o QR Code.");
+      return;
+    }
+
+    const sessionId = `term_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    setSignSessionId(sessionId);
+
+    const origin = window.location.origin;
+    const path = window.location.pathname;
+    const searchParams = new URLSearchParams({
+      assinar: sessionId,
+      asset: asset.name,
+      cat: asset.category || '',
+      marca: marca || '',
+      modelo: modelo || '',
+      pat: asset.patrimonio || '',
+      serial: asset.serialNumber || '',
+      recip: recipName,
+      tech: techName,
+      type: termType,
+      obs: observation || ''
+    });
+
+    const url = `${origin}${path}?${searchParams.toString()}`;
+    setSignUrl(url);
+
+    QRCode.toDataURL(url, {
+      width: 260,
+      margin: 2,
+      color: { dark: '#0f172a', light: '#ffffff' }
+    }, (err, dataUrl) => {
+      if (!err && dataUrl) {
+        setQrCodeDataUrl(dataUrl);
+      }
+    });
+
+    setIsQrModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (!isQrModalOpen || !signSessionId) return;
+
+    const channel = supabase.channel(`term_sign_${signSessionId}`);
+    
+    channel
+      .on('broadcast', { event: 'sign' }, ({ payload }) => {
+        if (payload?.signature) {
+          setRecipSig(payload.signature);
+          setTimeout(() => {
+            setIsQrModalOpen(false);
+          }, 800);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isQrModalOpen, signSessionId]);
+
 
   const handleCreateTerm = () => {
     if (!recipName.trim()) {
@@ -638,6 +716,17 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
             value={recipSig}
             onChange={setRecipSig}
             onClear={() => setRecipSig('')}
+            extraAction={
+              <button
+                type="button"
+                onClick={handleOpenQrModal}
+                className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer"
+                title="Abrir QR Code para o colaborador assinar no próprio celular"
+              >
+                <QrCode size={12} />
+                <span>Assinar no Celular (QR Code)</span>
+              </button>
+            }
           />
         </div>
 
@@ -659,6 +748,83 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
           </button>
         </div>
       </div>
+
+      {/* Modal de QR Code para Assinatura do Colaborador no Celular */}
+      {isQrModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">
+              <Smartphone size={22} />
+            </div>
+
+            <h3 className="font-extrabold text-slate-800 dark:text-white text-base">
+              Assinatura via Celular
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              Aponte a câmera do celular do colaborador para o QR Code abaixo:
+            </p>
+
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner inline-block mx-auto mb-3">
+              {qrCodeDataUrl ? (
+                <img src={qrCodeDataUrl} alt="QR Code Assinatura" className="w-56 h-56 mx-auto block" />
+              ) : (
+                <div className="w-56 h-56 flex items-center justify-center text-slate-400">
+                  <Loader2 size={32} className="animate-spin text-indigo-600" />
+                </div>
+              )}
+            </div>
+
+            {/* Status Indicator */}
+            <div className="mb-4">
+              {recipSig ? (
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 py-1.5 px-3 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                  <Check size={14} /> Assinatura recebida com sucesso!
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/40 py-1.5 px-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                  Aguardando colaborador assinar...
+                </div>
+              )}
+            </div>
+
+            {/* Actions: Copiar Link & Abrir Teste */}
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(signUrl);
+                  setIsCopied(true);
+                  setTimeout(() => setIsCopied(false), 2000);
+                }}
+                className="flex-1 py-2 px-3 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl flex items-center justify-center gap-1.5 transition"
+              >
+                <Copy size={13} />
+                <span>{isCopied ? 'Link Copiado!' : 'Copiar Link'}</span>
+              </button>
+              <a
+                href={signUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition"
+                title="Abrir em nova aba para testar agora"
+              >
+                <ExternalLink size={13} />
+                <span>Testar</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
