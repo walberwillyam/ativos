@@ -46,10 +46,6 @@ export default function AuthScreen({
       if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else if (authMode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setSuccessMsg('Conta criada! Verifique seu e-mail para confirmar (caso esteja habilitado).');
       } else if (authMode === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin,
@@ -103,24 +99,23 @@ export default function AuthScreen({
 
         <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
           {authMode === 'login' && 'Acesso ao Sistema'}
-          {authMode === 'signup' && 'Criar Nova Conta'}
           {authMode === 'forgot' && 'Recuperar Senha'}
           {authMode === 'reset' && 'Redefinir Senha'}
         </h2>
         <p className="mt-2 text-sm text-slate-500">
           {authMode === 'login' && (
-            <>
-              Ou <button onClick={() => setAuthMode('signup')} className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none">cadastre sua conta agora</button>
-            </>
-          )}
-          {authMode === 'signup' && (
-            <>
-              Já possui conta? <button onClick={() => setAuthMode('login')} className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none">fazer login</button>
-            </>
+            <span>Acesso restrito a colaboradores autorizados</span>
           )}
           {(authMode === 'forgot' || authMode === 'reset') && (
             <>
-              Lembrou sua senha? <button onClick={() => setAuthMode('login')} className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none">voltar ao login</button>
+              Lembrou sua senha?{' '}
+              <button
+                type="button"
+                onClick={() => setAuthMode('login')}
+                className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none"
+              >
+                voltar ao login
+              </button>
             </>
           )}
         </p>
@@ -231,7 +226,6 @@ export default function AuthScreen({
                 ) : (
                   <>
                     {authMode === 'login' && 'Acessar Plataforma'}
-                    
                     {authMode === 'forgot' && 'Enviar Recuperação'}
                     {authMode === 'reset' && 'Alterar Senha'}
                     <ArrowRight size={16} />

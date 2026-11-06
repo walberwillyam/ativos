@@ -3,7 +3,6 @@ import { Briefcase, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export default function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,14 +16,8 @@ export default function AuthScreen() {
     setSuccessMsg('');
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setSuccessMsg('Conta criada! Verifique seu e-mail para confirmar (caso esteja habilitado).');
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro na autenticação');
     } finally {
@@ -48,20 +41,10 @@ export default function AuthScreen() {
         </div>
 
         <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
-          {isLogin ? 'Acesso ao Sistema' : 'Criar Nova Conta'}
+          Acesso ao Sistema
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          {isLogin ? 'Ou ' : 'Já possui conta? '}
-          <button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setErrorMsg('');
-              setSuccessMsg('');
-            }}
-            className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline transition-all outline-none"
-          >
-            {isLogin ? 'cadastre sua conta agora' : 'fazer login'}
-          </button>
+          Acesso restrito a colaboradores autorizados
         </p>
       </div>
 
@@ -131,27 +114,25 @@ export default function AuthScreen() {
               </div>
             </div>
 
-            {isLogin && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-xs text-slate-600 cursor-pointer">
-                    Lembrar de mim
-                  </label>
-                </div>
-
-                <div className="text-xs">
-                  <a href="#" className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline">
-                    Esqueceu a senha?
-                  </a>
-                </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-xs text-slate-600 cursor-pointer">
+                  Lembrar de mim
+                </label>
               </div>
-            )}
+
+              <div className="text-xs">
+                <a href="#" className="font-bold text-indigo-600 hover:text-indigo-500 hover:underline">
+                  Esqueceu a senha?
+                </a>
+              </div>
+            </div>
 
             <div>
               <button
@@ -165,7 +146,7 @@ export default function AuthScreen() {
                   </>
                 ) : (
                   <>
-                    {isLogin ? 'Acessar Plataforma' : 'Finalizar Cadastro'} <ArrowRight size={16} />
+                    Acessar Plataforma <ArrowRight size={16} />
                   </>
                 )}
               </button>
