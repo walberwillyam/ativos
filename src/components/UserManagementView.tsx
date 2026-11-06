@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import { Profile, UserRole } from '../types';
 import { 
   Users, 
@@ -34,6 +35,94 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
   const [newFullName, setNewFullName] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  // States for Create User Modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createFullName, setCreateFullName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createTempPassword, setCreateTempPassword] = useState('');
+  const [createRole, setCreateRole] = useState<UserRole>('employee');
+  const [createUnit, setCreateUnit] = useState<string>('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [showTempPassword, setShowTempPassword] = useState(true);
+  const [createdSuccessData, setCreatedSuccessData] = useState<{ email: string; tempPassword: string; fullName: string } | null>(null);
+  const [isCopiedCreds, setIsCopiedCreds] = useState(false);
+
+  const generateRandomPassword = () => {
+    const prefixes = ['Apoio', 'Mudar', 'Acesso', 'Ativo'];
+    const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    return `${randomPrefix}@${randomNum}`;
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createEmail.trim() || !createTempPassword.trim() || !createFullName.trim()) {
+      alert("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    if (createTempPassword.length < 6) {
+      alert("A senha temporária deve conter no mínimo 6 caracteres.");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      // Cliente isolado com persistSession: false para não afetar o login do administrador atual
+      const tempClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        }
+      );
+
+      const { data: authData, error: authError } = await tempClient.auth.signUp({
+        email: createEmail.trim(),
+        password: createTempPassword,
+        options: {
+          data: {
+            full_name: createFullName.trim(),
+            role: createRole,
+            unit: createUnit || null,
+            must_change_password: true
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Assegura o registro atualizado na tabela profiles
+        await supabase.from('profiles').upsert({
+          id: authData.user.id,
+          email: createEmail.trim(),
+          full_name: createFullName.trim(),
+          role: createRole,
+          unit: createUnit || null
+        });
+      }
+
+      setCreatedSuccessData({
+        email: createEmail.trim(),
+        tempPassword: createTempPassword,
+        fullName: createFullName.trim()
+      });
+
+      await fetchProfiles();
+
+    } catch (err: any) {
+      console.error("Erro ao cadastrar usuário:", err);
+      alert(`Falha ao cadastrar: ${err.message || 'Verifique se o e-mail já existe.'}`);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -283,6 +372,218 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
           </div>
         )}
       </section>
+
+
+      {/* Create User Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up">
+            
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-2">
+                <UserPlus className="text-indigo-600 dark:text-indigo-400" size={22} />
+                <h3 className="font-black text-slate-800 dark:text-white text-lg">
+                  {createdSuccessData ? 'Acesso Criado com Sucesso' : 'Cadastrar Novo Usuário'}
+                </h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  setCreatedSuccessData(null);
+                }} 
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {createdSuccessData ? (
+              <div className="p-6 space-y-5 text-center">
+                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-800">
+                  <CheckCircle2 size={36} />
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-black text-slate-800 dark:text-white">
+                    Conta criada para {createdSuccessData.fullName}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Repasse os dados de acesso abaixo para o colaborador:
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-left space-y-2 text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">E-mail de Login</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-white text-sm">{createdSuccessData.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Senha Temporária</span>
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm">{createdSuccessData.tempPassword}</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] text-amber-700 dark:text-amber-400">
+                    ℹ️ O colaborador será obrigado a definir sua senha definitiva logo após entrar.
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = `🔐 *Acesso ao Sistema Ativos Apoio*\nOlá, *${createdSuccessData.fullName}*! Seu acesso ao sistema corporativo de patrimônio foi criado com sucesso.\n\n🌐 *Link de Acesso:* ${window.location.origin}\n👤 *E-mail:* ${createdSuccessData.email}\n🔑 *Senha Temporária:* ${createdSuccessData.tempPassword}\n\n⚠️ _Importante: No primeiro acesso, o sistema exigirá que você defina sua senha definitiva pessoal._`;
+                      navigator.clipboard.writeText(msg);
+                      setIsCopiedCreds(true);
+                      setTimeout(() => setIsCopiedCreds(false), 2000);
+                    }}
+                    className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                  >
+                    <Copy size={15} />
+                    <span>{isCopiedCreds ? 'Dados Copiados!' : 'Copiar para WhatsApp'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateModalOpen(false);
+                      setCreatedSuccessData(null);
+                    }}
+                    className="py-3 px-5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                  >
+                    Concluir
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateUser}>
+                <div className="p-6 space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Nome Completo *
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      value={createFullName}
+                      onChange={e => setCreateFullName(e.target.value)}
+                      placeholder="Ex: João da Silva"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-white font-semibold transition"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Endereço de E-mail *
+                    </label>
+                    <input 
+                      type="email" 
+                      required
+                      value={createEmail}
+                      onChange={e => setCreateEmail(e.target.value)}
+                      placeholder="joao.silva@redesaoroque.com.br"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-white font-semibold transition"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Senha Temporária *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setCreateTempPassword(generateRandomPassword())}
+                        className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <RefreshCw size={11} /> Gerar Aleatória
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <input 
+                        type={showTempPassword ? 'text' : 'password'} 
+                        required
+                        value={createTempPassword}
+                        onChange={e => setCreateTempPassword(e.target.value)}
+                        placeholder="Ex: Apoio@2026"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-white font-mono font-semibold transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTempPassword(!showTempPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                      >
+                        {showTempPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                      O usuário será obrigado a criar sua senha definitiva pessoal logo no primeiro acesso.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Função (Permissão)</label>
+                      <select 
+                        value={createRole}
+                        onChange={e => setCreateRole(e.target.value as UserRole)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-indigo-600 text-slate-800 dark:text-white"
+                      >
+                        <option value="employee">Colaborador</option>
+                        <option value="conferente">Conferente</option>
+                        <option value="noc">Operador NOC</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Polo de Trabalho</label>
+                      <select 
+                        value={createUnit}
+                        onChange={e => setCreateUnit(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-indigo-600 text-slate-800 dark:text-white"
+                      >
+                        <option value="">Acesso Geral (Todos)</option>
+                        {units.map(unit => (
+                          <option key={unit.id} value={unit.name}>{unit.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
+                  <button 
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    disabled={isCreating}
+                    className="w-1/2 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isCreating}
+                    className="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md inline-flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="animate-spin" size={14} />
+                        Criando Usuário...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus size={14} />
+                        Criar Usuário
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {/* Edit User Modal Overlay */}
       {editingProfile && (

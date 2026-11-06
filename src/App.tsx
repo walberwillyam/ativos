@@ -44,6 +44,7 @@ import AuditsManagementView from './components/AuditsManagementView';
 import ConferenteView from './components/ConferenteView';
 import OsLicensesView from './components/OsLicensesView';
 import PublicSignView from './components/PublicSignView';
+import ForcePasswordChangeView from './components/ForcePasswordChangeView';
 import { supabase } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';

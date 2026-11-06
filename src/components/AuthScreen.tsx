@@ -6,10 +6,10 @@ export default function AuthScreen({
   initialMode = 'login',
   onResetComplete
 }: {
-  initialMode?: 'login' | 'signup' | 'forgot' | 'reset';
+  initialMode?: 'login' | 'forgot' | 'reset';
   onResetComplete?: () => void;
 }) {
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(initialMode);
+  const [authMode, setAuthMode] = useState<'login' | 'forgot' | 'reset'>('login');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -231,7 +231,7 @@ export default function AuthScreen({
                 ) : (
                   <>
                     {authMode === 'login' && 'Acessar Plataforma'}
-                    {authMode === 'signup' && 'Finalizar Cadastro'}
+                    
                     {authMode === 'forgot' && 'Enviar Recuperação'}
                     {authMode === 'reset' && 'Alterar Senha'}
                     <ArrowRight size={16} />
