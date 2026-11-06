@@ -78,7 +78,7 @@ export interface QueryFilters {
   endDate: string;
 }
 
-export type UserRole = 'admin' | 'employee' | 'noc';
+export type UserRole = 'admin' | 'employee' | 'noc' | 'conferente';
 
 export interface Profile {
   id: string;

@@ -14,7 +14,13 @@ import {
   X, 
   Check, 
   AlertCircle,
-  Loader2
+  Loader2,
+  UserPlus,
+  CheckCircle2,
+  Copy,
+  RefreshCw,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface UserManagementViewProps {
@@ -244,6 +250,24 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
             Controle de papéis, privilégios de acesso e alocação de polos de trabalho.
           </p>
         </div>
+
+        <button 
+          id="btn-add-new-user"
+          onClick={() => {
+            setCreateFullName('');
+            setCreateEmail('');
+            setCreateTempPassword(generateRandomPassword());
+            setCreateRole('employee');
+            setCreateUnit('');
+            setCreatedSuccessData(null);
+            setIsCopiedCreds(false);
+            setIsCreateModalOpen(true);
+          }}
+          className="bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2 shadow-md shadow-indigo-600/20 transition-all active:scale-95 shrink-0 cursor-pointer"
+        >
+          <UserPlus size={18} />
+          + Novo Colaborador
+        </button>
       </header>
 
       {/* Control panel containing Search, Filter options */}
