@@ -74,6 +74,8 @@ export default function AuthScreen({
         errorMessage = 'E-mail ou senha incorretos.';
       } else if (errorMessage.toLowerCase().includes('user already registered')) {
         errorMessage = 'Este e-mail já está cadastrado.';
+      } else if (errorMessage.toLowerCase().includes('email not confirmed')) {
+        errorMessage = 'E-mail pendente de confirmação. Solicite ao gestor para ativar seu acesso no painel.';
       }
 
       setErrorMsg(errorMessage);

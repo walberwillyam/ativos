@@ -103,6 +103,10 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
       if (authError) throw authError;
 
       if (authData.user) {
+        if (authData.user.identities && authData.user.identities.length === 0) {
+          throw new Error("Este endereço de e-mail já está cadastrado no sistema.");
+        }
+
         // Assegura o registro atualizado na tabela profiles
         await supabase.from('profiles').upsert({
           id: authData.user.id,
@@ -111,6 +115,13 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
           role: createRole,
           unit: createUnit || null
         });
+
+        // Tenta auto-confirmar caso a função RPC esteja presente no banco
+        try {
+          await supabase.rpc('confirm_user_email', { user_email: createEmail.trim() });
+        } catch (rpcErr) {
+          console.warn('RPC confirm_user_email opcional:', rpcErr);
+        }
       }
 
       setCreatedSuccessData({
