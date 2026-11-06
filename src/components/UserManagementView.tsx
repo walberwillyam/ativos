@@ -20,7 +20,9 @@ import {
   Copy,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface UserManagementViewProps {
@@ -52,6 +54,9 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
   const [showTempPassword, setShowTempPassword] = useState(true);
   const [createdSuccessData, setCreatedSuccessData] = useState<{ email: string; tempPassword: string; fullName: string } | null>(null);
   const [isCopiedCreds, setIsCopiedCreds] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<Profile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const generateRandomPassword = () => {
     const prefixes = ['Apoio', 'Mudar', 'Acesso', 'Ativo'];
@@ -171,6 +176,43 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
     setNewUnit(profile.unit || '');
     setNewFullName(profile.full_name || '');
     setMessage(null);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    if (deletingUser.id === currentUserId) {
+      alert("Você não pode excluir sua própria conta conectada.");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // 1. Tenta deletar por RPC para expurgar de auth.users e profiles
+      const { error: rpcError } = await supabase.rpc('delete_user_by_admin', { 
+        target_user_id: deletingUser.id 
+      });
+
+      if (rpcError) {
+        console.warn("RPC delete_user_by_admin retornou erro, tentando fallback em profiles:", rpcError);
+        // Fallback: Deleta diretamente da tabela profiles
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', deletingUser.id);
+
+        if (profileError) throw profileError;
+      }
+
+      // Remove do estado local
+      setProfiles(prev => prev.filter(p => p.id !== deletingUser.id));
+      setMessage({ text: `Usuário ${deletingUser.full_name || deletingUser.email} foi excluído com sucesso.`, type: 'success' });
+      setDeletingUser(null);
+    } catch (err: any) {
+      console.error("Erro ao excluir usuário:", err);
+      alert(`Falha ao excluir usuário: ${err.message || 'Verifique as permissões de administrador.'}`);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSave = async () => {
@@ -392,13 +434,23 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
                       </div>
                     </td>
                     <td className="py-4.5 px-6 text-right">
-                      <button 
-                        onClick={() => handleEditClick(profile)}
-                        className="p-1.5 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-all cursor-pointer"
-                        title="Editar Papel e Polo"
-                      >
-                        <Edit2 size={14} />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button 
+                          onClick={() => handleEditClick(profile)}
+                          className="p-1.5 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-all cursor-pointer"
+                          title="Editar Papel e Polo"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button 
+                          onClick={() => setDeletingUser(profile)}
+                          disabled={profile.id === currentUserId}
+                          className="p-1.5 border border-slate-200 dark:border-slate-700 hover:border-rose-500 dark:hover:border-rose-500 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                          title={profile.id === currentUserId ? "Você não pode excluir sua própria conta" : "Excluir Usuário"}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -620,6 +672,70 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
         </div>
       )}
 
+      {/* Delete User Confirmation Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden p-6 text-center space-y-4 animate-slide-up">
+            <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-800">
+              <AlertTriangle size={28} />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black text-slate-800 dark:text-white">
+                Excluir Usuário?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Tem certeza de que deseja excluir permanentemente o acesso deste colaborador?
+              </p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-left text-xs space-y-2">
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold block">Nome</span>
+                <span className="font-bold text-slate-800 dark:text-white text-sm">{deletingUser.full_name || 'Não informado'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold block">E-mail</span>
+                <span className="font-mono text-slate-700 dark:text-slate-300">{deletingUser.email}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold block">Função / Perfil</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{getRoleLabel(deletingUser.role)}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeletingUser(null)}
+                className="w-1/2 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteUser}
+                className="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 inline-flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    Confirmar Exclusão
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit User Modal Overlay */}
       {editingProfile && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
@@ -695,31 +811,47 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
             </div>
 
             {/* Actions Footer */}
-            <div className="flex gap-3 p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
-              <button 
-                onClick={() => setEditingProfile(null)}
-                disabled={isSaving}
-                className="w-1/2 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            <div className="flex items-center justify-between gap-3 p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
+              <button
+                type="button"
+                onClick={() => {
+                  const toDelete = editingProfile;
+                  setEditingProfile(null);
+                  setDeletingUser(toDelete);
+                }}
+                disabled={editingProfile.id === currentUserId}
+                className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
-                Cancelar
+                <Trash2 size={14} />
+                Excluir Conta
               </button>
-              <button 
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-1/2 py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow inline-flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="animate-spin" size={14} />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Check size={14} />
-                    Confirmar
-                  </>
-                )}
-              </button>
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setEditingProfile(null)}
+                  disabled={isSaving}
+                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="px-5 py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow inline-flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="animate-spin" size={14} />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      Salvar
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
