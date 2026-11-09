@@ -67,11 +67,43 @@ export default function App() {
 
   // (offline tracking is handled by notification upsert pattern below)
 
+  const fetchUserProfile = async (user: any) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (data) {
+        setUserProfile(data);
+      } else {
+        // Se o perfil ainda não existe na tabela pública profiles, cria automaticamente
+        const newProfile = {
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Colaborador',
+          role: user.user_metadata?.role || 'employee',
+          unit: user.user_metadata?.unit || null
+        };
+        const { data: createdProfile } = await supabase
+          .from('profiles')
+          .insert(newProfile)
+          .select()
+          .maybeSingle();
+
+        if (createdProfile) {
+          setUserProfile(createdProfile);
+        } else {
+          setUserProfile(newProfile);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao carregar ou sincronizar perfil:", err);
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user);
       }
     });
 
@@ -83,7 +115,7 @@ export default function App() {
       }
       setSession(session);
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user);
       } else {
         setUserProfile(null);
       }
@@ -95,10 +127,7 @@ export default function App() {
       setIsRecoveryMode(true);
     }
 
-    const fetchUserProfile = async (userId: string) => {
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (data) setUserProfile(data);
-    };
+
 
     // Fetch all real data
     const fetchAllData = async () => {
@@ -1304,6 +1333,36 @@ export default function App() {
 
   if (!session) {
     return <AuthScreen />;
+  }
+
+  // Intercepta primeiro acesso obrigatório para troca de senha temporária
+  const mustChangePassword =
+    session.user?.user_metadata?.must_change_password === true ||
+    session.user?.user_metadata?.must_change_password === 'true' ||
+    userProfile?.must_change_password === true;
+
+  if (mustChangePassword) {
+    return (
+      <ForcePasswordChangeView
+        userEmail={session.user.email}
+        userName={userProfile?.full_name || session.user.user_metadata?.full_name}
+        onPasswordChanged={async () => {
+          const { data } = await supabase.auth.getUser();
+          if (data?.user) {
+            setSession((prev: any) => ({
+              ...prev,
+              user: data.user
+            }));
+            await fetchUserProfile(data.user);
+          }
+        }}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          setSession(null);
+          setUserProfile(null);
+        }}
+      />
+    );
   }
 
   // If user is NOC, render full screen NOC view without Sidebar or Navbar
