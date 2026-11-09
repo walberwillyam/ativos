@@ -146,3 +146,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_create_user(TEXT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
+
