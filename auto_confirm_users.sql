@@ -5,8 +5,7 @@
 
 -- 1. Confirmar imediatamente todos os usuários existentes que estão com e-mail pendente (ex: Jean Freitas)
 UPDATE auth.users 
-SET email_confirmed_at = COALESCE(email_confirmed_at, now()),
-    confirmed_at = COALESCE(confirmed_at, now())
+SET email_confirmed_at = COALESCE(email_confirmed_at, now())
 WHERE email_confirmed_at IS NULL;
 
 -- 2. Criar função para auto-confirmar novos usuários cadastrados no banco
@@ -15,9 +14,6 @@ RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.email_confirmed_at IS NULL THEN
     NEW.email_confirmed_at := now();
-  END IF;
-  IF NEW.confirmed_at IS NULL THEN
-    NEW.confirmed_at := now();
   END IF;
   RETURN NEW;
 END;
@@ -35,8 +31,7 @@ CREATE OR REPLACE FUNCTION public.confirm_user_email(user_email text)
 RETURNS boolean AS $$
 BEGIN
   UPDATE auth.users
-  SET email_confirmed_at = COALESCE(email_confirmed_at, now()),
-      confirmed_at = COALESCE(confirmed_at, now())
+  SET email_confirmed_at = COALESCE(email_confirmed_at, now())
   WHERE lower(email) = lower(user_email);
   RETURN true;
 END;

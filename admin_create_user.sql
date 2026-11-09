@@ -48,7 +48,6 @@ BEGIN
     email,
     encrypted_password,
     email_confirmed_at,
-    confirmed_at,
     raw_app_meta_data,
     raw_user_meta_data,
     created_at,
@@ -60,7 +59,6 @@ BEGIN
     'authenticated',
     lower(trim(new_email)),
     encrypted_pw,
-    now(),
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object(
