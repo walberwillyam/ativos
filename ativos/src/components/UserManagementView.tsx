@@ -79,53 +79,97 @@ export default function UserManagementView({ units }: UserManagementViewProps) {
 
     setIsCreating(true);
     try {
-      // Cliente isolado com persistSession: false para não afetar o login do administrador atual
-      const tempClient = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false
-          }
-        }
-      );
+      let createdUserSuccess = false;
 
-      const { data: authData, error: authError } = await tempClient.auth.signUp({
-        email: createEmail.trim(),
-        password: createTempPassword,
-        options: {
-          data: {
-            full_name: createFullName.trim(),
-            role: createRole,
-            unit: createUnit || null,
-            must_change_password: true
-          }
-        }
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        if (authData.user.identities && authData.user.identities.length === 0) {
-          throw new Error("Este endereço de e-mail já está cadastrado no sistema.");
-        }
-
-        // Assegura o registro atualizado na tabela profiles
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          email: createEmail.trim(),
-          full_name: createFullName.trim(),
-          role: createRole,
-          unit: createUnit || null
+      // 1. Tenta primeiro criar via RPC no banco (admin_create_user), que funciona mesmo com signups desativados no Supabase
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('admin_create_user', {
+          new_email: createEmail.trim(),
+          new_password: createTempPassword,
+          new_full_name: createFullName.trim(),
+          new_role: createRole,
+          new_unit: createUnit || null
         });
 
-        // Tenta auto-confirmar caso a função RPC esteja presente no banco
-        try {
-          await supabase.rpc('confirm_user_email', { user_email: createEmail.trim() });
-        } catch (rpcErr) {
-          console.warn('RPC confirm_user_email opcional:', rpcErr);
+        if (!rpcError && rpcData) {
+          createdUserSuccess = true;
+        } else if (rpcError) {
+          const errMsg = rpcError.message || '';
+          if (
+            !errMsg.includes('admin_create_user') && 
+            !errMsg.includes('does not exist') && 
+            !errMsg.includes('could not find')
+          ) {
+            throw rpcError;
+          }
+        }
+      } catch (rpcEx: any) {
+        const msg = rpcEx.message || '';
+        if (
+          !msg.includes('admin_create_user') && 
+          !msg.includes('does not exist') && 
+          !msg.includes('could not find')
+        ) {
+          throw rpcEx;
+        }
+      }
+
+      // 2. Se a RPC não estiver instalada ainda, tenta via cliente secundário com signUp
+      if (!createdUserSuccess) {
+        const tempClient = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY,
+          {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+              detectSessionInUrl: false
+            }
+          }
+        );
+
+        const { data: authData, error: authError } = await tempClient.auth.signUp({
+          email: createEmail.trim(),
+          password: createTempPassword,
+          options: {
+            data: {
+              full_name: createFullName.trim(),
+              role: createRole,
+              unit: createUnit || null,
+              must_change_password: true
+            }
+          }
+        });
+
+        if (authError) {
+          if (authError.message.toLowerCase().includes('signups are disabled')) {
+            throw new Error(
+              "Os cadastros de e-mail estão desativados no Supabase. Para liberar, ative 'Allow new users to sign up' no painel do Supabase (Authentication > Providers > Email) ou execute o script admin_create_user.sql no SQL Editor."
+            );
+          }
+          throw authError;
+        }
+
+        if (authData.user) {
+          if (authData.user.identities && authData.user.identities.length === 0) {
+            throw new Error("Este endereço de e-mail já está cadastrado no sistema.");
+          }
+
+          // Assegura o registro atualizado na tabela profiles
+          await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            email: createEmail.trim(),
+            full_name: createFullName.trim(),
+            role: createRole,
+            unit: createUnit || null
+          });
+
+          // Tenta auto-confirmar caso a função RPC esteja presente no banco
+          try {
+            await supabase.rpc('confirm_user_email', { user_email: createEmail.trim() });
+          } catch (rpcErr) {
+            console.warn('RPC confirm_user_email opcional:', rpcErr);
+          }
         }
       }
 

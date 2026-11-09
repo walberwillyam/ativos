@@ -51,3 +51,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. Permite que usuários autenticados chamem a função
 GRANT EXECUTE ON FUNCTION public.delete_user_by_admin(UUID) TO authenticated;
+
