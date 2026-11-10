@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Activity, Server, Cpu, HardDrive, Clock, Edit2, X, Search, Filter, Trash2 } from 'lucide-react';
 
@@ -233,6 +233,35 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
     }
   };
 
+    // Lista unificada e completa de todas as unidades / empresas cadastradas no sistema
+  const allUnitsList = useMemo(() => {
+    const unitNames = new Set<string>();
+
+    // 1. Todas as unidades cadastradas no sistema
+    units.forEach(u => {
+      if (u && u.name) unitNames.add(u.name);
+    });
+
+    // 2. Unidades presentes nos ativos
+    assets.forEach(a => {
+      if (a && a.unit) unitNames.add(a.unit);
+    });
+
+    // 3. Unidades presentes nos dispositivos de telemetria
+    devices.forEach(d => {
+      if (d && d.unit_id) {
+        const found = units.find(u => u.id === d.unit_id);
+        unitNames.add(found ? found.name : d.unit_id);
+      }
+    });
+
+    return Array.from(unitNames).filter(Boolean).sort((a, b) => {
+      if (a === 'UNKNOWN_UNIT') return 1;
+      if (b === 'UNKNOWN_UNIT') return -1;
+      return a.localeCompare(b, 'pt-BR');
+    });
+  }, [units, assets, devices]);
+
   const filteredDevices = devices.filter(device => {
     const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
     
@@ -249,7 +278,14 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
       displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sectorName.toLowerCase().includes(searchQuery.toLowerCase());
       
-    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit || (targetAsset && targetAsset.unit === filterUnit);
+    const selectedUnitObj = units.find(u => u.name === filterUnit || u.id === filterUnit);
+    const targetUnitName = selectedUnitObj?.name || filterUnit;
+    const targetUnitId = selectedUnitObj?.id || filterUnit;
+
+    const matchesUnit = filterUnit === '' || 
+      device.unit_id === targetUnitName || 
+      device.unit_id === targetUnitId || 
+      (targetAsset && (targetAsset.unit === targetUnitName || targetAsset.unit === targetUnitId));
     
     const matchesServer = !filterIsServer || 
       (device.os_info && device.os_info.toLowerCase().includes('server')) || 
@@ -301,10 +337,9 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600 outline-none dark:text-white appearance-none"
               >
                 <option value="">Todas as Unidades</option>
-                {Array.from(new Set(devices.map(d => d.unit_id))).filter(Boolean).map(unitId => {
-                  const unitName = units.find(u => u.id === unitId)?.name || unitId;
-                  return <option key={unitId} value={unitId}>{unitName}</option>;
-                })}
+                {allUnitsList.map(unitName => (
+                  <option key={unitName} value={unitName}>{unitName}</option>
+                ))}
               </select>
             </div>
             

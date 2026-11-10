@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Asset } from '../types';
 import { 
@@ -185,6 +185,35 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
     return status === 'critical' || status === 'offline';
   });
 
+    // Lista unificada e completa de todas as unidades / empresas cadastradas no sistema
+  const allUnitsList = useMemo(() => {
+    const unitNames = new Set<string>();
+
+    // 1. Todas as unidades cadastradas no sistema
+    units.forEach(u => {
+      if (u && u.name) unitNames.add(u.name);
+    });
+
+    // 2. Unidades presentes nos ativos
+    assets.forEach(a => {
+      if (a && a.unit) unitNames.add(a.unit);
+    });
+
+    // 3. Unidades presentes nos dispositivos de telemetria
+    devices.forEach(d => {
+      if (d && d.unit_id) {
+        const found = units.find(u => u.id === d.unit_id);
+        unitNames.add(found ? found.name : d.unit_id);
+      }
+    });
+
+    return Array.from(unitNames).filter(Boolean).sort((a, b) => {
+      if (a === 'UNKNOWN_UNIT') return 1;
+      if (b === 'UNKNOWN_UNIT') return -1;
+      return a.localeCompare(b, 'pt-BR');
+    });
+  }, [units, assets, devices]);
+
   const filteredDevices = devices.filter(device => {
     const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
     const displayName = device.custom_name || (targetAsset?.name && !targetAsset.name.startsWith('Computador - ') ? targetAsset.name : '') || device.asset_id;
@@ -198,7 +227,14 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
     const status = getDeviceStatus(device);
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
 
-    const matchesUnit = filterUnit === '' || device.unit_id === filterUnit || (targetAsset && targetAsset.unit === filterUnit);
+    const selectedUnitObj = units.find(u => u.name === filterUnit || u.id === filterUnit);
+    const targetUnitName = selectedUnitObj?.name || filterUnit;
+    const targetUnitId = selectedUnitObj?.id || filterUnit;
+
+    const matchesUnit = filterUnit === '' || 
+      device.unit_id === targetUnitName || 
+      device.unit_id === targetUnitId || 
+      (targetAsset && (targetAsset.unit === targetUnitName || targetAsset.unit === targetUnitId));
     
     const matchesServer = !filterIsServer || 
       (device.os_info && device.os_info.toLowerCase().includes('server')) || 
@@ -356,10 +392,9 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
               className="bg-slate-950 border border-slate-900 text-slate-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-indigo-800 transition-colors appearance-none"
             >
               <option value="">Todas as Unidades</option>
-              {Array.from(new Set(devices.map(d => d.unit_id))).filter(Boolean).map(unitId => {
-                const unitName = units.find(u => u.id === unitId)?.name || unitId;
-                return <option key={unitId} value={unitId}>{unitName}</option>;
-              })}
+              {allUnitsList.map(unitName => (
+                <option key={unitName} value={unitName}>{unitName}</option>
+              ))}
             </select>
             
             <label className="flex items-center gap-2 cursor-pointer bg-slate-950 border border-slate-900 text-slate-200 px-4 py-2 rounded-xl text-sm transition-colors hover:border-indigo-800 whitespace-nowrap">
