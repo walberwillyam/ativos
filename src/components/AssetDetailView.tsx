@@ -425,14 +425,57 @@ const SignatureField = ({
   );
 };
 
-const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, onUpdateAsset: (a: Asset) => void, onAddActivity: any }) => {
+const HandoverForm = ({ 
+  asset, 
+  onUpdateAsset, 
+  onAddActivity, 
+  userProfile 
+}: { 
+  asset: Asset; 
+  onUpdateAsset: (a: Asset) => void; 
+  onAddActivity: any; 
+  userProfile?: any;
+}) => {
+  const userKey = userProfile?.id || userProfile?.email || 'default_tech';
+  const savedSigKey = `saved_tech_signature_${userKey}`;
+  const rememberSigKey = `remember_tech_signature_${userKey}`;
+
   const [termType, setTermType] = useState<'entrega' | 'devolucao'>('entrega');
-  const [techName, setTechName] = useState('Suporte Técnico TI');
-  
+  const [techName, setTechName] = useState(() => {
+    return userProfile?.full_name || 'Suporte Técnico TI';
+  });
+
+  const [rememberTechSig, setRememberTechSig] = useState<boolean>(() => {
+    const val = localStorage.getItem(rememberSigKey);
+    return val !== 'false';
+  });
+
+  const [techSig, setTechSig] = useState<string>(() => {
+    return localStorage.getItem(savedSigKey) || localStorage.getItem('saved_tech_signature_default_tech') || '';
+  });
+
+  const [hasSavedSig, setHasSavedSig] = useState<boolean>(() => {
+    return !!(localStorage.getItem(savedSigKey) || localStorage.getItem('saved_tech_signature_default_tech'));
+  });
+
   const [recipName, setRecipName] = useState(() => {
     const rName = asset?.responsible?.name;
     return rName && rName !== 'Não atribuído' ? rName : '';
   });
+
+  useEffect(() => {
+    if (userProfile?.full_name && (techName === 'Suporte Técnico TI' || !techName)) {
+      setTechName(userProfile.full_name);
+    }
+    const currentKey = `saved_tech_signature_${userProfile?.id || userProfile?.email || 'default_tech'}`;
+    const saved = localStorage.getItem(currentKey) || localStorage.getItem('saved_tech_signature_default_tech');
+    if (saved) {
+      setHasSavedSig(true);
+      if (!techSig) {
+        setTechSig(saved);
+      }
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     const rName = asset?.responsible?.name;
@@ -441,7 +484,50 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
     }
   }, [asset?.responsible?.name]);
 
-  const [techSig, setTechSig] = useState('');
+  const handleTechSigChange = (sig: string) => {
+    setTechSig(sig);
+    if (rememberTechSig && sig) {
+      localStorage.setItem(savedSigKey, sig);
+      localStorage.setItem('saved_tech_signature_default_tech', sig);
+      setHasSavedSig(true);
+    }
+  };
+
+  const handleClearTechSig = () => {
+    setTechSig('');
+  };
+
+  const handleToggleRemember = (checked: boolean) => {
+    setRememberTechSig(checked);
+    localStorage.setItem(rememberSigKey, checked.toString());
+    if (checked && techSig) {
+      localStorage.setItem(savedSigKey, techSig);
+      localStorage.setItem('saved_tech_signature_default_tech', techSig);
+      setHasSavedSig(true);
+    } else if (!checked) {
+      localStorage.removeItem(savedSigKey);
+      localStorage.removeItem('saved_tech_signature_default_tech');
+      setHasSavedSig(false);
+    }
+  };
+
+  const handleSaveAsDefault = () => {
+    if (!techSig) return;
+    localStorage.setItem(savedSigKey, techSig);
+    localStorage.setItem('saved_tech_signature_default_tech', techSig);
+    localStorage.setItem(rememberSigKey, 'true');
+    setRememberTechSig(true);
+    setHasSavedSig(true);
+    alert('Assinatura salva como padrão do técnico! Ela será pré-preenchida automaticamente em todos os termos futuros.');
+  };
+
+  const handleRestoreSavedSig = () => {
+    const saved = localStorage.getItem(savedSigKey) || localStorage.getItem('saved_tech_signature_default_tech');
+    if (saved) {
+      setTechSig(saved);
+    }
+  };
+
   const [recipSig, setRecipSig] = useState('');
   const [observation, setObservation] = useState('');
 
@@ -602,8 +688,10 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
   };
 
   const handleClear = () => {
-    setTechSig('');
     setRecipSig('');
+    if (!hasSavedSig) {
+      setTechSig('');
+    }
   };
 
   return (
@@ -703,31 +791,72 @@ const HandoverForm = ({ asset, onUpdateAsset, onAddActivity }: { asset: Asset, o
 
         {/* Canvas de Assinaturas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          <SignatureField
-            id="tech"
-            label="Assinatura do Técnico"
-            value={techSig}
-            onChange={setTechSig}
-            onClear={() => setTechSig('')}
-          />
-          <SignatureField
-            id="recip"
-            label="Assinatura do Recebedor"
-            value={recipSig}
-            onChange={setRecipSig}
-            onClear={() => setRecipSig('')}
-            extraAction={
-              <button
-                type="button"
-                onClick={handleOpenQrModal}
-                className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer"
-                title="Abrir QR Code para o colaborador assinar no próprio celular"
-              >
-                <QrCode size={12} />
-                <span>Assinar no Celular (QR Code)</span>
-              </button>
-            }
-          />
+          <div className="space-y-1.5">
+            <SignatureField
+              id="tech"
+              label="Assinatura do Técnico"
+              value={techSig}
+              onChange={handleTechSigChange}
+              onClear={handleClearTechSig}
+              extraAction={
+                techSig && hasSavedSig ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md">
+                    <Check size={11} /> Assinatura Padrão
+                  </span>
+                ) : !techSig && hasSavedSig ? (
+                  <button
+                    type="button"
+                    onClick={handleRestoreSavedSig}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    Recarregar Assinatura Salva
+                  </button>
+                ) : null
+              }
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px]">
+              <label className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberTechSig}
+                  onChange={(e) => handleToggleRemember(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 h-3.5 w-3.5 cursor-pointer"
+                />
+                <span>Lembrar e pré-preencher minha assinatura nos próximos termos</span>
+              </label>
+              {techSig && (
+                <button
+                  type="button"
+                  onClick={handleSaveAsDefault}
+                  className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+                  title="Salvar esta assinatura como padrão para novos termos"
+                >
+                  Salvar como padrão
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <SignatureField
+              id="recip"
+              label="Assinatura do Recebedor"
+              value={recipSig}
+              onChange={setRecipSig}
+              onClear={() => setRecipSig('')}
+              extraAction={
+                <button
+                  type="button"
+                  onClick={handleOpenQrModal}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer"
+                  title="Abrir QR Code para o colaborador assinar no próprio celular"
+                >
+                  <QrCode size={12} />
+                  <span>Assinar no Celular (QR Code)</span>
+                </button>
+              }
+            />
+          </div>
         </div>
 
         <div className="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-800">
@@ -1925,7 +2054,7 @@ export default function AssetDetailView({ asset, onGoBack, onUpdateAsset, onAddA
 
             {activeTab === 'handover' && (
               <div className="space-y-6">
-                <HandoverForm asset={asset} onUpdateAsset={onUpdateAsset} onAddActivity={onAddActivity} />
+                <HandoverForm asset={asset} onUpdateAsset={onUpdateAsset} onAddActivity={onAddActivity} userProfile={userProfile} />
               </div>
             )}
 
