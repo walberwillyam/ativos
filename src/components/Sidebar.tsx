@@ -20,7 +20,7 @@ import {
   Key
 } from 'lucide-react';
 import { ActiveScreen } from '../types';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, logout } from '../lib/supabaseClient';
 
 interface SidebarProps {
   activeScreen: ActiveScreen;
@@ -29,9 +29,18 @@ interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   userProfile?: any;
+  onLogout?: () => void;
 }
 
-export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCount, isCollapsed, setIsCollapsed, userProfile }: SidebarProps) {
+export default function Sidebar({ 
+  activeScreen, 
+  setActiveScreen, 
+  totalAssetsCount, 
+  isCollapsed, 
+  setIsCollapsed, 
+  userProfile,
+  onLogout 
+}: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
     { id: 'inventory', label: 'Inventário', icon: Boxes },
@@ -193,12 +202,16 @@ export default function Sidebar({ activeScreen, setActiveScreen, totalAssetsCoun
         <button 
           id="side-nav-btn-logout"
           onClick={async () => { 
-            if(confirm("Deseja realmente sair do Ativos Apoio?")) {
-              await supabase.auth.signOut();
+            if (confirm("Deseja realmente sair do Ativos Apoio?")) {
+              if (onLogout) {
+                await onLogout();
+              } else {
+                await logout();
+              }
             } 
           }}
           title={isCollapsed ? "Sair" : undefined}
-          className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 w-full'} px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 rounded-2xl transition-colors text-sm font-bold`}
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 w-full'} px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 rounded-2xl transition-colors text-sm font-bold cursor-pointer`}
         >
           <LogOut size={18} />
           {!isCollapsed && <span>Sair</span>}

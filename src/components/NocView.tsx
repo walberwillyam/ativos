@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, logout } from '../lib/supabaseClient';
 import { Asset } from '../types';
 import { 
   Activity, 
@@ -133,7 +133,7 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
 
   const handleLogout = async () => {
     if (window.confirm("Deseja realmente sair da conta operacional NOC?")) {
-      await supabase.auth.signOut();
+      await logout();
     }
   };
 

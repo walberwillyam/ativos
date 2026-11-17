@@ -9,7 +9,7 @@ import {
   Sun,
   Menu
 } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, logout } from '../lib/supabaseClient';
 import { ActiveScreen } from '../types';
 
 interface Notification {
@@ -28,9 +28,19 @@ interface NavbarProps {
   userProfile?: any;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (collapsed: boolean) => void;
+  onLogout?: () => void;
 }
 
-export default function Navbar({ setActiveScreen, notifications, handleNotificationsClear, userEmail, userProfile, isSidebarCollapsed, setIsSidebarCollapsed }: NavbarProps) {
+export default function Navbar({ 
+  setActiveScreen, 
+  notifications, 
+  handleNotificationsClear, 
+  userEmail, 
+  userProfile, 
+  isSidebarCollapsed, 
+  setIsSidebarCollapsed,
+  onLogout 
+}: NavbarProps) {
   const [globalSearch, setGlobalSearch] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -217,8 +227,14 @@ export default function Navbar({ setActiveScreen, notifications, handleNotificat
           </div>
           
           <button 
-            onClick={() => supabase.auth.signOut()}
-            className="ml-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 p-2 rounded-xl transition duration-150 active:scale-90"
+            onClick={async () => {
+              if (onLogout) {
+                await onLogout();
+              } else {
+                await logout();
+              }
+            }}
+            className="ml-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 p-2 rounded-xl transition duration-150 active:scale-90 cursor-pointer"
             title="Sair do sistema"
           >
             <LogOut size={16} />

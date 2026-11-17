@@ -45,7 +45,7 @@ import ConferenteView from './components/ConferenteView';
 import OsLicensesView from './components/OsLicensesView';
 import PublicSignView from './components/PublicSignView';
 import ForcePasswordChangeView from './components/ForcePasswordChangeView';
-import { supabase } from './lib/supabaseClient';
+import { supabase, logout } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
 
@@ -1348,6 +1348,12 @@ export default function App() {
     );
   }
 
+  const handleLogout = async () => {
+    setSession(null);
+    setUserProfile(null);
+    await logout();
+  };
+
   if (!session) {
     return <AuthScreen />;
   }
@@ -1373,11 +1379,7 @@ export default function App() {
             await fetchUserProfile(data.user);
           }
         }}
-        onLogout={async () => {
-          await supabase.auth.signOut();
-          setSession(null);
-          setUserProfile(null);
-        }}
+        onLogout={handleLogout}
       />
     );
   }
@@ -1399,6 +1401,7 @@ export default function App() {
           userProfile={userProfile}
           isSidebarCollapsed={true}
           setIsSidebarCollapsed={() => { }}
+          onLogout={handleLogout}
         />
         <div className="flex-1 overflow-y-auto bg-slate-50">
           <ConferenteView userProfile={userProfile} assets={assets} />
@@ -1418,6 +1421,7 @@ export default function App() {
         userProfile={userProfile}
         isSidebarCollapsed={isSidebarCollapsed}
         setIsSidebarCollapsed={setIsSidebarCollapsed}
+        onLogout={handleLogout}
       />
 
       {/* Main Workspace Frame */}
@@ -1431,6 +1435,7 @@ export default function App() {
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
           userProfile={userProfile}
+          onLogout={handleLogout}
         />
 
         {/* Dynamic content rendering with loading animations */}
