@@ -38,7 +38,8 @@ import {
   QrCode,
   Copy,
   ExternalLink,
-  Smartphone
+  Smartphone,
+  UploadCloud
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
@@ -439,6 +440,7 @@ const HandoverForm = ({
   const userKey = userProfile?.id || userProfile?.email || 'default_tech';
   const savedSigKey = `saved_tech_signature_${userKey}`;
   const rememberSigKey = `remember_tech_signature_${userKey}`;
+  const cloudSigFromProfile = userProfile?.signature || userProfile?.user_metadata?.tech_signature;
 
   const [termType, setTermType] = useState<'entrega' | 'devolucao'>('entrega');
   const [techName, setTechName] = useState(() => {
@@ -451,29 +453,115 @@ const HandoverForm = ({
   });
 
   const [techSig, setTechSig] = useState<string>(() => {
-    return localStorage.getItem(savedSigKey) || localStorage.getItem('saved_tech_signature_default_tech') || '';
+    return (
+      localStorage.getItem(savedSigKey) ||
+      localStorage.getItem('saved_tech_signature_default_tech') ||
+      cloudSigFromProfile ||
+      ''
+    );
   });
 
   const [hasSavedSig, setHasSavedSig] = useState<boolean>(() => {
-    return !!(localStorage.getItem(savedSigKey) || localStorage.getItem('saved_tech_signature_default_tech'));
+    return !!(
+      localStorage.getItem(savedSigKey) ||
+      localStorage.getItem('saved_tech_signature_default_tech') ||
+      cloudSigFromProfile
+    );
   });
+
+  const [isSavingCloudSig, setIsSavingCloudSig] = useState<boolean>(false);
 
   const [recipName, setRecipName] = useState(() => {
     const rName = asset?.responsible?.name;
     return rName && rName !== 'Não atribuído' ? rName : '';
   });
 
+  const syncSignatureToCloud = async (sig: string) => {
+    if (!sig) return;
+    try {
+      setIsSavingCloudSig(true);
+      // 1. Atualiza user_metadata no Supabase Auth (sincroniza instantaneamente entre celular e PC)
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { tech_signature: sig }
+      });
+      if (authError) {
+        console.warn("Could not save signature to user_metadata:", authError);
+      }
+
+      // 2. Tenta atualizar a coluna signature da tabela profiles caso ela exista
+      if (userProfile?.id) {
+        try {
+          await supabase.from('profiles').update({ signature: sig } as any).eq('id', userProfile.id);
+        } catch (tableErr) {
+          // Ignora caso a coluna signature ainda não tenha sido criada no banco
+        }
+      }
+    } catch (e) {
+      console.warn("Erro ao sincronizar assinatura com a nuvem:", e);
+    } finally {
+      setIsSavingCloudSig(false);
+    }
+  };
+
+  const fetchSignatureFromCloud = async () => {
+    try {
+      setIsSavingCloudSig(true);
+      let foundSig = userProfile?.signature || userProfile?.user_metadata?.tech_signature;
+
+      if (!foundSig) {
+        const { data: { user } } = await supabase.auth.getUser();
+        foundSig = user?.user_metadata?.tech_signature;
+
+        if (!foundSig && user?.id) {
+          const { data: pData } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+          foundSig = pData?.signature;
+        }
+      }
+
+      if (foundSig) {
+        setTechSig(foundSig);
+        setHasSavedSig(true);
+        localStorage.setItem(savedSigKey, foundSig);
+        localStorage.setItem('saved_tech_signature_default_tech', foundSig);
+        return foundSig;
+      }
+      return null;
+    } catch (err) {
+      console.error("Erro ao buscar assinatura da nuvem:", err);
+      return null;
+    } finally {
+      setIsSavingCloudSig(false);
+    }
+  };
+
   useEffect(() => {
     if (userProfile?.full_name && (techName === 'Suporte Técnico TI' || !techName)) {
       setTechName(userProfile.full_name);
     }
     const currentKey = `saved_tech_signature_${userProfile?.id || userProfile?.email || 'default_tech'}`;
-    const saved = localStorage.getItem(currentKey) || localStorage.getItem('saved_tech_signature_default_tech');
-    if (saved) {
+    const localSaved = localStorage.getItem(currentKey) || localStorage.getItem('saved_tech_signature_default_tech');
+    const cloudSig = userProfile?.signature || userProfile?.user_metadata?.tech_signature;
+
+    if (localSaved) {
       setHasSavedSig(true);
       if (!techSig) {
-        setTechSig(saved);
+        setTechSig(localSaved);
       }
+      // Se já temos a assinatura salva localmente (ex: no celular), mas a nuvem ainda não tem, sobe automaticamente!
+      if (!cloudSig && userProfile?.id) {
+        syncSignatureToCloud(localSaved);
+      }
+    } else if (cloudSig) {
+      // Se não temos localmente neste dispositivo (ex: computador recém-aberto), mas temos na nuvem, carrega e salva localmente
+      setHasSavedSig(true);
+      if (!techSig) {
+        setTechSig(cloudSig);
+      }
+      localStorage.setItem(currentKey, cloudSig);
+      localStorage.setItem('saved_tech_signature_default_tech', cloudSig);
+    } else {
+      // Se nenhum tiver, tenta buscar direto no Supabase Auth caso o userProfile ainda esteja carregando
+      fetchSignatureFromCloud();
     }
   }, [userProfile]);
 
@@ -511,14 +599,16 @@ const HandoverForm = ({
     }
   };
 
-  const handleSaveAsDefault = () => {
+  const handleSaveAsDefault = async () => {
     if (!techSig) return;
     localStorage.setItem(savedSigKey, techSig);
     localStorage.setItem('saved_tech_signature_default_tech', techSig);
     localStorage.setItem(rememberSigKey, 'true');
     setRememberTechSig(true);
     setHasSavedSig(true);
-    alert('Assinatura salva como padrão do técnico! Ela será pré-preenchida automaticamente em todos os termos futuros.');
+
+    await syncSignatureToCloud(techSig);
+    alert('Assinatura salva como padrão e sincronizada na nuvem com sucesso!\n\nAgora ela aparecerá automaticamente em qualquer navegador e dispositivo (celular e computador).');
   };
 
   const handleRestoreSavedSig = () => {
@@ -803,14 +893,33 @@ const HandoverForm = ({
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md">
                     <Check size={11} /> Assinatura Padrão
                   </span>
-                ) : !techSig && hasSavedSig ? (
-                  <button
-                    type="button"
-                    onClick={handleRestoreSavedSig}
-                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline cursor-pointer"
-                  >
-                    Recarregar Assinatura Salva
-                  </button>
+                ) : !techSig ? (
+                  <div className="flex items-center gap-2">
+                    {hasSavedSig && (
+                      <button
+                        type="button"
+                        onClick={handleRestoreSavedSig}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        Recarregar Local
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const sig = await fetchSignatureFromCloud();
+                        if (!sig) {
+                          alert('Nenhuma assinatura encontrada na nuvem.\n\nAbra esta tela uma vez no celular (onde você já assinou) para sincronizar automaticamente, ou assine diretamente aqui no computador e clique em "Salvar como padrão na nuvem".');
+                        }
+                      }}
+                      disabled={isSavingCloudSig}
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
+                      title="Buscar assinatura salva na nuvem sincronizada do celular"
+                    >
+                      <RefreshCw size={10} className={isSavingCloudSig ? 'animate-spin' : ''} />
+                      <span>{isSavingCloudSig ? 'Buscando...' : 'Sincronizar da Nuvem'}</span>
+                    </button>
+                  </div>
                 ) : null
               }
             />
@@ -828,10 +937,12 @@ const HandoverForm = ({
                 <button
                   type="button"
                   onClick={handleSaveAsDefault}
-                  className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
-                  title="Salvar esta assinatura como padrão para novos termos"
+                  disabled={isSavingCloudSig}
+                  className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                  title="Salvar esta assinatura como padrão na sua conta para todos os computadores e celulares"
                 >
-                  Salvar como padrão
+                  <UploadCloud size={12} className={isSavingCloudSig ? 'animate-bounce' : ''} />
+                  <span>{isSavingCloudSig ? 'Sincronizando...' : 'Salvar como padrão na nuvem'}</span>
                 </button>
               )}
             </div>

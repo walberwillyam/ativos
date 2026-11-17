@@ -71,8 +71,13 @@ export default function App() {
     if (!user) return;
     try {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      const metaSignature = user.user_metadata?.tech_signature;
       if (data) {
-        setUserProfile(data);
+        setUserProfile({
+          ...data,
+          signature: data.signature || metaSignature,
+          user_metadata: user.user_metadata
+        });
       } else {
         // Se o perfil ainda não existe na tabela pública profiles, cria automaticamente
         const newProfile = {
@@ -80,16 +85,28 @@ export default function App() {
           email: user.email,
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Colaborador',
           role: user.user_metadata?.role || 'employee',
-          unit: user.user_metadata?.unit || null
+          unit: user.user_metadata?.unit || null,
+          signature: metaSignature,
+          user_metadata: user.user_metadata
         };
         const { data: createdProfile } = await supabase
           .from('profiles')
-          .insert(newProfile)
+          .insert({
+            id: user.id,
+            email: user.email,
+            full_name: newProfile.full_name,
+            role: newProfile.role,
+            unit: newProfile.unit
+          })
           .select()
           .maybeSingle();
 
         if (createdProfile) {
-          setUserProfile(createdProfile);
+          setUserProfile({
+            ...createdProfile,
+            signature: createdProfile.signature || metaSignature,
+            user_metadata: user.user_metadata
+          });
         } else {
           setUserProfile(newProfile);
         }

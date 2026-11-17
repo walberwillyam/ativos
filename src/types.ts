@@ -90,6 +90,8 @@ export interface Profile {
   role: UserRole;
   unit?: string;
   created_at?: string;
+  signature?: string;
+  user_metadata?: any;
 }
 
 export interface AuditSchedule {
