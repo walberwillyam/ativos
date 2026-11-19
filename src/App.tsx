@@ -72,9 +72,11 @@ export default function App() {
     try {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       const metaSignature = user.user_metadata?.tech_signature;
+      const metaAvatar = user.user_metadata?.avatar_url || localStorage.getItem('user_avatar_' + user.id);
       if (data) {
         setUserProfile({
           ...data,
+          avatar_url: data.avatar_url || metaAvatar || null,
           signature: data.signature || metaSignature,
           user_metadata: user.user_metadata
         });
@@ -86,6 +88,7 @@ export default function App() {
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Colaborador',
           role: user.user_metadata?.role || 'employee',
           unit: user.user_metadata?.unit || null,
+          avatar_url: metaAvatar || null,
           signature: metaSignature,
           user_metadata: user.user_metadata
         };
@@ -104,6 +107,7 @@ export default function App() {
         if (createdProfile) {
           setUserProfile({
             ...createdProfile,
+            avatar_url: createdProfile.avatar_url || metaAvatar || null,
             signature: createdProfile.signature || metaSignature,
             user_metadata: user.user_metadata
           });

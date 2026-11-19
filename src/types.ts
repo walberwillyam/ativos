@@ -91,6 +91,7 @@ export interface Profile {
   unit?: string;
   created_at?: string;
   signature?: string;
+  avatar_url?: string;
   user_metadata?: any;
 }
 

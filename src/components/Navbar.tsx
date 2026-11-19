@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { supabase, logout } from '../lib/supabaseClient';
 import { ActiveScreen } from '../types';
+import { getDefaultAvatar } from '../utils/avatar';
 
 interface Notification {
   id: string;
@@ -67,7 +68,7 @@ export default function Navbar({
         alert("Erro: A foto excede o tamanho máximo permitido de 5MB.");
         return;
       }
-      const allowedExts = ['.png', '.jpg', '.jpeg'];
+      const allowedExts = ['.png', '.jpg', '.jpeg', '.webp'];
       const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
       if (!allowedExts.includes(fileExt) || !file.type.startsWith('image/')) {
         alert("Erro: Formato de arquivo não permitido para perfil.");
@@ -77,12 +78,27 @@ export default function Navbar({
       try {
         const safeName = file.name.replace(/\s+/g, '_');
         const fileName = `avatars/${userProfile.id}_${Date.now()}_${safeName}`;
-        const { error } = await supabase.storage.from('ativos_arquivos').upload(fileName, file, { upsert: true });
-        if (error) throw error;
+        const { error: uploadError } = await supabase.storage.from('ativos_arquivos').upload(fileName, file, { upsert: true });
+        if (uploadError) throw uploadError;
         
         const { data: urlData } = supabase.storage.from('ativos_arquivos').getPublicUrl(fileName);
-        
-        await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', userProfile.id);
+        const avatarUrl = urlData.publicUrl;
+
+        // 1. Salva nos metadados do usuário do Supabase Auth (sincroniza instantaneamente na nuvem)
+        await supabase.auth.updateUser({
+          data: { avatar_url: avatarUrl }
+        });
+
+        // 2. Salva localmente para resposta rápida
+        localStorage.setItem(`user_avatar_${userProfile.id}`, avatarUrl);
+
+        // 3. Tenta salvar na tabela profiles caso a coluna exista
+        try {
+          await supabase.from('profiles').update({ avatar_url: avatarUrl } as any).eq('id', userProfile.id);
+        } catch (dbErr) {
+          console.warn("Aviso ao atualizar profiles.avatar_url:", dbErr);
+        }
+
         window.location.reload();
       } catch (err: any) {
         console.error("Upload Error:", err);
@@ -214,10 +230,13 @@ export default function Navbar({
         <div className="flex items-center gap-2.5">
           <label className="cursor-pointer relative group">
             <img 
-              src={userProfile?.avatar_url || "https://lh3.googleusercontent.com/aida/AP1WRLsBYYnnV-luFdNkqjmViVKgBL_wnBHD1mm0U_1MBJNBc0Nq2Ta13pem3-6e70vJuGD9K7KMYM-NjXowD6knnAkEbc7KveeBYKI-AIJxM1shD7XyOPQ9sOMz-qiauEObw7rtu7DybOldDRMRMion_3zk4LjzGAUsr2nUQ-p1vG-QG6yrwNBDvVhZlmmcy-bWfQ6-Sd24IOrs_-tDGvp39-kSVYDMJEf0jfDLv33a_N3xFAf3wwaZMFW3IA"} 
+              src={userProfile?.avatar_url || getDefaultAvatar(userProfile?.full_name || userEmail)} 
               alt="Avatar" 
-              className="w-8 h-8 rounded-full border border-slate-200 shadow-xs object-cover group-hover:ring-2 group-hover:ring-indigo-500 transition-all" 
-              title="Alterar Foto de Perfil"
+              onError={(e) => {
+                e.currentTarget.src = getDefaultAvatar(userProfile?.full_name || userEmail);
+              }}
+              className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs object-cover group-hover:ring-2 group-hover:ring-indigo-500 transition-all bg-indigo-50" 
+              title="Clique para alterar foto de perfil"
             />
             <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </label>
