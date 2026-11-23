@@ -61,7 +61,8 @@ export default function MonitoringView({ units = [], assets = [], onUpdateAsset 
       const { data, error } = await supabase
         .from('devices_health')
         .select('*')
-        .order('last_ping', { ascending: false });
+        .order('last_ping', { ascending: false })
+        .limit(150);
 
       if (error) throw error;
       if (data) {
@@ -148,21 +149,26 @@ export default function MonitoringView({ units = [], assets = [], onUpdateAsset 
   };
 
   const findTargetAsset = (device: DeviceHealth) => {
-    return assets.find(a => 
-      a.id === device.asset_id || 
-      a.name === device.asset_id || 
-      a.serialNumber === device.asset_id ||
-      (a.specifications && a.specifications.hostname === device.asset_id)
-    );
+    const devId = (device.asset_id || '').trim().toLowerCase();
+    if (!devId) return undefined;
+    return assets.find(a => {
+      const aId = (a.id || '').trim().toLowerCase();
+      const aName = (a.name || '').trim().toLowerCase();
+      const aSerial = (a.serialNumber || '').trim().toLowerCase();
+      const aPatr = (a.patrimonio || '').trim().toLowerCase();
+      const aHost = (a.specifications?.hostname || '').trim().toLowerCase();
+      const aCompId = (a.specifications?.['ID do Computador'] || '').trim().toLowerCase();
+      return aId === devId || aName === devId || aSerial === devId || aPatr === devId || aHost === devId || aCompId === devId;
+    });
   };
 
   const getDeviceDisplayName = (device: DeviceHealth) => {
-    if (device.custom_name && device.custom_name.trim()) {
-      return device.custom_name;
-    }
     const targetAsset = findTargetAsset(device);
     if (targetAsset && targetAsset.name && !targetAsset.name.startsWith('Computador - ')) {
       return targetAsset.name;
+    }
+    if (device.custom_name && device.custom_name.trim()) {
+      return device.custom_name;
     }
     return device.asset_id;
   };
@@ -179,19 +185,16 @@ export default function MonitoringView({ units = [], assets = [], onUpdateAsset 
   const getDeviceUnit = (device: DeviceHealth) => {
     const targetAsset = findTargetAsset(device);
     // Prioridade máxima: unidade definida no cadastro do ativo no inventário
-    if (targetAsset && targetAsset.unit && targetAsset.unit !== 'UNKNOWN_UNIT' && targetAsset.unit !== 'Não definida') {
-      return targetAsset.unit;
+    if (targetAsset && targetAsset.unit && targetAsset.unit !== 'UNKNOWN_UNIT' && targetAsset.unit !== 'Não definida' && targetAsset.unit !== 'test-id') {
+      const matchedUnit = units.find(u => u.id === targetAsset.unit || u.name === targetAsset.unit);
+      return matchedUnit ? matchedUnit.name : targetAsset.unit;
     }
 
-    // Se a telemetria tiver um unit_id válido (diferente de UNKNOWN_UNIT)
+    // Se a telemetria tiver um unit_id válido (diferente de UNKNOWN_UNIT e test-id)
     if (device.unit_id && device.unit_id !== 'UNKNOWN_UNIT' && device.unit_id !== 'test-id') {
       const foundUnit = units.find(u => u.id === device.unit_id || u.name === device.unit_id);
       if (foundUnit && foundUnit.name) return foundUnit.name;
       return device.unit_id;
-    }
-
-    if (targetAsset?.unit && targetAsset.unit !== 'UNKNOWN_UNIT') {
-      return targetAsset.unit;
     }
 
     return 'Não definida';

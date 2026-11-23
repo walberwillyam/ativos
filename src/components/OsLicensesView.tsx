@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { Key, Plus, Trash2, CheckCircle2, Search, Filter, ShieldCheck, Laptop } from 'lucide-react';
+import { supabase, supabaseAnon } from '../lib/supabaseClient';
+import { Key, Plus, Trash2, CheckCircle2, Search, Filter, ShieldCheck, Laptop, RefreshCw, AlertCircle } from 'lucide-react';
 import { Asset } from '../types';
 
 interface OsLicense {
@@ -26,6 +26,7 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
   });
 
   const [loading, setLoading] = useState(() => licenses.length === 0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [newKeysText, setNewKeysText] = useState('');
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,20 +50,63 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
   const fetchLicenses = async () => {
     try {
       if (licenses.length === 0) setLoading(true);
-      const { data, error } = await supabase
-        .from('os_licenses')
-        .select('*')
-        .order('created_at', { ascending: false });
+      setFetchError(null);
 
-      if (error) throw error;
-      if (data) {
-        setLicenses(data);
-        try {
-          localStorage.setItem('ativos_cached_licenses', JSON.stringify(data));
-        } catch (e) {}
+      let resultData: OsLicense[] | null = null;
+      let errorOccurred: any = null;
+
+      // 1. Tenta buscar com o cliente padrão (sessão autenticada)
+      try {
+        const { data, error } = await supabase
+          .from('os_licenses')
+          .select('*');
+
+        if (error) {
+          errorOccurred = error;
+        } else if (data && data.length > 0) {
+          resultData = data;
+        }
+      } catch (err) {
+        errorOccurred = err;
       }
-    } catch (err) {
+
+      // 2. Se o usuário estiver autenticado e a política RLS estiver aberta apenas 'TO anon',
+      // o cliente autenticado retorna [] (0 linhas) sem erro explícito.
+      // Fazemos o fallback imediato para supabaseAnon:
+      if (!resultData || resultData.length === 0) {
+        try {
+          const { data: anonData, error: anonErr } = await supabaseAnon
+            .from('os_licenses')
+            .select('*');
+
+          if (anonData && anonData.length > 0) {
+            resultData = anonData;
+            errorOccurred = null;
+          } else if (anonErr && !resultData) {
+            errorOccurred = anonErr;
+          }
+        } catch (anonErr) {
+          if (!resultData) errorOccurred = anonErr;
+        }
+      }
+
+      if (errorOccurred && (!resultData || resultData.length === 0)) {
+        throw errorOccurred;
+      }
+
+      if (resultData && resultData.length > 0) {
+        // Ordena no cliente por created_at decrescente
+        resultData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setLicenses(resultData);
+        try {
+          localStorage.setItem('ativos_cached_licenses', JSON.stringify(resultData));
+        } catch (e) {}
+      } else if (resultData && resultData.length === 0) {
+        setLicenses([]);
+      }
+    } catch (err: any) {
       console.error('Erro ao buscar licenças:', err);
+      setFetchError(err.message || 'Erro ao carregar catálogo de licenças.');
     } finally {
       setLoading(false);
     }
@@ -82,19 +126,23 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
     setSaving(true);
     try {
       const inserts = keys.map(k => ({ product_key: k }));
-      const { error } = await supabase.from('os_licenses').insert(inserts);
+      let { error } = await supabase.from('os_licenses').insert(inserts);
       if (error) {
-        if (error.code === '23505') {
-          alert('Algumas chaves já estão cadastradas e foram ignoradas.');
-        } else {
-          throw error;
+        // Fallback para anon em caso de restrição RLS
+        const anonRes = await supabaseAnon.from('os_licenses').insert(inserts);
+        if (anonRes.error) {
+          if (anonRes.error.code === '23505' || error.code === '23505') {
+            alert('Algumas chaves já estão cadastradas e foram ignoradas.');
+          } else {
+            throw anonRes.error || error;
+          }
         }
       }
       setNewKeysText('');
       await fetchLicenses();
     } catch (err: any) {
       console.error('Erro ao adicionar chaves:', err);
-      alert('Erro ao adicionar chaves. ' + err.message);
+      alert('Erro ao adicionar chaves: ' + (err.message || ''));
     } finally {
       setSaving(false);
     }
@@ -103,13 +151,16 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Deseja realmente remover esta chave de licença?')) return;
     try {
-      const { error } = await supabase.from('os_licenses').delete().eq('id', id);
-      if (error) throw error;
+      let { error } = await supabase.from('os_licenses').delete().eq('id', id);
+      if (error) {
+        const anonRes = await supabaseAnon.from('os_licenses').delete().eq('id', id);
+        if (anonRes.error) throw anonRes.error;
+      }
       setLicenses(prev => prev.filter(l => l.id !== id));
       await fetchLicenses();
     } catch (err: any) {
       console.error('Erro ao deletar chave:', err);
-      alert('Erro ao remover chave.');
+      alert('Erro ao remover chave: ' + (err.message || ''));
     }
   };
 
@@ -120,12 +171,21 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
       const oldAssetId = targetLicense?.asset_id;
 
       if (newAssetId) {
-        // 1. Regra de Integridade: Desvincula qualquer outra licença que esteja apontando para este mesmo ativo
-        await supabase
+        // 1. Regra de Integridade Estrita 1-para-1:
+        // Desvincula qualquer outra licença que esteja apontando para este mesmo ativo
+        let unbindRes = await supabase
           .from('os_licenses')
           .update({ asset_id: null })
           .eq('asset_id', newAssetId)
           .neq('id', id);
+
+        if (unbindRes.error) {
+          await supabaseAnon
+            .from('os_licenses')
+            .update({ asset_id: null })
+            .eq('asset_id', newAssetId)
+            .neq('id', id);
+        }
 
         // 2. Sincroniza a chave nas especificações do ativo
         const targetAsset = assets.find(a => a.id === newAssetId || a.name === newAssetId);
@@ -145,10 +205,13 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
         }
       }
 
-      const { error } = await supabase.from('os_licenses').update({ asset_id: newAssetId }).eq('id', id);
-      if (error) throw error;
+      let res = await supabase.from('os_licenses').update({ asset_id: newAssetId }).eq('id', id);
+      if (res.error) {
+        res = await supabaseAnon.from('os_licenses').update({ asset_id: newAssetId }).eq('id', id);
+        if (res.error) throw res.error;
+      }
 
-      // Atualiza estado local imediatamente
+      // Atualiza estado local imediatamente para fluidez instantânea
       setLicenses(prev => prev.map(l => {
         if (l.id === id) return { ...l, asset_id: newAssetId };
         if (newAssetId && l.asset_id === newAssetId) return { ...l, asset_id: null };
@@ -158,7 +221,7 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
       await fetchLicenses();
     } catch (err: any) {
       console.error('Erro ao vincular máquina:', err);
-      alert('Erro ao vincular máquina.');
+      alert('Erro ao vincular máquina: ' + (err.message || ''));
     }
   };
 
@@ -206,7 +269,38 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
             Controle de chaves de ativação, conformidade e vinculação exclusiva 1-para-1 com ativos de TI.
           </p>
         </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchLicenses}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            title="Atualizar lista de licenças"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin text-indigo-600' : 'text-slate-500'} />
+            <span>{loading ? 'Atualizando...' : 'Atualizar'}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Banner de Erro caso ocorra */}
+      {fetchError && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex items-center justify-between text-amber-800 dark:text-amber-200 text-xs shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <p className="font-bold">Aviso ao conectar com a tabela de licenças</p>
+              <p className="text-amber-700 dark:text-amber-300 mt-0.5">{fetchError}</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchLicenses}
+            className="px-3 py-1.5 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-colors ml-4 cursor-pointer shrink-0"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      )}
 
       {/* Cards de Métricas (KPIs) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

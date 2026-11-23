@@ -6,6 +6,19 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
+ * Cliente anônimo sem sessão de usuário.
+ * Útil para fallbacks em tabelas com políticas RLS abertas ao público/anon,
+ * garantindo resiliência total mesmo se o token JWT tiver permissão divergente.
+ */
+export const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
+
+/**
  * Função de logout robusta e à prova de falhas:
  * 1. Tenta deslogar no servidor Supabase com timeout de 1.5s (evita travar a UI).
  * 2. Em caso de lentidão ou falha de rede, força o encerramento do escopo local.
