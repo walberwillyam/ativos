@@ -131,36 +131,55 @@ async function collectAndSendHealth() {
     const currentSpecs = assetData?.specifications || {};
     currentSpecs["Sistema Operacional"] = osString;
     
+    // Lista de chaves genéricas de ativação padrão do Windows (não devem ser vinculadas como assento exclusivo)
+    const GENERIC_WINDOWS_KEYS = new Set([
+      'VK7JG-NPHTM-C97JM-9MPGT-3V66T', // Win 10/11 Pro Default
+      'TX9XD-98N7V-6WMQ6-BX7FG-H8Q99', // Win 10/11 Home Default
+      'W269N-WFGWX-YVC9B-4J6C9-T83GX', // Win 10/11 Pro KMS
+      'NPPR9-FWDCX-D2C8J-H872K-2YT43', // Win 10/11 Enterprise KMS
+      'DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4'  // Win 10/11 Enterprise
+    ]);
+
     // Vinculação de Licença de SO
     if (productKey) {
       currentSpecs["os_product_key"] = productKey;
-      try {
-        const { data: license } = await supabase
-          .from('os_licenses')
-          .select('id, asset_id')
-          .eq('product_key', productKey)
-          .maybeSingle();
-        
-        if (license) {
-          if (license.asset_id !== ASSET_ID) {
-            await supabase
-              .from('os_licenses')
-              .update({ asset_id: ASSET_ID })
-              .eq('id', license.id);
-            console.log(`[Licença] Chave do Windows vinculada com sucesso a esta máquina.`);
-          }
-        } else {
-          const { error: insertErr } = await supabase
+
+      if (!GENERIC_WINDOWS_KEYS.has(productKey)) {
+        try {
+          // 1. Regra de Integridade: Desvincula qualquer outra chave que estivesse vinculada a este ativo
+          await supabase
             .from('os_licenses')
-            .insert([{ product_key: productKey, asset_id: ASSET_ID }]);
-          if (insertErr) {
-            console.error(`[Licença] Erro ao inserir nova chave:`, insertErr.message);
+            .update({ asset_id: null })
+            .eq('asset_id', ASSET_ID)
+            .neq('product_key', productKey);
+
+          const { data: license } = await supabase
+            .from('os_licenses')
+            .select('id, asset_id')
+            .eq('product_key', productKey)
+            .maybeSingle();
+          
+          if (license) {
+            if (license.asset_id !== ASSET_ID) {
+              await supabase
+                .from('os_licenses')
+                .update({ asset_id: ASSET_ID })
+                .eq('id', license.id);
+              console.log(`[Licença] Chave do Windows vinculada com sucesso a esta máquina.`);
+            }
           } else {
-            console.log(`[Licença] Nova chave do Windows registrada e vinculada com sucesso.`);
+            const { error: insertErr } = await supabase
+              .from('os_licenses')
+              .insert([{ product_key: productKey, asset_id: ASSET_ID }]);
+            if (insertErr) {
+              console.error(`[Licença] Erro ao inserir nova chave:`, insertErr.message);
+            } else {
+              console.log(`[Licença] Nova chave do Windows registrada e vinculada com sucesso.`);
+            }
           }
+        } catch (err) {
+          console.error(`[Licença] Erro ao buscar/atualizar chave do Windows:`, err.message);
         }
-      } catch (err) {
-        console.error(`[Licença] Erro ao buscar/atualizar chave do Windows:`, err.message);
       }
     }
 

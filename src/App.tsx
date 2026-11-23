@@ -50,16 +50,52 @@ import { supabase, logout } from './lib/supabaseClient';
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
 
 export default function App() {
-  // Collection States
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
-  const [activities, setActivities] = useState<TimelineStep[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  // Collection States (com cache local para renderização instantânea e máxima fluidez)
+  const [assets, setAssets] = useState<Asset[]>(() => {
+    try {
+      const cached = localStorage.getItem('ativos_cached_assets');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [units, setUnits] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem('ativos_cached_units');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [activities, setActivities] = useState<TimelineStep[]>(() => {
+    try {
+      const cached = localStorage.getItem('ativos_cached_activities');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const cached = localStorage.getItem('ativos_cached_categories');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
   // Auth State
   const [session, setSession] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  const [userProfile, setUserProfile] = useState<any>(() => {
+    try {
+      const cached = localStorage.getItem('ativos_cached_userProfile');
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [isRecoveryMode, setIsRecoveryMode] = useState<boolean>(false);
 
   // Armazena o último ping em memória local para não consumir o banco de dados a cada minuto
@@ -73,13 +109,14 @@ export default function App() {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       const metaSignature = user.user_metadata?.tech_signature;
       const metaAvatar = user.user_metadata?.avatar_url || localStorage.getItem('user_avatar_' + user.id);
+      let profileToSet: any = null;
       if (data) {
-        setUserProfile({
+        profileToSet = {
           ...data,
           avatar_url: data.avatar_url || metaAvatar || null,
           signature: data.signature || metaSignature,
           user_metadata: user.user_metadata
-        });
+        };
       } else {
         // Se o perfil ainda não existe na tabela pública profiles, cria automaticamente
         const newProfile = {
@@ -105,26 +142,70 @@ export default function App() {
           .maybeSingle();
 
         if (createdProfile) {
-          setUserProfile({
+          profileToSet = {
             ...createdProfile,
             avatar_url: createdProfile.avatar_url || metaAvatar || null,
             signature: createdProfile.signature || metaSignature,
             user_metadata: user.user_metadata
-          });
+          };
         } else {
-          setUserProfile(newProfile);
+          profileToSet = newProfile;
         }
+      }
+      if (profileToSet) {
+        setUserProfile(profileToSet);
+        try {
+          localStorage.setItem('ativos_cached_userProfile', JSON.stringify(profileToSet));
+        } catch (e) {}
       }
     } catch (err) {
       console.error("Erro ao carregar ou sincronizar perfil:", err);
     }
   };
 
+  // Carregamento de dados com cache local e garantia de atualização com sessão autenticada
+  const fetchAllData = async () => {
+    try {
+      const [assetsResponse, unitsResponse, activitiesResponse, categoriesResponse] = await Promise.all([
+        supabase.from('assets').select('*'),
+        supabase.from('units').select('*'),
+        supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(20),
+        supabase.from('categories').select('*').order('name', { ascending: true })
+      ]);
+
+      if (assetsResponse.error) console.error("Error fetching assets:", assetsResponse.error);
+      if (unitsResponse.error) console.error("Error fetching units:", unitsResponse.error);
+      if (activitiesResponse.error) console.error("Error fetching activities:", activitiesResponse.error);
+      if (categoriesResponse.error) console.error("Error fetching categories:", categoriesResponse.error);
+
+      if (unitsResponse.data) {
+        setUnits(unitsResponse.data);
+        try { localStorage.setItem('ativos_cached_units', JSON.stringify(unitsResponse.data)); } catch (e) {}
+      }
+      if (categoriesResponse.data) {
+        setCategories(categoriesResponse.data);
+        try { localStorage.setItem('ativos_cached_categories', JSON.stringify(categoriesResponse.data)); } catch (e) {}
+      }
+      if (assetsResponse.data) {
+        setAssets(assetsResponse.data);
+        try { localStorage.setItem('ativos_cached_assets', JSON.stringify(assetsResponse.data)); } catch (e) {}
+      }
+      if (activitiesResponse.data) {
+        setActivities(activitiesResponse.data);
+        try { localStorage.setItem('ativos_cached_activities', JSON.stringify(activitiesResponse.data)); } catch (e) {}
+      }
+    } catch (err) {
+      console.error("Unexpected error during fetchAllData:", err);
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setIsAuthLoading(false);
       if (session?.user) {
         fetchUserProfile(session.user);
+        fetchAllData();
       }
     });
 
@@ -135,8 +216,10 @@ export default function App() {
         setIsRecoveryMode(true);
       }
       setSession(session);
+      setIsAuthLoading(false);
       if (session?.user) {
         fetchUserProfile(session.user);
+        fetchAllData();
       } else {
         setUserProfile(null);
       }
@@ -148,32 +231,7 @@ export default function App() {
       setIsRecoveryMode(true);
     }
 
-
-
-    // Fetch all real data
-    const fetchAllData = async () => {
-      try {
-        const [assetsResponse, unitsResponse, activitiesResponse, categoriesResponse] = await Promise.all([
-          supabase.from('assets').select('*'),
-          supabase.from('units').select('*'),
-          supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(20),
-          supabase.from('categories').select('*').order('name', { ascending: true })
-        ]);
-
-        if (assetsResponse.error) console.error("Error fetching assets:", assetsResponse.error);
-        if (unitsResponse.error) console.error("Error fetching units:", unitsResponse.error);
-        if (activitiesResponse.error) console.error("Error fetching activities:", activitiesResponse.error);
-        if (categoriesResponse.error) console.error("Error fetching categories:", categoriesResponse.error);
-
-        if (unitsResponse.data) setUnits(unitsResponse.data);
-        if (categoriesResponse.data) setCategories(categoriesResponse.data);
-        if (assetsResponse.data) setAssets(assetsResponse.data);
-        if (activitiesResponse.data) setActivities(activitiesResponse.data);
-      } catch (err) {
-        console.error("Unexpected error during fetchAllData:", err);
-      }
-    };
-
+    // Carregamento inicial imediato
     fetchAllData();
 
     // Monitor hardware changes to push top-bar notifications and sync state in real-time
@@ -215,11 +273,14 @@ export default function App() {
       })
       .subscribe();
 
-    // Load initial pings and start local evaluation
+    // Load initial pings and start local evaluation (Otimizado: apenas os últimos 200 pings mais recentes)
     const startOfflineTracking = async () => {
-      // 1. Fetch current pings once to populate memory (Apenas últimas 24 horas para economizar tráfego)
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await supabase.from('devices_health').select('asset_id, last_ping').gte('last_ping', yesterday);
+      const { data } = await supabase
+        .from('devices_health')
+        .select('asset_id, last_ping')
+        .order('last_ping', { ascending: false })
+        .limit(200);
+
       if (data) {
         const pings: Record<string, string> = {};
         data.forEach(d => {
@@ -1353,10 +1414,27 @@ export default function App() {
   }
 
   const handleLogout = async () => {
+    try {
+      localStorage.removeItem('ativos_cached_assets');
+      localStorage.removeItem('ativos_cached_units');
+      localStorage.removeItem('ativos_cached_categories');
+      localStorage.removeItem('ativos_cached_activities');
+      localStorage.removeItem('ativos_cached_userProfile');
+      localStorage.removeItem('ativos_cached_licenses');
+    } catch (e) {}
     setSession(null);
     setUserProfile(null);
     await logout();
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-slate-300 font-semibold text-sm">Carregando painel de controle...</p>
+      </div>
+    );
+  }
 
   if (!session) {
     return <AuthScreen />;
