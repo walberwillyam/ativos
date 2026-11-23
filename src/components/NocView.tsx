@@ -149,6 +149,73 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
     return 'online';
   };
 
+  const findTargetAsset = (device: DeviceHealth) => {
+    return assets.find(a => 
+      a.id === device.asset_id || 
+      a.name === device.asset_id || 
+      a.serialNumber === device.asset_id ||
+      (a.specifications && a.specifications.hostname === device.asset_id)
+    );
+  };
+
+  const getDeviceDisplayName = (device: DeviceHealth) => {
+    if (device.custom_name && device.custom_name.trim()) {
+      return device.custom_name;
+    }
+    const targetAsset = findTargetAsset(device);
+    if (targetAsset && targetAsset.name && !targetAsset.name.startsWith('Computador - ')) {
+      return targetAsset.name;
+    }
+    return device.asset_id;
+  };
+
+  const getDeviceSector = (device: DeviceHealth) => {
+    if (device.sector && device.sector.trim()) return device.sector;
+    const targetAsset = findTargetAsset(device);
+    if (targetAsset && targetAsset.location && targetAsset.location !== 'Não definida') {
+      return targetAsset.location;
+    }
+    return '';
+  };
+
+  const getDeviceUnit = (device: DeviceHealth) => {
+    const targetAsset = findTargetAsset(device);
+    // Prioridade máxima: unidade definida no cadastro do ativo no inventário
+    if (targetAsset && targetAsset.unit && targetAsset.unit !== 'UNKNOWN_UNIT' && targetAsset.unit !== 'Não definida') {
+      return targetAsset.unit;
+    }
+
+    // Se a telemetria tiver um unit_id válido (diferente de UNKNOWN_UNIT)
+    if (device.unit_id && device.unit_id !== 'UNKNOWN_UNIT' && device.unit_id !== 'test-id') {
+      const foundUnit = units.find(u => u.id === device.unit_id || u.name === device.unit_id);
+      if (foundUnit && foundUnit.name) return foundUnit.name;
+      return device.unit_id;
+    }
+
+    if (targetAsset?.unit && targetAsset.unit !== 'UNKNOWN_UNIT') {
+      return targetAsset.unit;
+    }
+
+    return 'Não definida';
+  };
+
+  const isServerDevice = (device: DeviceHealth) => {
+    const targetAsset = findTargetAsset(device);
+    const displayName = getDeviceDisplayName(device).toLowerCase();
+    const customName = (device.custom_name || '').toLowerCase();
+    const assetId = (device.asset_id || '').toLowerCase();
+    const osInfo = (device.os_info || '').toLowerCase();
+    const assetName = (targetAsset?.name || '').toLowerCase();
+    const assetCategory = (targetAsset?.category || '').toLowerCase();
+
+    return osInfo.includes('server') ||
+      displayName.includes('server') || displayName.includes('servidor') || displayName.includes('srv') ||
+      customName.includes('server') || customName.includes('servidor') || customName.includes('srv') ||
+      assetName.includes('server') || assetName.includes('servidor') || assetName.includes('srv') ||
+      assetCategory.includes('server') || assetCategory.includes('servidor') ||
+      assetId.includes('server') || assetId.includes('srv') || assetId.includes('servidor');
+  };
+
   const getAssetName = (assetId: string) => {
     const asset = assets.find(a => a.id === assetId || a.name === assetId);
     return asset ? asset.name : null;
@@ -185,44 +252,46 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
     return status === 'critical' || status === 'offline';
   });
 
-    // Lista unificada e completa de todas as unidades / empresas cadastradas no sistema
+  // Lista unificada e completa de todas as unidades / empresas cadastradas no sistema
   const allUnitsList = useMemo(() => {
     const unitNames = new Set<string>();
 
     // 1. Todas as unidades cadastradas no sistema
     units.forEach(u => {
-      if (u && u.name) unitNames.add(u.name);
+      if (u && u.name && u.name !== 'UNKNOWN_UNIT' && u.name !== 'test-id' && u.name !== 'Não definida') {
+        unitNames.add(u.name);
+      }
     });
 
     // 2. Unidades presentes nos ativos
     assets.forEach(a => {
-      if (a && a.unit) unitNames.add(a.unit);
+      if (a && a.unit && a.unit !== 'UNKNOWN_UNIT' && a.unit !== 'test-id' && a.unit !== 'Não definida') {
+        unitNames.add(a.unit);
+      }
     });
 
     // 3. Unidades presentes nos dispositivos de telemetria
     devices.forEach(d => {
-      if (d && d.unit_id) {
-        const found = units.find(u => u.id === d.unit_id);
-        unitNames.add(found ? found.name : d.unit_id);
+      const resolved = getDeviceUnit(d);
+      if (resolved && resolved !== 'UNKNOWN_UNIT' && resolved !== 'test-id' && resolved !== 'Não definida') {
+        unitNames.add(resolved);
       }
     });
 
-    return Array.from(unitNames).filter(Boolean).sort((a, b) => {
-      if (a === 'UNKNOWN_UNIT') return 1;
-      if (b === 'UNKNOWN_UNIT') return -1;
-      return a.localeCompare(b, 'pt-BR');
-    });
+    return Array.from(unitNames).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [units, assets, devices]);
 
   const filteredDevices = devices.filter(device => {
-    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
-    const displayName = device.custom_name || (targetAsset?.name && !targetAsset.name.startsWith('Computador - ') ? targetAsset.name : '') || device.asset_id;
-    const sectorName = device.sector || (targetAsset?.location && targetAsset.location !== 'Não definida' ? targetAsset.location : '');
+    const targetAsset = findTargetAsset(device);
+    const displayName = getDeviceDisplayName(device);
+    const sectorName = getDeviceSector(device);
+    const resolvedUnit = getDeviceUnit(device);
 
     const matchesSearch = 
       displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (device.asset_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sectorName.toLowerCase().includes(searchTerm.toLowerCase());
+      sectorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resolvedUnit.toLowerCase().includes(searchTerm.toLowerCase());
 
     const status = getDeviceStatus(device);
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
@@ -232,14 +301,12 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
     const targetUnitId = selectedUnitObj?.id || filterUnit;
 
     const matchesUnit = filterUnit === '' || 
+      resolvedUnit === targetUnitName || 
       device.unit_id === targetUnitName || 
       device.unit_id === targetUnitId || 
       (targetAsset && (targetAsset.unit === targetUnitName || targetAsset.unit === targetUnitId));
     
-    const matchesServer = !filterIsServer || 
-      (device.os_info && device.os_info.toLowerCase().includes('server')) || 
-      (displayName.toLowerCase().includes('server') || displayName.toLowerCase().includes('servidor')) ||
-      (device.asset_id && (device.asset_id.toLowerCase().includes('server') || device.asset_id.toLowerCase().includes('srv') || device.asset_id.toLowerCase().includes('servidor')));
+    const matchesServer = !filterIsServer || isServerDevice(device);
 
     return matchesSearch && matchesStatus && matchesUnit && matchesServer;
   });
@@ -352,9 +419,9 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
                     <AlertTriangle className="text-rose-500 shrink-0 mt-0.5" size={16} />
                     <div className="min-w-0 flex-1">
                       <h4 className="text-xs font-extrabold text-slate-200 truncate">
-                        {alertDevice.custom_name || assetName || alertDevice.asset_id}
+                        {getDeviceDisplayName(alertDevice)}
                       </h4>
-                      <p className="text-[10px] text-slate-500 truncate mt-0.5">Polo: {alertDevice.unit_id} {alertDevice.sector ? `| ${alertDevice.sector}` : ''}</p>
+                      <p className="text-[10px] text-slate-500 truncate mt-0.5">Polo: {getDeviceUnit(alertDevice)} {getDeviceSector(alertDevice) ? `| ${getDeviceSector(alertDevice)}` : ''}</p>
                       <p className="text-[10px] text-rose-400 mt-2 font-bold flex items-center gap-1">
                         {status === 'offline' ? (
                           <span>Conexão perdida há mais de 30 segundos</span>
@@ -498,10 +565,10 @@ export default function NocView({ assets, userProfile, units = [] }: NocViewProp
                     <div className="min-w-0 flex-1">
                       <h4 className="font-extrabold text-slate-100 flex items-center gap-1.5 truncate">
                         <Server size={14} className="text-slate-500 shrink-0" />
-                        {device.custom_name || (targetAsset && !targetAsset.name.startsWith('Computador - ') ? targetAsset.name : '') || assetName || device.asset_id}
+                        {getDeviceDisplayName(device)}
                       </h4>
                       <p className="text-[10px] text-slate-500 font-semibold truncate mt-0.5">
-                        Polo: {units.find(u => u.id === device.unit_id)?.name || device.unit_id} {device.sector ? `| Setor: ${device.sector}` : ''}
+                        Polo: {getDeviceUnit(device)} {getDeviceSector(device) ? `| Setor: ${getDeviceSector(device)}` : ''}
                       </p>
                       {device.custom_name && (
                         <p className="text-[9px] text-slate-600 font-mono tracking-tight mt-0.5">Host: {device.asset_id}</p>

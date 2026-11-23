@@ -1510,7 +1510,7 @@ export default function App() {
           )}
 
           {/* Monitoring Dashboard View */}
-          {activeScreen === 'monitoring' && <MonitoringView units={units} assets={assets} />}
+          {activeScreen === 'monitoring' && <MonitoringView units={units} assets={assets} onUpdateAsset={handleUpdateAsset} />}
 
           {/* Dynamic Mock views resolved safely */}
           {activeScreen === 'categories' && (

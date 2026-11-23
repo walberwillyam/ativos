@@ -246,9 +246,13 @@ async function collectAndSendHealth() {
       console.log(`[Ativo] Especificações atualizadas (incluindo chave do SO).`);
     }
 
+    const resolvedUnit = (assetData?.unit && assetData.unit !== 'UNKNOWN_UNIT' && assetData.unit !== 'Não definida')
+      ? assetData.unit
+      : (UNIT_ID !== 'UNKNOWN_UNIT' ? UNIT_ID : hostUnit);
+
     const healthData = {
       asset_id: ASSET_ID,
-      unit_id: UNIT_ID,
+      unit_id: resolvedUnit,
       cpu_usage: cpu.currentLoad.toFixed(2),
       ram_total: mem.total,
       ram_used: mem.active,
@@ -259,20 +263,34 @@ async function collectAndSendHealth() {
       uptime_seconds: os.uptime()
     };
 
+    if (assetData?.name && !assetData.name.startsWith('Computador - ')) {
+      healthData.custom_name = assetData.name;
+    }
+
     console.log(`[${new Date().toLocaleTimeString()}] Enviando dados de saúde para ${ASSET_ID}... (CPU: ${healthData.cpu_usage}%, Uptime: ${Math.floor(healthData.uptime_seconds/3600)}h)`);
 
     // 2. Tenta atualizar se já existe, senão insere (Upsert por lógica simples)
     // Como a chave primária é gerada aleatoriamente, vamos checar se o asset já existe
     const { data: existingAssets } = await supabase
       .from('devices_health')
-      .select('id')
+      .select('id, unit_id, custom_name')
       .eq('asset_id', ASSET_ID)
       .limit(1);
 
     if (existingAssets && existingAssets.length > 0) {
       const existingAsset = existingAssets[0];
-      // Remove o unit_id para não sobrescrever a unidade definida manualmente pelo admin no painel
-      const { unit_id, ...updateData } = healthData;
+      const updateData = { ...healthData };
+      delete updateData.unit_id; // preserva a unidade existente
+      delete updateData.custom_name; // preserva o nome customizado existente
+
+      // Se a unidade no banco estiver como UNKNOWN_UNIT ou vazia, e tivermos uma unidade real do inventário, atualiza
+      if ((!existingAsset.unit_id || existingAsset.unit_id === 'UNKNOWN_UNIT') && resolvedUnit && resolvedUnit !== 'UNKNOWN_UNIT') {
+        updateData.unit_id = resolvedUnit;
+      }
+      // Se não tiver custom_name no banco e o inventário tiver um nome legível
+      if (!existingAsset.custom_name && healthData.custom_name) {
+        updateData.custom_name = healthData.custom_name;
+      }
 
       // Faz UPDATE
       const { error } = await supabase

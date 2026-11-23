@@ -32,9 +32,10 @@ const formatUptime = (seconds?: number) => {
 interface MonitoringViewProps {
   units?: any[];
   assets?: any[];
+  onUpdateAsset?: (updatedAsset: any) => void;
 }
 
-export default function MonitoringView({ units = [], assets = [] }: MonitoringViewProps) {
+export default function MonitoringView({ units = [], assets = [], onUpdateAsset }: MonitoringViewProps) {
   const [devices, setDevices] = useState<DeviceHealth[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
@@ -146,11 +147,20 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-    const getDeviceDisplayName = (device: DeviceHealth) => {
+  const findTargetAsset = (device: DeviceHealth) => {
+    return assets.find(a => 
+      a.id === device.asset_id || 
+      a.name === device.asset_id || 
+      a.serialNumber === device.asset_id ||
+      (a.specifications && a.specifications.hostname === device.asset_id)
+    );
+  };
+
+  const getDeviceDisplayName = (device: DeviceHealth) => {
     if (device.custom_name && device.custom_name.trim()) {
       return device.custom_name;
     }
-    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
+    const targetAsset = findTargetAsset(device);
     if (targetAsset && targetAsset.name && !targetAsset.name.startsWith('Computador - ')) {
       return targetAsset.name;
     }
@@ -159,23 +169,68 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
 
   const getDeviceSector = (device: DeviceHealth) => {
     if (device.sector && device.sector.trim()) return device.sector;
-    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
+    const targetAsset = findTargetAsset(device);
     if (targetAsset && targetAsset.location && targetAsset.location !== 'Não definida') {
       return targetAsset.location;
     }
     return '';
   };
 
+  const getDeviceUnit = (device: DeviceHealth) => {
+    const targetAsset = findTargetAsset(device);
+    // Prioridade máxima: unidade definida no cadastro do ativo no inventário
+    if (targetAsset && targetAsset.unit && targetAsset.unit !== 'UNKNOWN_UNIT' && targetAsset.unit !== 'Não definida') {
+      return targetAsset.unit;
+    }
+
+    // Se a telemetria tiver um unit_id válido (diferente de UNKNOWN_UNIT)
+    if (device.unit_id && device.unit_id !== 'UNKNOWN_UNIT' && device.unit_id !== 'test-id') {
+      const foundUnit = units.find(u => u.id === device.unit_id || u.name === device.unit_id);
+      if (foundUnit && foundUnit.name) return foundUnit.name;
+      return device.unit_id;
+    }
+
+    if (targetAsset?.unit && targetAsset.unit !== 'UNKNOWN_UNIT') {
+      return targetAsset.unit;
+    }
+
+    return 'Não definida';
+  };
+
+  const isServerDevice = (device: DeviceHealth) => {
+    const targetAsset = findTargetAsset(device);
+    const displayName = getDeviceDisplayName(device).toLowerCase();
+    const customName = (device.custom_name || '').toLowerCase();
+    const assetId = (device.asset_id || '').toLowerCase();
+    const osInfo = (device.os_info || '').toLowerCase();
+    const assetName = (targetAsset?.name || '').toLowerCase();
+    const assetCategory = (targetAsset?.category || '').toLowerCase();
+
+    return osInfo.includes('server') ||
+      displayName.includes('server') || displayName.includes('servidor') || displayName.includes('srv') ||
+      customName.includes('server') || customName.includes('servidor') || customName.includes('srv') ||
+      assetName.includes('server') || assetName.includes('servidor') || assetName.includes('srv') ||
+      assetCategory.includes('server') || assetCategory.includes('servidor') ||
+      assetId.includes('server') || assetId.includes('srv') || assetId.includes('servidor');
+  };
+
   const handleSaveEdit = async () => {
     if (!editingDevice) return;
     try {
+      const selectedUnitObj = units.find(u => u.id === editFormData.unit_id || u.name === editFormData.unit_id);
+      const finalUnitName = selectedUnitObj?.name || (editFormData.unit_id !== 'UNKNOWN_UNIT' ? editFormData.unit_id : '');
+
+      const deviceUpdates: any = {
+        custom_name: editFormData.custom_name,
+        sector: editFormData.sector,
+      };
+      if (finalUnitName && finalUnitName !== 'UNKNOWN_UNIT') {
+        deviceUpdates.unit_id = finalUnitName;
+      }
+
       const { error } = await supabase
         .from('devices_health')
-        .update({
-          custom_name: editFormData.custom_name,
-          sector: editFormData.sector,
-          unit_id: editFormData.unit_id
-        })
+        .update(deviceUpdates)
         .eq('asset_id', editingDevice.asset_id);
 
       if (error) throw error;
@@ -188,31 +243,35 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
       if (editFormData.sector) {
         assetUpdates.location = editFormData.sector;
       }
-      if (editFormData.unit_id) {
-        const unitName = units.find(u => u.id === editFormData.unit_id)?.name || editFormData.unit_id;
-        assetUpdates.unit = unitName;
+      if (finalUnitName && finalUnitName !== 'UNKNOWN_UNIT') {
+        assetUpdates.unit = finalUnitName;
       }
 
+      const targetAsset = findTargetAsset(editingDevice);
       if (Object.keys(assetUpdates).length > 0) {
-        // Encontrar o ID real do ativo (o asset_id na telemetria geralmente é o hostname)
-        const targetAsset = assets.find(a => a.id === editingDevice.asset_id || a.name === editingDevice.asset_id || a.serialNumber === editingDevice.asset_id);
-        
-        if (targetAsset) {
-          await supabase
-            .from('assets')
-            .update(assetUpdates)
-            .eq('id', targetAsset.id);
-        } else {
-          // Fallback se não encontrar na lista local
-          await supabase
-            .from('assets')
-            .update(assetUpdates)
-            .eq('id', editingDevice.asset_id);
+        const targetId = targetAsset ? targetAsset.id : editingDevice.asset_id;
+        const { error: assetErr } = await supabase
+          .from('assets')
+          .update(assetUpdates)
+          .eq('id', targetId);
+
+        if (assetErr) {
+          console.error("Erro ao sincronizar ativo no inventário:", assetErr);
+        } else if (targetAsset && onUpdateAsset) {
+          onUpdateAsset({
+            ...targetAsset,
+            ...assetUpdates
+          });
         }
       }
       
       // Update local state optimisticly (Realtime might also catch it)
-      setDevices(prev => prev.map(d => d.asset_id === editingDevice.asset_id ? { ...d, custom_name: editFormData.custom_name, sector: editFormData.sector, unit_id: editFormData.unit_id } : d));
+      setDevices(prev => prev.map(d => d.asset_id === editingDevice.asset_id ? { 
+        ...d, 
+        custom_name: editFormData.custom_name, 
+        sector: editFormData.sector, 
+        unit_id: finalUnitName || d.unit_id 
+      } : d));
       setEditingDevice(null);
     } catch (err) {
       console.error("Erro ao salvar:", err);
@@ -233,37 +292,37 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
     }
   };
 
-    // Lista unificada e completa de todas as unidades / empresas cadastradas no sistema
+  // Lista unificada e completa de todas as unidades / empresas cadastradas no sistema
   const allUnitsList = useMemo(() => {
     const unitNames = new Set<string>();
 
     // 1. Todas as unidades cadastradas no sistema
     units.forEach(u => {
-      if (u && u.name) unitNames.add(u.name);
+      if (u && u.name && u.name !== 'UNKNOWN_UNIT' && u.name !== 'test-id' && u.name !== 'Não definida') {
+        unitNames.add(u.name);
+      }
     });
 
     // 2. Unidades presentes nos ativos
     assets.forEach(a => {
-      if (a && a.unit) unitNames.add(a.unit);
+      if (a && a.unit && a.unit !== 'UNKNOWN_UNIT' && a.unit !== 'test-id' && a.unit !== 'Não definida') {
+        unitNames.add(a.unit);
+      }
     });
 
     // 3. Unidades presentes nos dispositivos de telemetria
     devices.forEach(d => {
-      if (d && d.unit_id) {
-        const found = units.find(u => u.id === d.unit_id);
-        unitNames.add(found ? found.name : d.unit_id);
+      const resolved = getDeviceUnit(d);
+      if (resolved && resolved !== 'UNKNOWN_UNIT' && resolved !== 'test-id' && resolved !== 'Não definida') {
+        unitNames.add(resolved);
       }
     });
 
-    return Array.from(unitNames).filter(Boolean).sort((a, b) => {
-      if (a === 'UNKNOWN_UNIT') return 1;
-      if (b === 'UNKNOWN_UNIT') return -1;
-      return a.localeCompare(b, 'pt-BR');
-    });
+    return Array.from(unitNames).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [units, assets, devices]);
 
   const filteredDevices = devices.filter(device => {
-    const targetAsset = assets.find(a => a.id === device.asset_id || a.name === device.asset_id || a.serialNumber === device.asset_id);
+    const targetAsset = findTargetAsset(device);
     
     // Oculta ativos que não devem aparecer no monitoramento
     if (targetAsset && ['Armazenado', 'Extraviado', 'Obsoleto', 'Manutenção'].includes(targetAsset.status)) {
@@ -272,25 +331,25 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
 
     const displayName = getDeviceDisplayName(device);
     const sectorName = getDeviceSector(device);
+    const resolvedUnit = getDeviceUnit(device);
 
     const matchesSearch = searchQuery === '' || 
       device.asset_id.toLowerCase().includes(searchQuery.toLowerCase()) || 
       displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sectorName.toLowerCase().includes(searchQuery.toLowerCase());
+      sectorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      resolvedUnit.toLowerCase().includes(searchQuery.toLowerCase());
       
     const selectedUnitObj = units.find(u => u.name === filterUnit || u.id === filterUnit);
     const targetUnitName = selectedUnitObj?.name || filterUnit;
     const targetUnitId = selectedUnitObj?.id || filterUnit;
 
     const matchesUnit = filterUnit === '' || 
+      resolvedUnit === targetUnitName || 
       device.unit_id === targetUnitName || 
       device.unit_id === targetUnitId || 
       (targetAsset && (targetAsset.unit === targetUnitName || targetAsset.unit === targetUnitId));
     
-    const matchesServer = !filterIsServer || 
-      (device.os_info && device.os_info.toLowerCase().includes('server')) || 
-      (displayName.toLowerCase().includes('server') || displayName.toLowerCase().includes('servidor')) ||
-      (device.asset_id && (device.asset_id.toLowerCase().includes('server') || device.asset_id.toLowerCase().includes('srv') || device.asset_id.toLowerCase().includes('servidor')));
+    const matchesServer = !filterIsServer || isServerDevice(device);
 
     return matchesSearch && matchesUnit && matchesServer;
   });
@@ -389,11 +448,14 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
                         </h3>
                         <button 
                           onClick={() => {
+                            const resolvedUnit = getDeviceUnit(device);
+                            const matchedUnit = units.find(u => u.name === resolvedUnit || u.id === resolvedUnit || (u.id === device.unit_id && device.unit_id !== 'UNKNOWN_UNIT'));
+
                             setEditingDevice(device);
                             setEditFormData({ 
                               custom_name: getDeviceDisplayName(device) === device.asset_id ? '' : getDeviceDisplayName(device),
                               sector: getDeviceSector(device),
-                              unit_id: device.unit_id || ''
+                              unit_id: matchedUnit ? matchedUnit.id : (resolvedUnit !== 'Não definida' && resolvedUnit !== 'UNKNOWN_UNIT' ? resolvedUnit : '')
                             });
                           }}
                           className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
@@ -403,7 +465,7 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
                         </button>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
-                        Unidade: {units.find(u => u.id === device.unit_id)?.name || device.unit_id} {getDeviceSector(device) ? `| Setor: ${getDeviceSector(device)}` : ''}
+                        Unidade: {getDeviceUnit(device)} {getDeviceSector(device) ? `| Setor: ${getDeviceSector(device)}` : ''}
                       </p>
                       {getDeviceDisplayName(device) !== device.asset_id && (
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Hostname: {device.asset_id}</p>
@@ -534,8 +596,8 @@ export default function MonitoringView({ units = [], assets = [] }: MonitoringVi
                   {units.map(u => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
-                  {/* Keep the current one if it's unknown so it doesn't break */}
-                  {!units.find(u => u.id === editFormData.unit_id) && editFormData.unit_id && (
+                  {/* Keep the current one if not in units list and not unknown */}
+                  {!units.find(u => u.id === editFormData.unit_id) && editFormData.unit_id && editFormData.unit_id !== 'UNKNOWN_UNIT' && editFormData.unit_id !== 'test-id' && (
                     <option value={editFormData.unit_id}>{editFormData.unit_id}</option>
                   )}
                 </select>
