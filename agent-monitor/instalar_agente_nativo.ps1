@@ -12,13 +12,25 @@ param(
     [string]$SupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1bWZqamlpcnR3ZXp1bGZoYm1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDEwMTAsImV4cCI6MjA5NTkxNzAxMH0.miK3vGstWDJIk-63rCTKNXS0juLKWBIWQMibhUCVtR0"
 )
 
+# Se UnitName não veio por parâmetro de linha de comando, busca das variáveis de ambiente
+if (-not $UnitName -or $UnitName -eq "UNKNOWN_UNIT") {
+    if ($env:TARGET_UNIT) { $UnitName = $env:TARGET_UNIT }
+    elseif ($env:UNIT_ID) { $UnitName = $env:UNIT_ID }
+}
+
 # 1. Garante privilégios de Administrador
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $IsAdmin) {
     Write-Host "Solicitando permissões de Administrador..." -ForegroundColor Yellow
-    $argsList = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
-    if ($UnitName) { $argsList += " -UnitName `"$UnitName`"" }
-    Start-Process powershell -Verb RunAs -ArgumentList $argsList
+    if ($PSCommandPath) {
+        $argsList = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+        if ($UnitName) { $argsList += " -UnitName `"$UnitName`"" }
+        Start-Process powershell -Verb RunAs -ArgumentList $argsList
+    } else {
+        $remoteUrl = "https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1"
+        $cmd = "[Net.ServicePointManager]::SecurityProtocol = 3072; `$env:TARGET_UNIT='$UnitName'; iex (irm '$remoteUrl')"
+        Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"$cmd`""
+    }
     exit
 }
 
@@ -93,7 +105,8 @@ if (Test-Path $SourceAgent) {
     Write-Host "Baixando script do agente..." -ForegroundColor Gray
     $agentUrl = "https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/agent.ps1"
     try {
-        Invoke-WebRequest -Uri $agentUrl -OutFile $TargetAgent -TimeoutSec 15
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $agentUrl -OutFile $TargetAgent -UseBasicParsing -TimeoutSec 15
     } catch {
         Write-Error "Falha ao obter agent.ps1: $($_.Exception.Message)"
     }

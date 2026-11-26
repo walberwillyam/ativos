@@ -56,7 +56,7 @@ export default function MonitoringView({ units = [], assets = [], onUpdateAsset 
 
   const effectiveUnit = selectedInstallUnit || (units[0]?.name || 'Central');
 
-  const powerShellCommand = `powershell -ExecutionPolicy Bypass -Command "$u='${effectiveUnit}'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; iex (iwr 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1' -UseBasicParsing)" -UnitName "${effectiveUnit}"`;
+  const powerShellCommand = `[Net.ServicePointManager]::SecurityProtocol = 3072; $env:TARGET_UNIT='${effectiveUnit}'; iex (irm 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1')`;
 
   const handleCopyCommand = () => {
     navigator.clipboard.writeText(powerShellCommand);
@@ -86,7 +86,7 @@ echo Computador: %COMPUTERNAME%
 echo.
 
 :: 2. Executa instalação nativa via PowerShell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$u='${effectiveUnit}'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; iex (iwr 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1' -UseBasicParsing)" -UnitName "${effectiveUnit}"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = 3072; $env:TARGET_UNIT='${effectiveUnit}'; iex (irm 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1')"
 
 if %errorLevel% neq 0 (
     echo.
