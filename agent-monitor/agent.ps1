@@ -1,4 +1,4 @@
-﻿<#
+<#
 ===============================================================================
   ATIVOS APOIO - AGENTE DE TELEMETRIA NATIVO WINDOWS (POWERSHELL)
   Zero dependências: não precisa de Node.js, npm ou bibliotecas externas.
