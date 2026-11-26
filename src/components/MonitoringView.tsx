@@ -62,8 +62,9 @@ export default function MonitoringView({ units = [], assets = [], onUpdateAsset 
   }, [units, selectedInstallUnit]);
 
   const effectiveUnit = selectedInstallUnit || (units[0]?.name || 'Central');
+  const safeUnit = effectiveUnit.replace(/'/g, "''");
 
-  const powerShellCommand = `[Net.ServicePointManager]::SecurityProtocol = 3072; $env:TARGET_UNIT='${effectiveUnit}'; iex (irm 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1')`;
+  const powerShellCommand = `[Net.ServicePointManager]::SecurityProtocol = 3072; $env:TARGET_UNIT='${safeUnit}'; iex (irm 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1')`;
 
   const handleCopyCommand = () => {
     navigator.clipboard.writeText(powerShellCommand);
@@ -93,7 +94,7 @@ echo Computador: %COMPUTERNAME%
 echo.
 
 :: 2. Executa instalação nativa via PowerShell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = 3072; $env:TARGET_UNIT='${effectiveUnit}'; iex (irm 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = 3072; $env:TARGET_UNIT='${safeUnit}'; iex (irm 'https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/instalar_agente_nativo.ps1')"
 
 if %errorLevel% neq 0 (
     echo.
