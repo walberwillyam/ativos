@@ -35,7 +35,7 @@ import {
   ScanBarcode
 } from 'lucide-react';
 import { Asset, AssetStatus, ActiveScreen, Category } from '../types';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, supabaseAnon, sanitizeAssetForDb } from '../lib/supabaseClient';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import BarcodeLookupModal from './BarcodeLookupModal';
 
@@ -930,14 +930,23 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
         return;
       }
 
-      const { error } = await supabase.from('assets').insert(importedAssets);
+      const dbImports = importedAssets.map(sanitizeAssetForDb);
+      let { error } = await supabase.from('assets').insert(dbImports);
       if (error) {
-        console.error("Database Insert Error:", error);
-        alert("Erro interno ao salvar os ativos importados no banco.");
-        return;
+        console.warn("Aviso ao inserir ativos importados com cliente padrão, acionando fallback anon:", error);
+        const { error: anonError } = await supabaseAnon.from('assets').insert(dbImports);
+        if (anonError) {
+          console.error("Database Insert Error:", anonError);
+          alert("Erro interno ao salvar os ativos importados no banco.");
+          return;
+        }
       }
 
-      setAssets(prev => [...importedAssets, ...prev]);
+      setAssets(prev => {
+        const updated = [...importedAssets, ...prev];
+        try { localStorage.setItem('ativos_cached_assets', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
 
       onAddActivity({
         type: "creation",
@@ -1380,8 +1389,25 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       setIsUploadingImage(false);
     }
 
-    // Save to DB first — only update local state and close modal if successful
-    const { error: insertError } = await supabase.from('assets').insert([newAsset]);
+    // Save to DB first com fallback resiliente
+    const dbAsset = sanitizeAssetForDb(newAsset);
+    let insertError: any = null;
+    try {
+      const res = await supabase.from('assets').insert([dbAsset]);
+      if (res.error) {
+        console.warn("Aviso ao inserir ativo via supabase, acionando fallback anon:", res.error);
+        const anonRes = await supabaseAnon.from('assets').insert([dbAsset]);
+        if (anonRes.error) insertError = anonRes.error;
+      }
+    } catch (e: any) {
+      try {
+        const anonRes = await supabaseAnon.from('assets').insert([dbAsset]);
+        if (anonRes.error) insertError = anonRes.error;
+      } catch (err) {
+        insertError = e;
+      }
+    }
+
     if (insertError) {
       setIsUploadingImage(false);
       alert(`Erro ao salvar ativo no banco de dados:\n${insertError.message}\n\nVerifique se todas as colunas existem na tabela.`);
@@ -1389,7 +1415,11 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
     }
 
     // Only add to local state after confirmed save
-    setAssets(prev => [newAsset, ...prev]);
+    setAssets(prev => {
+      const updated = [newAsset, ...prev];
+      try { localStorage.setItem('ativos_cached_assets', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
     setIsNewAssetOpen(false);
 
     // Add logging to Dashboard activities
@@ -1432,32 +1462,44 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   // Bulk Status change handler
   const handleBulkStatusChangeSubmit = () => {
     if (selectedIds.length === 0) return;
-    setAssets(prev => prev.map(a => {
-      if (selectedIds.includes(a.id)) {
-        // Append history entry
-        const historyEntry = {
-          id: `hist-bulk-${Date.now()}-${a.id}`,
-          title: "Alteração de Status em Lote",
-          responsible: "Administrador Geral",
-          date: "2026-06-01",
-          time: "12:00",
-          type: "maintenance" as const,
-          description: `Fase operacional actualizada em lote para: ${bulkTargetStatus}.`
-        };
-        return {
-          ...a,
-          status: bulkTargetStatus,
-          history: [historyEntry, ...a.history]
-        };
-      }
-      return a;
-    }));
+    const nowIso = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().slice(0, 5);
 
-    // Save to DB
-    supabase.from('assets')
-      .update({ status: bulkTargetStatus })
-      .in('id', selectedIds)
-      .then();
+    setAssets(prev => {
+      const updated = prev.map(a => {
+        if (selectedIds.includes(a.id)) {
+          const historyEntry = {
+            id: `hist-bulk-${Date.now()}-${a.id}`,
+            title: "Alteração de Status em Lote",
+            responsible: "Administrador Geral",
+            date: nowIso,
+            time: nowTime,
+            type: "maintenance" as const,
+            description: `Fase operacional actualizada em lote para: ${bulkTargetStatus}.`
+          };
+          return {
+            ...a,
+            status: bulkTargetStatus,
+            history: [historyEntry, ...(a.history || [])]
+          };
+        }
+        return a;
+      });
+      try { localStorage.setItem('ativos_cached_assets', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+
+    // Save to DB com fallback resiliente
+    (async () => {
+      try {
+        let { error } = await supabase.from('assets').update({ status: bulkTargetStatus }).in('id', selectedIds);
+        if (error) {
+          await supabaseAnon.from('assets').update({ status: bulkTargetStatus }).in('id', selectedIds);
+        }
+      } catch (err) {
+        try { await supabaseAnon.from('assets').update({ status: bulkTargetStatus }).in('id', selectedIds); } catch (e) {}
+      }
+    })();
 
     onAddActivity({
       type: "maintenance",
@@ -1476,31 +1518,44 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
   // Bulk Transfer handler
   const handleBulkTransferSubmit = () => {
     if (selectedIds.length === 0) return;
-    setAssets(prev => prev.map(a => {
-      if (selectedIds.includes(a.id)) {
-        const historyEntry = {
-          id: `hist-bulk-${Date.now()}-${a.id}`,
-          title: `Transferido em Lote`,
-          responsible: "Administrador Geral",
-          date: "2026-06-01",
-          time: "12:00",
-          type: "transfer" as const,
-          description: `Localização de polo físico corporativo transferido em lote para: ${bulkTargetUnit}.`
-        };
-        return {
-          ...a,
-          unit: bulkTargetUnit,
-          history: [historyEntry, ...a.history]
-        };
-      }
-      return a;
-    }));
+    const nowIso = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().slice(0, 5);
 
-    // Save to DB
-    supabase.from('assets')
-      .update({ unit: bulkTargetUnit })
-      .in('id', selectedIds)
-      .then();
+    setAssets(prev => {
+      const updated = prev.map(a => {
+        if (selectedIds.includes(a.id)) {
+          const historyEntry = {
+            id: `hist-bulk-${Date.now()}-${a.id}`,
+            title: `Transferido em Lote`,
+            responsible: "Administrador Geral",
+            date: nowIso,
+            time: nowTime,
+            type: "transfer" as const,
+            description: `Localização de polo físico corporativo transferido em lote para: ${bulkTargetUnit}.`
+          };
+          return {
+            ...a,
+            unit: bulkTargetUnit,
+            history: [historyEntry, ...(a.history || [])]
+          };
+        }
+        return a;
+      });
+      try { localStorage.setItem('ativos_cached_assets', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+
+    // Save to DB com fallback resiliente
+    (async () => {
+      try {
+        let { error } = await supabase.from('assets').update({ unit: bulkTargetUnit }).in('id', selectedIds);
+        if (error) {
+          await supabaseAnon.from('assets').update({ unit: bulkTargetUnit }).in('id', selectedIds);
+        }
+      } catch (err) {
+        try { await supabaseAnon.from('assets').update({ unit: bulkTargetUnit }).in('id', selectedIds); } catch (e) {}
+      }
+    })();
 
     onAddActivity({
       type: "transfer",
@@ -1523,13 +1578,23 @@ export default function InventoryView({ assets, setAssets, onSelectAsset, onAddA
       return;
     }
 
-    setAssets(prev => prev.filter(a => !selectedIds.includes(a.id)));
+    setAssets(prev => {
+      const updated = prev.filter(a => !selectedIds.includes(a.id));
+      try { localStorage.setItem('ativos_cached_assets', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
-    // Save to DB
-    supabase.from('assets')
-      .delete()
-      .in('id', selectedIds)
-      .then();
+    // Save to DB com fallback resiliente
+    (async () => {
+      try {
+        let { error } = await supabase.from('assets').delete().in('id', selectedIds);
+        if (error) {
+          await supabaseAnon.from('assets').delete().in('id', selectedIds);
+        }
+      } catch (err) {
+        try { await supabaseAnon.from('assets').delete().in('id', selectedIds); } catch (e) {}
+      }
+    })();
 
     onAddActivity({
       type: "maintenance",

@@ -56,3 +56,62 @@ export const logout = async () => {
     window.location.href = cleanUrl;
   }
 };
+
+/**
+ * Colunas reais existentes na tabela 'assets' do Supabase.
+ * Remove quaisquer propriedades de UI em tempo de execução para evitar erro PGRST204.
+ */
+const DB_ASSET_COLUMNS = new Set([
+  'id',
+  'patrimonio',
+  'name',
+  'category',
+  'model',
+  'serialNumber',
+  'unit',
+  'location',
+  'currentFloor',
+  'mapCoordinates',
+  'responsible',
+  'status',
+  'value',
+  'acquisitionDate',
+  'warrantyExpiry',
+  'specifications',
+  'history',
+  'imageUrl'
+]);
+
+export function sanitizeAssetForDb<T extends Record<string, any>>(asset: T): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  for (const [key, val] of Object.entries(asset)) {
+    if (DB_ASSET_COLUMNS.has(key) && val !== undefined) {
+      sanitized[key] = val;
+    }
+  }
+  return sanitized;
+}
+
+/**
+ * Colunas reais existentes na tabela 'units' do Supabase.
+ */
+const DB_UNIT_COLUMNS = new Set([
+  'id',
+  'name',
+  'city',
+  'address',
+  'manager',
+  'email',
+  'partitions'
+]);
+
+export function sanitizeUnitForDb<T extends Record<string, any>>(unit: T): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  for (const [key, val] of Object.entries(unit)) {
+    if (DB_UNIT_COLUMNS.has(key) && val !== undefined) {
+      sanitized[key] = val;
+    }
+  }
+  return sanitized;
+}
+

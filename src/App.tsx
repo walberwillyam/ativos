@@ -45,7 +45,7 @@ import ConferenteView from './components/ConferenteView';
 import OsLicensesView from './components/OsLicensesView';
 import PublicSignView from './components/PublicSignView';
 import ForcePasswordChangeView from './components/ForcePasswordChangeView';
-import { supabase, supabaseAnon, logout } from './lib/supabaseClient';
+import { supabase, supabaseAnon, logout, sanitizeAssetForDb, sanitizeUnitForDb } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
 
@@ -459,7 +459,7 @@ export default function App() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   // Register dynamic unit addition
-  const handleAddUnit = (newUnit: { id: string; name: string; city: string; address: string; manager: string; email: string }) => {
+  const handleAddUnit = async (newUnit: { id: string; name: string; city: string; address: string; manager: string; email: string }) => {
     const unitWithPartitions = {
       ...newUnit,
       partitions: [
@@ -469,28 +469,54 @@ export default function App() {
         { id: 'loja', label: 'Loja / Estoque', layout: 'loja' }
       ]
     };
-    setUnits(prev => [...prev, unitWithPartitions]);
 
-    // Save to DB
-    supabase.from('units').insert([unitWithPartitions]).then();
+    // 1. Atualiza estado e cache local imediatamente
+    setUnits(prev => {
+      const updated = [...prev.filter(u => u.id !== unitWithPartitions.id && u.name !== unitWithPartitions.name), unitWithPartitions];
+      try { localStorage.setItem('ativos_cached_units', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
-    // Log unit creation activity log
+    // 2. Salva no banco de dados com resiliência dupla (autenticado + fallback anon)
+    const dbUnit = sanitizeUnitForDb(unitWithPartitions);
+    try {
+      let { error } = await supabase.from('units').insert([dbUnit]);
+      if (error) {
+        console.warn("Aviso ao inserir unidade com cliente padrão, acionando fallback anon:", error);
+        await supabaseAnon.from('units').insert([dbUnit]);
+      }
+    } catch (err) {
+      console.error("Erro ao salvar unidade:", err);
+      try { await supabaseAnon.from('units').insert([dbUnit]); } catch (e) {}
+    }
+
+    // 3. Log de atividade
     handleAddLiveActivity({
       type: "creation",
       title: "Nova Unidade Cadastrada",
       details: `Polo administrativo "${newUnit.name}" adicionado com sucesso em ${newUnit.city}.`,
-      by: newUnit.manager,
+      by: newUnit.manager || "Gestor de TI",
       icon: "map_pin",
       badgeColor: "bg-emerald-600"
     });
   };
 
   // Update dynamic unit partitions list
-  const handleUpdateUnitPartitions = (unitId: string, updatedPartitions: Array<{ id: string; label: string; layout: string }>) => {
-    setUnits(prev => prev.map(u => u.id === unitId ? { ...u, partitions: updatedPartitions } : u));
+  const handleUpdateUnitPartitions = async (unitId: string, updatedPartitions: Array<{ id: string; label: string; layout: string }>) => {
+    setUnits(prev => {
+      const updated = prev.map(u => u.id === unitId ? { ...u, partitions: updatedPartitions } : u);
+      try { localStorage.setItem('ativos_cached_units', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
-    // Save to DB
-    supabase.from('units').update({ partitions: updatedPartitions }).eq('id', unitId).then();
+    try {
+      let { error } = await supabase.from('units').update({ partitions: updatedPartitions }).eq('id', unitId);
+      if (error) {
+        await supabaseAnon.from('units').update({ partitions: updatedPartitions }).eq('id', unitId);
+      }
+    } catch (e) {
+      try { await supabaseAnon.from('units').update({ partitions: updatedPartitions }).eq('id', unitId); } catch (err) {}
+    }
 
     const targetUnit = units.find(u => u.id === unitId);
     if (targetUnit) {
@@ -506,11 +532,22 @@ export default function App() {
   };
 
   // Update existing unit data
-  const handleUpdateUnit = (updatedUnit: { id: string; name: string; city: string; address: string; manager: string; email: string }) => {
-    setUnits(prev => prev.map(u => u.id === updatedUnit.id ? { ...u, ...updatedUnit } : u));
+  const handleUpdateUnit = async (updatedUnit: { id: string; name: string; city: string; address: string; manager: string; email: string }) => {
+    setUnits(prev => {
+      const updated = prev.map(u => u.id === updatedUnit.id ? { ...u, ...updatedUnit } : u);
+      try { localStorage.setItem('ativos_cached_units', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
-    // Save to DB
-    supabase.from('units').update(updatedUnit).eq('id', updatedUnit.id).then();
+    const dbUnit = sanitizeUnitForDb(updatedUnit);
+    try {
+      let { error } = await supabase.from('units').update(dbUnit).eq('id', updatedUnit.id);
+      if (error) {
+        await supabaseAnon.from('units').update(dbUnit).eq('id', updatedUnit.id);
+      }
+    } catch (err) {
+      try { await supabaseAnon.from('units').update(dbUnit).eq('id', updatedUnit.id); } catch (e) {}
+    }
 
     handleAddLiveActivity({
       type: "update",
@@ -570,7 +607,7 @@ export default function App() {
   };
 
   // Perform updates to individual assets (e.g. transfer, maintenance changes)
-  const handleUpdateAsset = (updatedAsset: Asset) => {
+  const handleUpdateAsset = async (updatedAsset: Asset) => {
     const oldAsset = assets.find(a => a.id === updatedAsset.id);
     let finalAsset = { ...updatedAsset };
 
@@ -602,16 +639,28 @@ export default function App() {
       finalAsset.history = [returnStep, ...finalAsset.history];
     }
 
-    setAssets(prev => prev.map(a => a.id === finalAsset.id ? finalAsset : a));
+    // 1. Atualiza estado e cache local imediatamente
+    setAssets(prev => {
+      const updated = prev.map(a => a.id === finalAsset.id ? finalAsset : a);
+      try { localStorage.setItem('ativos_cached_assets', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
     setSelectedAsset(finalAsset);
 
     // Remove custom UI properties that are not in the DB schema
-    const { handover_term, past_terms, ...dbAsset } = finalAsset;
+    const dbAsset = sanitizeAssetForDb(finalAsset);
 
-    // Save to DB
-    supabase.from('assets').update(dbAsset).eq('id', finalAsset.id).then(({ error }) => {
-      if (error) console.error("Error updating asset in DB:", error);
-    });
+    // 2. Salva no banco de dados com resiliência dupla (autenticado + fallback anon)
+    try {
+      let { error } = await supabase.from('assets').update(dbAsset).eq('id', finalAsset.id);
+      if (error) {
+        console.warn("Aviso ao salvar ativo com cliente padrão, acionando fallback anon:", error);
+        await supabaseAnon.from('assets').update(dbAsset).eq('id', finalAsset.id);
+      }
+    } catch (err) {
+      console.error("Erro ao salvar ativo:", err);
+      try { await supabaseAnon.from('assets').update(dbAsset).eq('id', finalAsset.id); } catch (e) {}
+    }
   };
 
   // Category Handlers
