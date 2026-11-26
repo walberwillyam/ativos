@@ -1,4 +1,4 @@
-﻿<#
+<#
 ===============================================================================
   INSTALADOR DO AGENTE NATIVO ATIVOS APOIO (POWERSHELL)
   Instalação silenciosa em 1 clique via Agendador de Tarefas do Windows.
