@@ -321,7 +321,7 @@ function Collect-And-Send-Telemetry {
             if ($resolvedUnit -and $resolvedUnit -ne "UNKNOWN_UNIT") {
                 $updatePayload["unit_id"] = $resolvedUnit
             }
-            if (-not $dhExisting[0].custom_name -and $healthPayload.ContainsKey("custom_name")) {
+            if ($healthPayload.ContainsKey("custom_name")) {
                 $updatePayload["custom_name"] = $healthPayload["custom_name"]
             }
 
