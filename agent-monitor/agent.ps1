@@ -1,4 +1,4 @@
-<#
+﻿<#
 ===============================================================================
   ATIVOS APOIO - AGENTE DE TELEMETRIA NATIVO WINDOWS (POWERSHELL)
   Zero dependências: não precisa de Node.js, npm ou bibliotecas externas.
@@ -17,8 +17,7 @@ param(
 # Forçar TLS 1.2 para conexões HTTPS com o Supabase
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $ScriptDir) { $ScriptDir = (Get-Location).Path }
+$ScriptDir = if ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { (Get-Location).Path }
 
 # Carregar variáveis de .env se não passadas por parâmetro
 $EnvFile = Join-Path $ScriptDir ".env"
@@ -153,7 +152,8 @@ function Collect-And-Send-Telemetry {
         # 3. Consulta Ativo no Inventário para obter unidade real e especificações
         $assetData = $null
         try {
-            $assetUrl = "$SupabaseUrl/rest/v1/assets?id=eq.$AssetId&select=id,name,unit,location,specifications,history"
+            $encAssetId = [System.Uri]::EscapeDataString($AssetId)
+            $assetUrl = "$SupabaseUrl/rest/v1/assets?id=eq.${encAssetId}&select=id,name,unit,location,specifications,history"
             $assetResp = Invoke-RestMethod -Uri $assetUrl -Method Get -Headers $Headers -TimeoutSec 15
             if ($assetResp -and $assetResp.Count -gt 0) {
                 $assetData = $assetResp[0]
@@ -194,12 +194,14 @@ function Collect-And-Send-Telemetry {
             if (-not ($GenericKeys -contains $productKey)) {
                 try {
                     # Desvincula qualquer outra chave deste ativo
-                    $unlinkUrl = "$SupabaseUrl/rest/v1/os_licenses?asset_id=eq.$AssetId&product_key=neq.$productKey"
+                    $encAssetId = [System.Uri]::EscapeDataString($AssetId)
+                    $encKey = [System.Uri]::EscapeDataString($productKey)
+                    $unlinkUrl = "$SupabaseUrl/rest/v1/os_licenses?asset_id=eq.${encAssetId}&product_key=neq.${encKey}"
                     $unlinkBody = @{ asset_id = $null } | ConvertTo-Json
                     Invoke-RestMethod -Uri $unlinkUrl -Method Patch -Headers $Headers -Body $unlinkBody -TimeoutSec 10 | Out-Null
 
                     # Checa se a chave já existe no catálogo
-                    $licUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.$productKey&select=id,asset_id"
+                    $licUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.${encKey}&select=id,asset_id"
                     $licResp = Invoke-RestMethod -Uri $licUrl -Method Get -Headers $Headers -TimeoutSec 10
                     if ($licResp -and $licResp.Count -gt 0) {
                         $existingLic = $licResp[0]
@@ -302,7 +304,8 @@ function Collect-And-Send-Telemetry {
         }
 
         # Checa se o dispositivo já existe na tabela de telemetria
-        $dhCheckUrl = "$SupabaseUrl/rest/v1/devices_health?asset_id=eq.$AssetId&select=id,unit_id,custom_name&limit=1"
+        $encAssetId = [System.Uri]::EscapeDataString($AssetId)
+        $dhCheckUrl = "$SupabaseUrl/rest/v1/devices_health?asset_id=eq.${encAssetId}&select=id,unit_id,custom_name&limit=1"
         $dhExisting = Invoke-RestMethod -Uri $dhCheckUrl -Method Get -Headers $Headers -TimeoutSec 15
 
         if ($dhExisting -and $dhExisting.Count -gt 0) {
@@ -346,7 +349,8 @@ function Collect-And-Send-Telemetry {
 if ($Loop) {
     Write-Host "=== Agente Ativos Apoio em execução contínua ===" -ForegroundColor Green
     Write-Host "Máquina: $AssetId | Unidade: $UnitName" -ForegroundColor Cyan
-    Write-Host "Enviando dados a cada 3 minutos (Pressione Ctrl+C para encerrar).`n"
+    Write-Host "Enviando dados a cada 3 minutos (Pressione Ctrl+C para encerrar)."
+    Write-Host ""
     while ($true) {
         Collect-And-Send-Telemetry
         Start-Sleep -Seconds 180

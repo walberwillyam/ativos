@@ -1,4 +1,4 @@
-<#
+﻿<#
 ===============================================================================
   INSTALADOR DO AGENTE NATIVO ATIVOS APOIO (POWERSHELL)
   Instalação silenciosa em 1 clique via Agendador de Tarefas do Windows.
@@ -43,8 +43,7 @@ Write-Host "==========================================================" -Foregro
 Write-Host "Computador: $env:COMPUTERNAME" -ForegroundColor Gray
 Write-Host ""
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $ScriptDir) { $ScriptDir = (Get-Location).Path }
+$ScriptDir = if ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { (Get-Location).Path }
 
 # 2. Se a unidade não foi informada, busca do Supabase e exibe menu interativo
 if (-not $UnitName -or $UnitName -eq "UNKNOWN_UNIT") {
