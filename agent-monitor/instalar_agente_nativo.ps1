@@ -1,8 +1,8 @@
 <#
 ===============================================================================
   INSTALADOR DO AGENTE NATIVO ATIVOS APOIO (POWERSHELL)
-  Instalação silenciosa em 1 clique via Agendador de Tarefas do Windows.
-  Zero dependências: não requer Node.js, não requer npm.
+  Instalacao silenciosa em 1 clique via Agendador de Tarefas do Windows.
+  Zero dependencias: nao requer Node.js, nao requer npm.
 ===============================================================================
 #>
 
@@ -12,16 +12,16 @@ param(
     [string]$SupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1bWZqamlpcnR3ZXp1bGZoYm1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDEwMTAsImV4cCI6MjA5NTkxNzAxMH0.miK3vGstWDJIk-63rCTKNXS0juLKWBIWQMibhUCVtR0"
 )
 
-# Se UnitName não veio por parâmetro de linha de comando, busca das variáveis de ambiente
+# Se UnitName nao veio por parametro de linha de comando, busca das variaveis de ambiente
 if (-not $UnitName -or $UnitName -eq "UNKNOWN_UNIT") {
     if ($env:TARGET_UNIT) { $UnitName = $env:TARGET_UNIT }
     elseif ($env:UNIT_ID) { $UnitName = $env:UNIT_ID }
 }
 
-# 1. Garante privilégios de Administrador
+# 1. Garante privilegios de Administrador
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $IsAdmin) {
-    Write-Host "Solicitando permissões de Administrador..." -ForegroundColor Yellow
+    Write-Host "Solicitando permissoes de Administrador..." -ForegroundColor Yellow
     if ($PSCommandPath) {
         $argsList = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
         if ($UnitName) { $argsList += " -UnitName `"$UnitName`"" }
@@ -45,7 +45,7 @@ Write-Host ""
 
 $ScriptDir = if ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { (Get-Location).Path }
 
-# 2. Se a unidade não foi informada, busca do Supabase e exibe menu interativo
+# 2. Se a unidade nao foi informada, busca do Supabase e exibe menu interativo
 if (-not $UnitName -or $UnitName -eq "UNKNOWN_UNIT") {
     Write-Host "Buscando filiais/unidades cadastradas no sistema..." -ForegroundColor Gray
     $UnitsList = @()
@@ -54,11 +54,11 @@ if (-not $UnitName -or $UnitName -eq "UNKNOWN_UNIT") {
         $uUrl = "$SupabaseUrl/rest/v1/units?select=id,name&order=name.asc"
         $UnitsList = Invoke-RestMethod -Uri $uUrl -Headers $uHeaders -TimeoutSec 10
     } catch {
-        Write-Warning "Não foi possível carregar as unidades online."
+        Write-Warning "Nao foi possivel carregar as unidades online."
     }
 
     if ($UnitsList -and $UnitsList.Count -gt 0) {
-        Write-Host "Selecione a Unidade onde este computador está localizado:" -ForegroundColor Yellow
+        Write-Host "Selecione a Unidade onde este computador esta localizado:" -ForegroundColor Yellow
         Write-Host ""
         for ($i = 0; $i -lt $UnitsList.Count; $i++) {
             $num = $i + 1
@@ -67,7 +67,7 @@ if (-not $UnitName -or $UnitName -eq "UNKNOWN_UNIT") {
         Write-Host "  [0] Digitar nome da unidade manualmente" -ForegroundColor DarkGray
         Write-Host ""
         
-        $choice = Read-Host "Digite o número da unidade correspondente"
+        $choice = Read-Host "Digite o numero da unidade correspondente"
         $choiceNum = [int]$choice
         if ($choiceNum -ge 1 -and $choiceNum -le $UnitsList.Count) {
             $UnitName = $UnitsList[$choiceNum - 1].name
@@ -84,10 +84,10 @@ if (-not $UnitName) {
 }
 
 Write-Host ""
-Write-Host "✔ Unidade definida: $UnitName" -ForegroundColor Green
+Write-Host "[OK] Unidade definida: $UnitName" -ForegroundColor Green
 Write-Host ""
 
-# 3. Preparar diretório padrão de instalação em C:\AtivosApoio
+# 3. Preparar diretorio padrao de instalacao em C:\AtivosApoio
 $InstallDir = "C:\AtivosApoio"
 if (-not (Test-Path $InstallDir)) {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
@@ -120,7 +120,7 @@ ASSET_ID="$env:COMPUTERNAME"
 "@
 Set-Content -Path (Join-Path $InstallDir ".env") -Value $EnvContent -Encoding UTF8
 
-# Cria script VBS launcher para rodar 100% invisível sem piscar janela preta
+# Cria script VBS launcher para rodar 100% invisivel sem piscar janela preta
 $VbsLauncher = Join-Path $InstallDir "run_agent_hidden.vbs"
 $VbsContent = @"
 Set WshShell = CreateObject("WScript.Shell")
@@ -135,12 +135,12 @@ schtasks /delete /tn "AtivosApoio_Telemetria" /f 2>$null | Out-Null
 # 5. Registra Tarefa Agendada no Windows (Roda a cada 3 minutos, como SYSTEM)
 Write-Host "Configurando tarefa agendada em segundo plano..." -ForegroundColor Cyan
 
-# Dispara o VBScript que roda o PowerShell invisível
+# Dispara o VBScript que roda o PowerShell invisivel
 $TaskCmd = "wscript.exe `"$VbsLauncher`""
 
 $res = schtasks /create /tn "AtivosApoio_Agente" /tr "$TaskCmd" /sc minute /mo 3 /ru "SYSTEM" /f 2>&1
 if ($LASTEXITCODE -ne 0) {
-    # Fallback para usuário atual caso SYSTEM tenha restrição de política local
+    # Fallback para usuario atual caso SYSTEM tenha restricao de politica local
     schtasks /create /tn "AtivosApoio_Agente" /tr "$TaskCmd" /sc minute /mo 3 /f 2>&1 | Out-Null
 }
 
@@ -150,20 +150,20 @@ Write-Host "Enviando primeiro ping de telemetria..." -ForegroundColor Yellow
 try {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $TargetAgent -UnitName "$UnitName"
 } catch {
-    Write-Warning "Aviso na primeira execução: $($_.Exception.Message)"
+    Write-Warning "Aviso na primeira execucao: $($_.Exception.Message)"
 }
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Green
-Write-Host "           INSTALAÇÃO CONCLUÍDA COM SUCESSO!              " -ForegroundColor Green
+Write-Host "           INSTALACAO CONCLUIDA COM SUCESSO!              " -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "  ✔ Máquina: $env:COMPUTERNAME" -ForegroundColor White
-Write-Host "  ✔ Unidade: $UnitName" -ForegroundColor White
-Write-Host "  ✔ Pasta:   $InstallDir" -ForegroundColor White
-Write-Host "  ✔ Frequência: Pings a cada 3 minutos (100% invisível)" -ForegroundColor White
+Write-Host "  [OK] Maquina: $env:COMPUTERNAME" -ForegroundColor White
+Write-Host "  [OK] Unidade: $UnitName" -ForegroundColor White
+Write-Host "  [OK] Pasta:   $InstallDir" -ForegroundColor White
+Write-Host "  [OK] Frequencia: Pings a cada 3 minutos (100% invisivel)" -ForegroundColor White
 Write-Host ""
-Write-Host "O robô já está ativo e transmitindo para o painel." -ForegroundColor Cyan
+Write-Host "O robo ja esta ativo e transmitindo para o painel." -ForegroundColor Cyan
 Write-Host "Pode fechar esta janela." -ForegroundColor Gray
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host ""
