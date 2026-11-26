@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, supabaseAnon } from '../lib/supabaseClient';
 import { Calendar, CheckCircle2, ClipboardCheck, Clock, FileSpreadsheet, MapPin, Play, Plus, Trash2 } from 'lucide-react';
 import { AuditSchedule } from '../types';
 
@@ -21,16 +21,29 @@ export default function AuditsManagementView({ units }: AuditsManagementViewProp
 
   const fetchSchedules = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('audit_schedules')
       .select('*')
       .order('created_at', { ascending: false });
+      
+    if (error || !data || data.length === 0) {
+      try {
+        const { data: anonData } = await supabaseAnon
+          .from('audit_schedules')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (anonData && anonData.length > 0) {
+          data = anonData;
+          error = null;
+        }
+      } catch (e) {}
+    }
       
     if (error) {
       console.error("Erro ao buscar agendamentos:", error);
     }
       
-    if (data) {
+    if (data && data.length > 0) {
       setSchedules(data);
     }
     setLoading(false);

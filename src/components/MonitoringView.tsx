@@ -36,8 +36,15 @@ interface MonitoringViewProps {
 }
 
 export default function MonitoringView({ units = [], assets = [], onUpdateAsset }: MonitoringViewProps) {
-  const [devices, setDevices] = useState<DeviceHealth[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [devices, setDevices] = useState<DeviceHealth[]>(() => {
+    try {
+      const cached = localStorage.getItem('ativos_cached_devices_health');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => devices.length === 0);
   const [editingDevice, setEditingDevice] = useState<DeviceHealth | null>(null);
   const [editFormData, setEditFormData] = useState({ custom_name: '', sector: '', unit_id: '' });
   const [searchQuery, setSearchQuery] = useState(() => localStorage.getItem('noc_search') || '');
@@ -159,7 +166,13 @@ pause
             }
           }
         }
-        setDevices(Array.from(uniqueDevices.values()));
+        const finalDevicesList = Array.from(uniqueDevices.values());
+        if (finalDevicesList.length > 0) {
+          setDevices(finalDevicesList);
+          try {
+            localStorage.setItem('ativos_cached_devices_health', JSON.stringify(finalDevicesList));
+          } catch (e) {}
+        }
       }
     } catch (err) {
       console.error("Erro ao buscar devices:", err);

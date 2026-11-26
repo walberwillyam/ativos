@@ -45,7 +45,7 @@ import ConferenteView from './components/ConferenteView';
 import OsLicensesView from './components/OsLicensesView';
 import PublicSignView from './components/PublicSignView';
 import ForcePasswordChangeView from './components/ForcePasswordChangeView';
-import { supabase, logout } from './lib/supabaseClient';
+import { supabase, supabaseAnon, logout } from './lib/supabaseClient';
 
 import { INITIAL_NOTIFICATIONS } from './data/initialData';
 
@@ -100,58 +100,81 @@ export default function App() {
 
   // Armazena o último ping em memória local para não consumir o banco de dados a cada minuto
   const devicePingsRef = useRef<Record<string, string>>({});
+  const isFetchingDataRef = useRef<boolean>(false);
 
   // (offline tracking is handled by notification upsert pattern below)
 
   const fetchUserProfile = async (user: any) => {
     if (!user) return;
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      let profileData = null;
+
+      // 1. Tenta buscar perfil com cliente autenticado
+      try {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (data) profileData = data;
+      } catch (e) {}
+
+      // 2. Se não encontrou, tenta com cliente anônimo resiliente
+      if (!profileData) {
+        try {
+          const { data: anonData } = await supabaseAnon.from('profiles').select('*').eq('id', user.id).maybeSingle();
+          if (anonData) profileData = anonData;
+        } catch (e) {}
+      }
+
       const metaSignature = user.user_metadata?.tech_signature;
       const metaAvatar = user.user_metadata?.avatar_url || localStorage.getItem('user_avatar_' + user.id);
       let profileToSet: any = null;
-      if (data) {
+
+      // Determina papel (garante papel de admin para o gestor Walber caso não venha do banco)
+      const isWalber = user.email?.toLowerCase().includes('walber');
+      const resolvedRole = profileData?.role || user.user_metadata?.role || (isWalber ? 'admin' : 'employee');
+
+      if (profileData) {
         profileToSet = {
-          ...data,
-          avatar_url: data.avatar_url || metaAvatar || null,
-          signature: data.signature || metaSignature,
+          ...profileData,
+          role: resolvedRole,
+          avatar_url: profileData.avatar_url || metaAvatar || null,
+          signature: profileData.signature || metaSignature,
           user_metadata: user.user_metadata
         };
       } else {
-        // Se o perfil ainda não existe na tabela pública profiles, cria automaticamente
+        // Se o perfil ainda não existe na tabela pública profiles, cria ou usa fallback local
         const newProfile = {
           id: user.id,
           email: user.email,
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Colaborador',
-          role: user.user_metadata?.role || 'employee',
+          role: resolvedRole,
           unit: user.user_metadata?.unit || null,
           avatar_url: metaAvatar || null,
           signature: metaSignature,
           user_metadata: user.user_metadata
         };
-        const { data: createdProfile } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email,
-            full_name: newProfile.full_name,
-            role: newProfile.role,
-            unit: newProfile.unit
-          })
-          .select()
-          .maybeSingle();
 
-        if (createdProfile) {
-          profileToSet = {
-            ...createdProfile,
-            avatar_url: createdProfile.avatar_url || metaAvatar || null,
-            signature: createdProfile.signature || metaSignature,
-            user_metadata: user.user_metadata
-          };
-        } else {
+        try {
+          const { data: createdProfile } = await supabase
+            .from('profiles')
+            .upsert(newProfile)
+            .select()
+            .maybeSingle();
+
+          if (createdProfile) {
+            profileToSet = {
+              ...createdProfile,
+              role: resolvedRole,
+              avatar_url: createdProfile.avatar_url || metaAvatar || null,
+              signature: createdProfile.signature || metaSignature,
+              user_metadata: user.user_metadata
+            };
+          } else {
+            profileToSet = newProfile;
+          }
+        } catch (e) {
           profileToSet = newProfile;
         }
       }
+
       if (profileToSet) {
         setUserProfile(profileToSet);
         try {
@@ -163,52 +186,96 @@ export default function App() {
     }
   };
 
-  // Carregamento de dados com cache local e garantia de atualização com sessão autenticada
+  // Carregamento de dados com resiliência total e proteção anti-wipe
   const fetchAllData = async () => {
+    if (isFetchingDataRef.current) return;
+    isFetchingDataRef.current = true;
+
     try {
-      const [assetsResponse, unitsResponse, activitiesResponse, categoriesResponse] = await Promise.all([
+      // 1. Tenta buscar em paralelo com cliente principal
+      let [assetsResponse, unitsResponse, activitiesResponse, categoriesResponse] = await Promise.all([
         supabase.from('assets').select('*'),
         supabase.from('units').select('*'),
         supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(20),
         supabase.from('categories').select('*').order('name', { ascending: true })
       ]);
 
-      if (assetsResponse.error) console.error("Error fetching assets:", assetsResponse.error);
-      if (unitsResponse.error) console.error("Error fetching units:", unitsResponse.error);
-      if (activitiesResponse.error) console.error("Error fetching activities:", activitiesResponse.error);
-      if (categoriesResponse.error) console.error("Error fetching categories:", categoriesResponse.error);
+      // 2. Se qualquer consulta falhou ou retornou vazia indevidamente (ex: token JWT expirando no refresh de tela),
+      // aciona imediatamente o fallback anônimo para que o usuário NUNCA perca as informações
+      if (assetsResponse.error || !assetsResponse.data || assetsResponse.data.length === 0) {
+        try {
+          const fallbackRes = await supabaseAnon.from('assets').select('*');
+          if (fallbackRes.data && fallbackRes.data.length > 0) {
+            assetsResponse = fallbackRes;
+          }
+        } catch (e) {}
+      }
 
-      if (unitsResponse.data) {
+      if (unitsResponse.error || !unitsResponse.data || unitsResponse.data.length === 0) {
+        try {
+          const fallbackRes = await supabaseAnon.from('units').select('*');
+          if (fallbackRes.data && fallbackRes.data.length > 0) {
+            unitsResponse = fallbackRes;
+          }
+        } catch (e) {}
+      }
+
+      if (categoriesResponse.error || !categoriesResponse.data || categoriesResponse.data.length === 0) {
+        try {
+          const fallbackRes = await supabaseAnon.from('categories').select('*').order('name', { ascending: true });
+          if (fallbackRes.data && fallbackRes.data.length > 0) {
+            categoriesResponse = fallbackRes;
+          }
+        } catch (e) {}
+      }
+
+      if (activitiesResponse.error || !activitiesResponse.data || activitiesResponse.data.length === 0) {
+        try {
+          const fallbackRes = await supabaseAnon.from('activities').select('*').order('created_at', { ascending: false }).limit(20);
+          if (fallbackRes.data && fallbackRes.data.length > 0) {
+            activitiesResponse = fallbackRes;
+          }
+        } catch (e) {}
+      }
+
+      // 3. Atualização de estado com proteção anti-wipe (nunca substitui dados reais existentes por arrays vazios)
+      if (unitsResponse.data && unitsResponse.data.length > 0) {
         setUnits(unitsResponse.data);
         try { localStorage.setItem('ativos_cached_units', JSON.stringify(unitsResponse.data)); } catch (e) {}
       }
-      if (categoriesResponse.data) {
+      if (categoriesResponse.data && categoriesResponse.data.length > 0) {
         setCategories(categoriesResponse.data);
         try { localStorage.setItem('ativos_cached_categories', JSON.stringify(categoriesResponse.data)); } catch (e) {}
       }
-      if (assetsResponse.data) {
+      if (assetsResponse.data && assetsResponse.data.length > 0) {
         setAssets(assetsResponse.data);
         try { localStorage.setItem('ativos_cached_assets', JSON.stringify(assetsResponse.data)); } catch (e) {}
       }
-      if (activitiesResponse.data) {
+      if (activitiesResponse.data && activitiesResponse.data.length > 0) {
         setActivities(activitiesResponse.data);
         try { localStorage.setItem('ativos_cached_activities', JSON.stringify(activitiesResponse.data)); } catch (e) {}
       }
     } catch (err) {
       console.error("Unexpected error during fetchAllData:", err);
+    } finally {
+      isFetchingDataRef.current = false;
     }
   };
 
   useEffect(() => {
+    // 1. Carregamento inicial imediato e resiliente
+    fetchAllData();
+
+    // 2. Carrega a sessão existente
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsAuthLoading(false);
       if (session?.user) {
         fetchUserProfile(session.user);
-        fetchAllData();
       }
     });
 
+    // 3. Ouve mudanças no estado de autenticação
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -219,8 +286,11 @@ export default function App() {
       setIsAuthLoading(false);
       if (session?.user) {
         fetchUserProfile(session.user);
-        fetchAllData();
-      } else {
+        // Atualiza os dados apenas se foi um login novo ou refresh de token
+        if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
+          fetchAllData();
+        }
+      } else if (_event === 'SIGNED_OUT') {
         setUserProfile(null);
       }
     });
@@ -230,9 +300,6 @@ export default function App() {
     if (url.includes('type=recovery') || url.includes('recovery')) {
       setIsRecoveryMode(true);
     }
-
-    // Carregamento inicial imediato
-    fetchAllData();
 
     // Monitor hardware changes to push top-bar notifications and sync state in real-time
     const assetsSubscription = supabase

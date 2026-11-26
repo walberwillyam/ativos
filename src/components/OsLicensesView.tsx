@@ -102,7 +102,9 @@ export default function OsLicensesView({ assets }: OsLicensesViewProps) {
           localStorage.setItem('ativos_cached_licenses', JSON.stringify(resultData));
         } catch (e) {}
       } else if (resultData && resultData.length === 0) {
-        setLicenses([]);
+        if (licenses.length === 0) {
+          setLicenses([]);
+        }
       }
     } catch (err: any) {
       console.error('Erro ao buscar licenças:', err);
