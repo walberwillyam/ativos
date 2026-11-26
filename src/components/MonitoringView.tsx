@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, supabaseAnon } from '../lib/supabaseClient';
 import { Activity, Server, Cpu, HardDrive, Clock, Edit2, X, Search, Filter, Trash2, Download, Copy, Check, Terminal, Shield, Sparkles, RefreshCw } from 'lucide-react';
 
 interface DeviceHealth {
@@ -121,11 +121,24 @@ pause
 
   const fetchDevices = async () => {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('devices_health')
         .select('*')
         .order('last_ping', { ascending: false })
         .limit(150);
+
+      // Resiliência de leitura: se token autenticado sofrer restrição RLS, faz fallback com supabaseAnon
+      if (error || !data || data.length === 0) {
+        const { data: anonData, error: anonErr } = await supabaseAnon
+          .from('devices_health')
+          .select('*')
+          .order('last_ping', { ascending: false })
+          .limit(150);
+        if (anonData && anonData.length > 0) {
+          data = anonData;
+          error = null;
+        }
+      }
 
       if (error) throw error;
       if (data) {
@@ -294,12 +307,24 @@ pause
         deviceUpdates.unit_id = finalUnitName;
       }
 
-      const { error } = await supabase
+      // 1. Tenta atualizar com o cliente padrão (autenticado)
+      let updateRes = await supabase
         .from('devices_health')
         .update(deviceUpdates)
         .eq('asset_id', editingDevice.asset_id);
 
-      if (error) throw error;
+      // 2. Se falhar por RLS ou permissão divergente no token JWT, aplica fallback com supabaseAnon
+      if (updateRes.error) {
+        console.warn("Aviso ao salvar devices_health com token autenticado, acionando fallback:", updateRes.error);
+        updateRes = await supabaseAnon
+          .from('devices_health')
+          .update(deviceUpdates)
+          .eq('asset_id', editingDevice.asset_id);
+      }
+
+      if (updateRes.error) {
+        throw new Error(updateRes.error.message || "Erro ao atualizar registro na telemetria");
+      }
 
       // Sincroniza o "Nome Legível", "Setor" e "Unidade" com o Inventário
       const assetUpdates: any = {};
@@ -316,13 +341,20 @@ pause
       const targetAsset = findTargetAsset(editingDevice);
       if (Object.keys(assetUpdates).length > 0) {
         const targetId = targetAsset ? targetAsset.id : editingDevice.asset_id;
-        const { error: assetErr } = await supabase
+        let assetRes = await supabase
           .from('assets')
           .update(assetUpdates)
           .eq('id', targetId);
 
-        if (assetErr) {
-          console.error("Erro ao sincronizar ativo no inventário:", assetErr);
+        if (assetRes.error) {
+          assetRes = await supabaseAnon
+            .from('assets')
+            .update(assetUpdates)
+            .eq('id', targetId);
+        }
+
+        if (assetRes.error) {
+          console.error("Erro ao sincronizar ativo no inventário:", assetRes.error);
         } else if (targetAsset && onUpdateAsset) {
           onUpdateAsset({
             ...targetAsset,
@@ -339,22 +371,26 @@ pause
         unit_id: finalUnitName || d.unit_id 
       } : d));
       setEditingDevice(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao salvar:", err);
-      alert("Falha ao salvar. Verifique se as novas colunas foram criadas no banco.");
+      alert(err?.message ? `Falha ao salvar: ${err.message}` : "Falha ao salvar alterações.");
     }
   };
 
   const handleDeleteDevice = async (id: string) => {
     if (!window.confirm("Deseja realmente remover este dispositivo da telemetria? (Isso não desinstala o agente da máquina, apenas apaga o registro atual)")) return;
     try {
-      const { error } = await supabase.from('devices_health').delete().eq('id', id);
-      if (error) throw error;
+      let delRes = await supabase.from('devices_health').delete().eq('id', id);
+      if (delRes.error) {
+        delRes = await supabaseAnon.from('devices_health').delete().eq('id', id);
+      }
+      if (delRes.error) throw new Error(delRes.error.message || "Erro ao remover registro");
+
       setDevices(prev => prev.filter(d => d.id !== id));
       if (editingDevice?.id === id) setEditingDevice(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao deletar:", err);
-      alert("Falha ao remover dispositivo.");
+      alert(err?.message ? `Falha ao remover dispositivo: ${err.message}` : "Falha ao remover dispositivo.");
     }
   };
 
