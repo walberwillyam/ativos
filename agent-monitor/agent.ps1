@@ -1,4 +1,4 @@
-<#
+﻿<#
 ===============================================================================
   ATIVOS APOIO - AGENTE DE TELEMETRIA NATIVO WINDOWS (POWERSHELL)
   Zero dependências: não precisa de Node.js, npm ou bibliotecas externas.
@@ -229,18 +229,57 @@ function Collect-And-Send-Telemetry {
             }
         }
 
-        # Atualiza a tabela assets com as especificações atualizadas
+        # Atualiza ou cria o ativo na tabela assets (Inventário)
         if ($assetData) {
             try {
                 $assetUpdatePayload = @{ specifications = $currentSpecs }
                 if ($serialNumber) { $assetUpdatePayload["serialNumber"] = $serialNumber }
                 if ($hardwareModel -and $hardwareModel.Length -gt 2) { $assetUpdatePayload["model"] = $hardwareModel }
+                if ((-not $assetData.unit -or $assetData.unit -eq "UNKNOWN_UNIT" -or $assetData.unit -eq "Não definida") -and ($resolvedUnit -and $resolvedUnit -ne "UNKNOWN_UNIT")) {
+                    $assetUpdatePayload["unit"] = $resolvedUnit
+                }
 
                 $updateAssetUrl = "$SupabaseUrl/rest/v1/assets?id=eq.$AssetId"
                 $updateAssetJson = $assetUpdatePayload | ConvertTo-Json -Depth 5
                 Invoke-RestMethod -Uri $updateAssetUrl -Method Patch -Headers $Headers -Body $updateAssetJson -TimeoutSec 15 | Out-Null
             } catch {
                 Write-Warning "Aviso ao atualizar ativo no inventário: $($_.Exception.Message)"
+            }
+        } else {
+            # Se o ativo ainda não existia no Inventário, cria automaticamente
+            try {
+                $categoryName = if ($hardwareModel -match "Notebook|Laptop|Latitude|ThinkPad") { "Notebooks" } else { "Desktop" }
+                $newAsset = @{
+                    id              = $AssetId
+                    patrimonio      = "AUTO-$($AssetId.Substring(0, [math]::Min(10, $AssetId.Length)))"
+                    name            = "Computador - $AssetId"
+                    category        = $categoryName
+                    model           = if ($hardwareModel) { $hardwareModel } else { "PC / Desktop" }
+                    serialNumber    = if ($serialNumber) { $serialNumber } else { "N/A" }
+                    unit            = if ($resolvedUnit -and $resolvedUnit -ne "UNKNOWN_UNIT") { $resolvedUnit } else { "Não definida" }
+                    location        = "Não definida"
+                    status          = "Em Uso"
+                    value           = 0
+                    acquisitionDate = (Get-Date).ToString("yyyy-MM-dd")
+                    specifications  = $currentSpecs
+                    history         = @(
+                        @{
+                            id          = "hist-$([guid]::NewGuid().ToString().Substring(0,8))"
+                            date        = (Get-Date).ToString("yyyy-MM-dd")
+                            time        = (Get-Date).ToString("HH:mm")
+                            type        = "creation"
+                            title       = "Ativo Cadastrado Automaticamente pelo Robô"
+                            description = "Equipamento detectado e registrado pelo agente de telemetria."
+                            responsible = "Sistema (Robô)"
+                        }
+                    )
+                }
+                $insertAssetUrl = "$SupabaseUrl/rest/v1/assets"
+                $insertAssetJson = $newAsset | ConvertTo-Json -Depth 5
+                Invoke-RestMethod -Uri $insertAssetUrl -Method Post -Headers $Headers -Body $insertAssetJson -TimeoutSec 15 | Out-Null
+                Write-Host "✔ Ativo $AssetId cadastrado com sucesso no Inventário de Ativos!" -ForegroundColor Green
+            } catch {
+                Write-Warning "Aviso ao registrar ativo no inventário: $($_.Exception.Message)"
             }
         }
 
@@ -278,8 +317,8 @@ function Collect-And-Send-Telemetry {
                 last_ping      = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
                 uptime_seconds = $uptimeSeconds
             }
-            # Se a telemetria existente tiver UNKNOWN_UNIT e tivermos uma unidade real, atualiza
-            if ((-not $dhExisting[0].unit_id -or $dhExisting[0].unit_id -eq "UNKNOWN_UNIT") -and $resolvedUnit -ne "UNKNOWN_UNIT") {
+            # Atualiza sempre a unidade caso tenhamos uma unidade definida
+            if ($resolvedUnit -and $resolvedUnit -ne "UNKNOWN_UNIT") {
                 $updatePayload["unit_id"] = $resolvedUnit
             }
             if (-not $dhExisting[0].custom_name -and $healthPayload.ContainsKey("custom_name")) {
