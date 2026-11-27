@@ -133,11 +133,15 @@ async function collectAndSendHealth() {
     
     // Lista de chaves genéricas de ativação padrão do Windows (não devem ser vinculadas como assento exclusivo)
     const GENERIC_WINDOWS_KEYS = new Set([
+      'YC7N8-G7WR6-9WR4H-6Y2W4-KBT6X', // Win 10/11 Pro GVLK / Setup
       'VK7JG-NPHTM-C97JM-9MPGT-3V66T', // Win 10/11 Pro Default
       'TX9XD-98N7V-6WMQ6-BX7FG-H8Q99', // Win 10/11 Home Default
+      'YTMG3-N6DKC-DKB77-7M9GH-8HVX7', // Win 10/11 Home Single Language
       'W269N-WFGWX-YVC9B-4J6C9-T83GX', // Win 10/11 Pro KMS
       'NPPR9-FWDCX-D2C8J-H872K-2YT43', // Win 10/11 Enterprise KMS
-      'DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4'  // Win 10/11 Enterprise
+      'DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4', // Win 10/11 Enterprise
+      '2B87N-8KFHP-MTV6R-58WYF-36357', // Win 10/11 Workstations
+      'NRG8B-VKK3Q-CXVCJ-9G2XF-6Q84J'  // Win 10/11 Workstations KMS
     ]);
 
     // Vinculação de Licença de SO

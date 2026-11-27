@@ -81,12 +81,22 @@ $WriteHeaders = @{
 
 # Lista de chaves genericas de ativacao KMS / Setup padrao do Windows
 $GenericKeys = @(
+    "YC7N8-G7WR6-9WR4H-6Y2W4-KBT6X",
     "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
-    "TX9XD-98N7V-6WMQ6-BX7FG-H8Q99",
     "W269N-WFGWX-YVC9B-4J6C9-T83GX",
+    "TX9XD-98N7V-6WMQ6-BX7FG-H8Q99",
+    "YTMG3-N6DKC-DKB77-7M9GH-8HVX7",
     "NPPR9-FWDCX-D2C8J-H872K-2YT43",
-    "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4"
+    "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4",
+    "2B87N-8KFHP-MTV6R-58WYF-36357",
+    "NRG8B-VKK3Q-CXVCJ-9G2XF-6Q84J",
+    "MH37W-N47XK-V7XM9-C7227-GCQG9",
+    "QFFDN-GRT3P-VKWWX-X7T3R-8B639",
+    "NW6C2-QMPVW-D7KKK-3GKT6-VCFB2"
 )
+
+# Chaves parciais (ultimos 5 digitos) associadas a canais genericos / KMS
+$GenericPartials = @("T83GX", "3V66T", "H8Q99", "8HVX7", "2YT43", "KHJW4", "36357", "6Q84J", "GCQG9", "8B639", "VCFB2", "KBT6X")
 
 function Collect-And-Send-Telemetry {
     try {
@@ -144,53 +154,83 @@ function Collect-And-Send-Telemetry {
             $uptimeSeconds = [math]::Floor(((Get-Date) - $os.LastBootUpTime).TotalSeconds)
         }
 
-        # 2. Product Key do Windows (3 metodos em cascata)
+        # 2. Informacoes de Licenciamento do Windows
         $productKey = $null
+        $partialKey = $null
+        $licChannel = ""
+        $isActivated = $false
 
-        # Metodo 1: OA3 (chave gravada na BIOS/UEFI pelo fabricante OEM)
+        # Consulta o status da ativacao no servico de licenciamento oficial do Windows
         try {
-            $oa3Key = (Get-CimInstance -Query "SELECT OA3xOriginalProductKey FROM SoftwareLicensingService" -ErrorAction Stop).OA3xOriginalProductKey
-            if ($oa3Key -and $oa3Key.Trim() -ne '') { $productKey = $oa3Key.Trim() }
+            $slp = Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' and PartialProductKey is not null" -ErrorAction SilentlyContinue | Where-Object { $_.LicenseStatus -eq 1 } | Select-Object -First 1
+            if ($slp) {
+                $partialKey = $slp.PartialProductKey
+                $isActivated = $true
+                if ($slp.Description -match "VOLUME_KMS|VOLUME_KMSCLIENT") { $licChannel = "Volume KMS" }
+                elseif ($slp.Description -match "VOLUME_MAK") { $licChannel = "Volume MAK" }
+                elseif ($slp.Description -match "OEM") { $licChannel = "OEM" }
+                elseif ($slp.Description -match "RETAIL") { $licChannel = "Retail" }
+                else { $licChannel = "Digital" }
+            }
         } catch {}
 
-        # Metodo 2: Registro (BackupProductKeyDefault)
-        if (-not $productKey) {
+        # Metodo 1: OA3 (chave original gravada de fabrica na BIOS/UEFI - exclusiva por placa-mae)
+        try {
+            $oa3Key = (Get-CimInstance -Query "SELECT OA3xOriginalProductKey FROM SoftwareLicensingService" -ErrorAction Stop).OA3xOriginalProductKey
+            if ($oa3Key -and $oa3Key.Trim() -ne '') {
+                $candidate = $oa3Key.Trim()
+                if (-not ($GenericKeys -contains $candidate)) {
+                    $productKey = $candidate
+                    Write-Host "[OK] Chave OEM autentica detectada na BIOS: $productKey" -ForegroundColor Green
+                }
+            }
+        } catch {}
+
+        # Metodo 2: Se temos chave parcial ativa e NAO e generica, verifica se bate com o catalogo os_licenses
+        if (-not $productKey -and $partialKey -and -not ($GenericPartials -contains $partialKey)) {
             try {
-                $regKey = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform' -Name BackupProductKeyDefault -ErrorAction SilentlyContinue).BackupProductKeyDefault
-                if ($regKey -and $regKey.Trim() -ne '') { $productKey = $regKey.Trim() }
+                $encPartial = [System.Uri]::EscapeDataString($partialKey)
+                $matchUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=like.*-${encPartial}&select=id,product_key"
+                $matchResp = Invoke-RestMethod -Uri $matchUrl -Method Get -Headers $Headers -TimeoutSec 10
+                if ($matchResp -and $matchResp.Count -gt 0) {
+                    $productKey = $matchResp[0].product_key
+                    Write-Host "[OK] Chave identificada no catalogo de licencas (final $partialKey): $productKey" -ForegroundColor Green
+                }
             } catch {}
         }
 
-        # Metodo 3: Decodificacao do DigitalProductId (registro binario - funciona em muitos Windows 10/11 OEM)
+        # Metodo 3: Registro (BackupProductKeyDefault) - APENAS se bater com a chave parcial ativa e NAO for generica
         if (-not $productKey) {
             try {
-                $dpid = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DigitalProductId
-                if ($dpid -and $dpid.Length -ge 67) {
-                    $map = "BCDFGHJKMPQRTVWXY2346789"
-                    $dpidArr = [byte[]]$dpid
-                    $decoded = ""
-                    for ($i = 24; $i -ge 0; $i--) {
-                        $r = 0
-                        for ($j = 14; $j -ge 0; $j--) {
-                            $r = ($r * 256) -bxor $dpidArr[$j + 52]
-                            $dpidArr[$j + 52] = [math]::Floor($r / 24)
-                            $r = $r % 24
-                        }
-                        $decoded = $map[$r] + $decoded
-                        if (($i % 5) -eq 0 -and $i -ne 0) { $decoded = "-" + $decoded }
-                    }
-                    if ($decoded -and $decoded.Length -eq 29 -and -not ($GenericKeys -contains $decoded)) {
-                        $productKey = $decoded
-                        Write-Host "[OK] Chave decodificada via DigitalProductId: $productKey" -ForegroundColor Cyan
+                $regKey = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform' -Name BackupProductKeyDefault -ErrorAction SilentlyContinue).BackupProductKeyDefault
+                if ($regKey -and $regKey.Trim() -ne '') {
+                    $cand = $regKey.Trim()
+                    $candEnd = if ($cand.Length -ge 5) { $cand.Substring($cand.Length - 5) } else { "" }
+                    if (-not ($GenericKeys -contains $cand) -and (-not $partialKey -or $candEnd -eq $partialKey)) {
+                        $productKey = $cand
+                        Write-Host "[OK] Chave valida recuperada do registro: $productKey" -ForegroundColor Cyan
                     }
                 }
             } catch {}
         }
 
-        if ($productKey) {
-            Write-Host "Chave do Windows detectada: $productKey" -ForegroundColor Cyan
+        # Metodo 4: Se o computador esta ativado via Volume KMS ou Licenca Digital sem chave fisica avulsa
+        if (-not $productKey -and $isActivated -and $partialKey) {
+            if ($partialKey -eq "T83GX" -or $licChannel -eq "Volume KMS") {
+                $productKey = "Volume KMS (Final: $partialKey)"
+            } elseif ($licChannel -eq "Volume MAK") {
+                $productKey = "Volume MAK (Final: $partialKey)"
+            } else {
+                $productKey = "Licenca Digital (Final: $partialKey)"
+            }
+            Write-Host "[OK] Ativacao detectada: $productKey" -ForegroundColor Cyan
+        }
+
+        if (-not $productKey) {
+            $productKey = "Nao identificada"
+            Write-Host "Nenhuma chave ou ativacao do Windows recuperavel." -ForegroundColor DarkGray
         } else {
-            Write-Host "Nenhuma chave do Windows recuperavel (ativacao digital ou volume)." -ForegroundColor DarkGray
+            Write-Host "Chave/Ativacao do Windows registrada: $productKey" -ForegroundColor Cyan
         }
 
         # 3. Consulta Ativo no Inventario para obter unidade real e especificacoes
@@ -299,7 +339,9 @@ function Collect-And-Send-Telemetry {
 
         # 5. Vinculacao da Chave de Licenca de SO (1-para-1 estrito)
         # Executado APOS a criacao/atualizacao do ativo para garantir que o registro existe no banco
-        if ($productKey -and -not ($GenericKeys -contains $productKey)) {
+        # Apenas chaves fisicas completas de 25 digitos (Retail/OEM) sao vinculadas ao catalogo exclusivo
+        $isFull25Key = ($productKey -match "^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$")
+        if ($isFull25Key -and -not ($GenericKeys -contains $productKey)) {
             try {
                 $encAssetId = [System.Uri]::EscapeDataString($AssetId)
                 $encKey = [System.Uri]::EscapeDataString($productKey)

@@ -97,15 +97,15 @@ if (-not (Test-Path $InstallDir)) {
 $SourceAgent = Join-Path $ScriptDir "agent.ps1"
 $TargetAgent = Join-Path $InstallDir "agent.ps1"
 
-if (Test-Path $SourceAgent) {
+if ($PSCommandPath -and (Test-Path $SourceAgent)) {
     Copy-Item -Path $SourceAgent -Destination $TargetAgent -Force
 } else {
-    # Fallback: se rodando via comando direto, cria o agent.ps1 no destino
+    # Se rodando via comando direto da internet (iex), baixa sempre a versao mais recente do GitHub
     Write-Host "Baixando script do agente..." -ForegroundColor Gray
-    $agentUrl = "https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/agent.ps1"
+    $agentUrl = "https://raw.githubusercontent.com/walberwillyam/ativos/main/agent-monitor/agent.ps1?v=$((Get-Date).Ticks)"
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $agentUrl -OutFile $TargetAgent -UseBasicParsing -TimeoutSec 15
+        Invoke-WebRequest -Uri $agentUrl -Headers @{"Cache-Control"="no-cache"} -OutFile $TargetAgent -UseBasicParsing -TimeoutSec 15
     } catch {
         Write-Error "Falha ao obter agent.ps1: $($_.Exception.Message)"
     }
