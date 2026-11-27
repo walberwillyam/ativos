@@ -70,6 +70,15 @@ $Headers = @{
     "Prefer"        = "return=representation"
 }
 
+# Headers para operacoes de escrita (INSERT/PATCH/DELETE)
+# "return=minimal" evita o SELECT pos-escrita que falha com RLS no modo anon
+$WriteHeaders = @{
+    "apikey"        = $SupabaseKey
+    "Authorization" = "Bearer $SupabaseKey"
+    "Content-Type"  = "application/json"
+    "Prefer"        = "return=minimal"
+}
+
 # Lista de chaves genericas de ativacao KMS / Setup padrao do Windows
 $GenericKeys = @(
     "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
@@ -238,16 +247,17 @@ function Collect-And-Send-Telemetry {
                     $assetUpdatePayload["unit"] = $resolvedUnit
                 }
 
-                $updateAssetUrl = "$SupabaseUrl/rest/v1/assets?id=eq.$AssetId"
+                $encAssetId = [System.Uri]::EscapeDataString($AssetId)
+                $updateAssetUrl = "$SupabaseUrl/rest/v1/assets?id=eq.${encAssetId}"
                 $updateAssetJson = $assetUpdatePayload | ConvertTo-Json -Depth 5
-                Invoke-RestMethod -Uri $updateAssetUrl -Method Patch -Headers $Headers -Body $updateAssetJson -TimeoutSec 15 | Out-Null
+                Invoke-RestMethod -Uri $updateAssetUrl -Method Patch -Headers $WriteHeaders -Body $updateAssetJson -TimeoutSec 15 | Out-Null
             } catch {
                 Write-Warning "Aviso ao atualizar ativo no inventario: $($_.Exception.Message)"
             }
         } else {
             # Se o ativo ainda nao existia no Inventario, cria automaticamente
             try {
-                $categoryName = if ($hardwareModel -match "Notebook|Laptop|Latitude|ThinkPad") { "Notebooks" } else { "Desktop" }
+                $categoryName = if ($hardwareModel -match "Notebook|Laptop|Latitude|ThinkPad") { "Notebooks" } else { "Computadores" }
                 $newAsset = @{
                     id              = $AssetId
                     patrimonio      = "AUTO-$($AssetId.Substring(0, [math]::Min(10, $AssetId.Length)))"
@@ -257,9 +267,13 @@ function Collect-And-Send-Telemetry {
                     serialNumber    = if ($serialNumber) { $serialNumber } else { "N/A" }
                     unit            = if ($resolvedUnit -and $resolvedUnit -ne "UNKNOWN_UNIT") { $resolvedUnit } else { "Nao definida" }
                     location        = "Nao definida"
+                    currentFloor    = "office"
+                    mapCoordinates  = @{ x = 50; y = 50 }
+                    responsible     = @{ name = "Nao atribuido"; role = "Usuario"; initials = "NA" }
                     status          = "Em Uso"
                     value           = 0
                     acquisitionDate = (Get-Date).ToString("yyyy-MM-dd")
+                    warrantyExpiry  = (Get-Date).AddYears(1).ToString("yyyy-MM-dd")
                     specifications  = $currentSpecs
                     history         = @(
                         @{
@@ -272,10 +286,11 @@ function Collect-And-Send-Telemetry {
                             responsible = "Sistema (Robo)"
                         }
                     )
+                    imageUrl        = ""
                 }
                 $insertAssetUrl = "$SupabaseUrl/rest/v1/assets"
                 $insertAssetJson = $newAsset | ConvertTo-Json -Depth 5
-                Invoke-RestMethod -Uri $insertAssetUrl -Method Post -Headers $Headers -Body $insertAssetJson -TimeoutSec 15 | Out-Null
+                Invoke-RestMethod -Uri $insertAssetUrl -Method Post -Headers $WriteHeaders -Body $insertAssetJson -TimeoutSec 15 | Out-Null
                 Write-Host "[OK] Ativo $AssetId cadastrado com sucesso no Inventario de Ativos!" -ForegroundColor Green
             } catch {
                 Write-Warning "Aviso ao registrar ativo no inventario: $($_.Exception.Message)"
@@ -292,35 +307,35 @@ function Collect-And-Send-Telemetry {
                 # Desvincula qualquer outra chave que estava neste ativo (garantia 1-para-1)
                 $unlinkUrl = "$SupabaseUrl/rest/v1/os_licenses?asset_id=eq.${encAssetId}&product_key=neq.${encKey}"
                 $unlinkBody = @{ asset_id = $null } | ConvertTo-Json
-                Invoke-RestMethod -Uri $unlinkUrl -Method Patch -Headers $Headers -Body $unlinkBody -TimeoutSec 10 | Out-Null
+                Invoke-RestMethod -Uri $unlinkUrl -Method Patch -Headers $WriteHeaders -Body $unlinkBody -TimeoutSec 10 | Out-Null
 
                 # Verifica se a chave ja existe no catalogo
                 $licUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.${encKey}&select=id,asset_id"
-                $licResp = Invoke-RestMethod -Uri $licUrl -Method Get -Headers $Headers -TimeoutSec 10
+                $licRaw = Invoke-RestMethod -Uri $licUrl -Method Get -Headers $Headers -TimeoutSec 10
+                $licResp = @($licRaw | Where-Object { $_ -ne $null })
 
-                if ($licResp -and $licResp.Count -gt 0) {
+                if ($licResp.Count -gt 0) {
                     $existingLic = $licResp[0]
                     if ($existingLic.asset_id -ne $AssetId) {
                         # Atualiza o vinculo para apontar para este ativo
                         $updateLicUrl = "$SupabaseUrl/rest/v1/os_licenses?id=eq.$($existingLic.id)"
                         $updateLicBody = @{ asset_id = $AssetId } | ConvertTo-Json
-                        Invoke-RestMethod -Uri $updateLicUrl -Method Patch -Headers $Headers -Body $updateLicBody -TimeoutSec 10 | Out-Null
+                        Invoke-RestMethod -Uri $updateLicUrl -Method Patch -Headers $WriteHeaders -Body $updateLicBody -TimeoutSec 10 | Out-Null
                         Write-Host "[OK] Licenca do Windows vinculada a $AssetId com sucesso." -ForegroundColor Green
                     } else {
                         Write-Host "[OK] Licenca do Windows ja esta corretamente vinculada a $AssetId." -ForegroundColor Green
                     }
                 } else {
-                    # Chave nao existe: insere nova entrada
+                    # Chave nao existe: insere nova entrada (ou faz PATCH se houver conflito 409)
                     try {
                         $insertLicUrl = "$SupabaseUrl/rest/v1/os_licenses"
                         $insertLicBody = @{ product_key = $productKey; asset_id = $AssetId } | ConvertTo-Json
-                        Invoke-RestMethod -Uri $insertLicUrl -Method Post -Headers $Headers -Body $insertLicBody -TimeoutSec 10 | Out-Null
+                        Invoke-RestMethod -Uri $insertLicUrl -Method Post -Headers $WriteHeaders -Body $insertLicBody -TimeoutSec 10 | Out-Null
                         Write-Host "[OK] Nova licenca $productKey registrada e vinculada a $AssetId." -ForegroundColor Green
                     } catch {
-                        # Conflito de unicidade (chave inserida por outro processo): faz PATCH
                         $patchLicUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.${encKey}"
                         $patchLicBody = @{ asset_id = $AssetId } | ConvertTo-Json
-                        Invoke-RestMethod -Uri $patchLicUrl -Method Patch -Headers $Headers -Body $patchLicBody -TimeoutSec 10 | Out-Null
+                        Invoke-RestMethod -Uri $patchLicUrl -Method Patch -Headers $WriteHeaders -Body $patchLicBody -TimeoutSec 10 | Out-Null
                         Write-Host "[OK] Licenca $productKey atualizada para $AssetId (conflito resolvido)." -ForegroundColor Green
                     }
                 }
@@ -374,15 +389,15 @@ function Collect-And-Send-Telemetry {
                 $updatePayload["custom_name"] = $healthPayload["custom_name"]
             }
 
-            $dhUpdateUrl = "$SupabaseUrl/rest/v1/devices_health?asset_id=eq.$AssetId"
+            $dhUpdateUrl = "$SupabaseUrl/rest/v1/devices_health?asset_id=eq.${encAssetId}"
             $dhUpdateJson = $updatePayload | ConvertTo-Json
-            Invoke-RestMethod -Uri $dhUpdateUrl -Method Patch -Headers $Headers -Body $dhUpdateJson -TimeoutSec 15 | Out-Null
+            Invoke-RestMethod -Uri $dhUpdateUrl -Method Patch -Headers $WriteHeaders -Body $dhUpdateJson -TimeoutSec 15 | Out-Null
             Write-Host "[OK] Ping de telemetria enviado com sucesso (UPDATE)! CPU: $cpuUsage%, RAM: $([math]::Round($ramUsedBytes/1GB, 1))/$([math]::Round($ramTotalBytes/1GB, 1))GB" -ForegroundColor Green
         } else {
             # Faz INSERT
             $dhInsertUrl = "$SupabaseUrl/rest/v1/devices_health"
             $dhInsertJson = @($healthPayload) | ConvertTo-Json
-            Invoke-RestMethod -Uri $dhInsertUrl -Method Post -Headers $Headers -Body $dhInsertJson -TimeoutSec 15 | Out-Null
+            Invoke-RestMethod -Uri $dhInsertUrl -Method Post -Headers $WriteHeaders -Body $dhInsertJson -TimeoutSec 15 | Out-Null
             Write-Host "[OK] Novo ativo registrado na telemetria (INSERT)! Unidade: $resolvedUnit" -ForegroundColor Green
         }
 
