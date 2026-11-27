@@ -135,18 +135,53 @@ function Collect-And-Send-Telemetry {
             $uptimeSeconds = [math]::Floor(((Get-Date) - $os.LastBootUpTime).TotalSeconds)
         }
 
-        # 2. Product Key do Windows
+        # 2. Product Key do Windows (3 metodos em cascata)
         $productKey = $null
+
+        # Metodo 1: OA3 (chave gravada na BIOS/UEFI pelo fabricante OEM)
         try {
-            $productKey = (Get-CimInstance -Query "SELECT OA3xOriginalProductKey FROM SoftwareLicensingService" -ErrorAction Stop).OA3xOriginalProductKey
-            if ($productKey) { $productKey = $productKey.Trim() }
+            $oa3Key = (Get-CimInstance -Query "SELECT OA3xOriginalProductKey FROM SoftwareLicensingService" -ErrorAction Stop).OA3xOriginalProductKey
+            if ($oa3Key -and $oa3Key.Trim() -ne '') { $productKey = $oa3Key.Trim() }
         } catch {}
 
+        # Metodo 2: Registro (BackupProductKeyDefault)
         if (-not $productKey) {
             try {
                 $regKey = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform' -Name BackupProductKeyDefault -ErrorAction SilentlyContinue).BackupProductKeyDefault
-                if ($regKey) { $productKey = $regKey.Trim() }
+                if ($regKey -and $regKey.Trim() -ne '') { $productKey = $regKey.Trim() }
             } catch {}
+        }
+
+        # Metodo 3: Decodificacao do DigitalProductId (registro binario - funciona em muitos Windows 10/11 OEM)
+        if (-not $productKey) {
+            try {
+                $dpid = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DigitalProductId
+                if ($dpid -and $dpid.Length -ge 67) {
+                    $map = "BCDFGHJKMPQRTVWXY2346789"
+                    $dpidArr = [byte[]]$dpid
+                    $decoded = ""
+                    for ($i = 24; $i -ge 0; $i--) {
+                        $r = 0
+                        for ($j = 14; $j -ge 0; $j--) {
+                            $r = ($r * 256) -bxor $dpidArr[$j + 52]
+                            $dpidArr[$j + 52] = [math]::Floor($r / 24)
+                            $r = $r % 24
+                        }
+                        $decoded = $map[$r] + $decoded
+                        if (($i % 5) -eq 0 -and $i -ne 0) { $decoded = "-" + $decoded }
+                    }
+                    if ($decoded -and $decoded.Length -eq 29 -and -not ($GenericKeys -contains $decoded)) {
+                        $productKey = $decoded
+                        Write-Host "[OK] Chave decodificada via DigitalProductId: $productKey" -ForegroundColor Cyan
+                    }
+                }
+            } catch {}
+        }
+
+        if ($productKey) {
+            Write-Host "Chave do Windows detectada: $productKey" -ForegroundColor Cyan
+        } else {
+            Write-Host "Nenhuma chave do Windows recuperavel (ativacao digital ou volume)." -ForegroundColor DarkGray
         }
 
         # 3. Consulta Ativo no Inventario para obter unidade real e especificacoes
@@ -187,51 +222,13 @@ function Collect-And-Send-Telemetry {
             $currentSpecs["hardware_baseline"] = @{ ramGB = $ramGB; diskGB = $diskGB }
         }
 
-        # Vinculacao da Chave de Licenca de SO (1-para-1 estrito)
+        # Registra a chave nas especificacoes locais (antes de salvar o ativo)
         if ($productKey) {
             $currentSpecs["os_product_key"] = $productKey
-
-            if (-not ($GenericKeys -contains $productKey)) {
-                try {
-                    # Desvincula qualquer outra chave deste ativo
-                    $encAssetId = [System.Uri]::EscapeDataString($AssetId)
-                    $encKey = [System.Uri]::EscapeDataString($productKey)
-                    $unlinkUrl = "$SupabaseUrl/rest/v1/os_licenses?asset_id=eq.${encAssetId}&product_key=neq.${encKey}"
-                    $unlinkBody = @{ asset_id = $null } | ConvertTo-Json
-                    Invoke-RestMethod -Uri $unlinkUrl -Method Patch -Headers $Headers -Body $unlinkBody -TimeoutSec 10 | Out-Null
-
-                    # Checa se a chave ja existe no catalogo
-                    $licUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.${encKey}&select=id,asset_id"
-                    $licResp = Invoke-RestMethod -Uri $licUrl -Method Get -Headers $Headers -TimeoutSec 10
-                    if ($licResp -and $licResp.Count -gt 0) {
-                        $existingLic = $licResp[0]
-                        if ($existingLic.asset_id -ne $AssetId) {
-                            $updateLicUrl = "$SupabaseUrl/rest/v1/os_licenses?id=eq.$($existingLic.id)"
-                            $updateLicBody = @{ asset_id = $AssetId } | ConvertTo-Json
-                            Invoke-RestMethod -Uri $updateLicUrl -Method Patch -Headers $Headers -Body $updateLicBody -TimeoutSec 10 | Out-Null
-                            Write-Host "[OK] Chave do Windows $productKey vinculada com sucesso a $AssetId." -ForegroundColor Green
-                        }
-                    } else {
-                        # Tenta inserir; se der conflito 409 de unicidade, faz PATCH
-                        try {
-                            $insertLicUrl = "$SupabaseUrl/rest/v1/os_licenses"
-                            $insertLicBody = @{ product_key = $productKey; asset_id = $AssetId } | ConvertTo-Json
-                            Invoke-RestMethod -Uri $insertLicUrl -Method Post -Headers $Headers -Body $insertLicBody -TimeoutSec 10 | Out-Null
-                            Write-Host "[OK] Nova chave $productKey registrada e vinculada com sucesso." -ForegroundColor Green
-                        } catch {
-                            $updateLicUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.$productKey"
-                            $updateLicBody = @{ asset_id = $AssetId } | ConvertTo-Json
-                            Invoke-RestMethod -Uri $updateLicUrl -Method Patch -Headers $Headers -Body $updateLicBody -TimeoutSec 10 | Out-Null
-                            Write-Host "[OK] Chave $productKey atualizada com sucesso para $AssetId." -ForegroundColor Green
-                        }
-                    }
-                } catch {
-                    Write-Warning "Aviso ao vincular licenca: $($_.Exception.Message)"
-                }
-            }
         }
 
-        # Atualiza ou cria o ativo na tabela assets (Inventario)
+        # Atualiza ou cria o ativo na tabela assets (Inventario) PRIMEIRO
+        # IMPORTANTE: o ativo precisa existir antes de registrar a licenca (evita falha de FK)
         if ($assetData) {
             try {
                 $assetUpdatePayload = @{ specifications = $currentSpecs }
@@ -285,7 +282,56 @@ function Collect-And-Send-Telemetry {
             }
         }
 
-        # 5. Envia Ping de Telemetria para devices_health (Upsert)
+        # 5. Vinculacao da Chave de Licenca de SO (1-para-1 estrito)
+        # Executado APOS a criacao/atualizacao do ativo para garantir que o registro existe no banco
+        if ($productKey -and -not ($GenericKeys -contains $productKey)) {
+            try {
+                $encAssetId = [System.Uri]::EscapeDataString($AssetId)
+                $encKey = [System.Uri]::EscapeDataString($productKey)
+
+                # Desvincula qualquer outra chave que estava neste ativo (garantia 1-para-1)
+                $unlinkUrl = "$SupabaseUrl/rest/v1/os_licenses?asset_id=eq.${encAssetId}&product_key=neq.${encKey}"
+                $unlinkBody = @{ asset_id = $null } | ConvertTo-Json
+                Invoke-RestMethod -Uri $unlinkUrl -Method Patch -Headers $Headers -Body $unlinkBody -TimeoutSec 10 | Out-Null
+
+                # Verifica se a chave ja existe no catalogo
+                $licUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.${encKey}&select=id,asset_id"
+                $licResp = Invoke-RestMethod -Uri $licUrl -Method Get -Headers $Headers -TimeoutSec 10
+
+                if ($licResp -and $licResp.Count -gt 0) {
+                    $existingLic = $licResp[0]
+                    if ($existingLic.asset_id -ne $AssetId) {
+                        # Atualiza o vinculo para apontar para este ativo
+                        $updateLicUrl = "$SupabaseUrl/rest/v1/os_licenses?id=eq.$($existingLic.id)"
+                        $updateLicBody = @{ asset_id = $AssetId } | ConvertTo-Json
+                        Invoke-RestMethod -Uri $updateLicUrl -Method Patch -Headers $Headers -Body $updateLicBody -TimeoutSec 10 | Out-Null
+                        Write-Host "[OK] Licenca do Windows vinculada a $AssetId com sucesso." -ForegroundColor Green
+                    } else {
+                        Write-Host "[OK] Licenca do Windows ja esta corretamente vinculada a $AssetId." -ForegroundColor Green
+                    }
+                } else {
+                    # Chave nao existe: insere nova entrada
+                    try {
+                        $insertLicUrl = "$SupabaseUrl/rest/v1/os_licenses"
+                        $insertLicBody = @{ product_key = $productKey; asset_id = $AssetId } | ConvertTo-Json
+                        Invoke-RestMethod -Uri $insertLicUrl -Method Post -Headers $Headers -Body $insertLicBody -TimeoutSec 10 | Out-Null
+                        Write-Host "[OK] Nova licenca $productKey registrada e vinculada a $AssetId." -ForegroundColor Green
+                    } catch {
+                        # Conflito de unicidade (chave inserida por outro processo): faz PATCH
+                        $patchLicUrl = "$SupabaseUrl/rest/v1/os_licenses?product_key=eq.${encKey}"
+                        $patchLicBody = @{ asset_id = $AssetId } | ConvertTo-Json
+                        Invoke-RestMethod -Uri $patchLicUrl -Method Patch -Headers $Headers -Body $patchLicBody -TimeoutSec 10 | Out-Null
+                        Write-Host "[OK] Licenca $productKey atualizada para $AssetId (conflito resolvido)." -ForegroundColor Green
+                    }
+                }
+            } catch {
+                Write-Warning "Aviso ao vincular licenca de SO: $($_.Exception.Message)"
+            }
+        } elseif ($productKey -and ($GenericKeys -contains $productKey)) {
+            Write-Host "Chave generica/KMS detectada - nao registrada no catalogo." -ForegroundColor DarkGray
+        }
+
+        # 6. Envia Ping de Telemetria para devices_health (Upsert)
         $healthPayload = @{
             asset_id       = $AssetId
             unit_id        = $resolvedUnit
